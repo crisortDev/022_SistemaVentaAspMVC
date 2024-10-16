@@ -3,23 +3,23 @@ var tabladata;
 $(document).ready(function () {
     activarMenu("Compras");
 
-
-    ////validamos el formulario
+    // Validar el formulario
     $("#form").validate({
         rules: {
             RUC: "required",
             RazonSocial: "required",
             Telefono: "required",
             Correo: "required",
-            Direccion: "required"
+            Direccion: "required",
+            Ciudad: "required"
         },
         messages: {
             RUC: "(*)",
             RazonSocial: "(*)",
             Telefono: "(*)",
             Correo: "(*)",
-            Direccion: "(*)"
-
+            Direccion: "(*)",
+            Ciudad: "(*)"
         },
         errorElement: 'span'
     });
@@ -38,16 +38,22 @@ $(document).ready(function () {
             { "data": "Correo" },
             { "data": "Direccion" },
             {
-                "data": "Activo", "render": function (data) {
-                    if (data) {
-                        return '<span class="badge badge-success">Activo</span>'
-                    } else {
-                        return '<span class="badge badge-danger">No Activo</span>'
-                    }
+                "data": "Activo",
+                "render": function (data) {
+                    return data ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">No Activo</span>';
+                }
+            },
+            { "data": "Ciudad" }, // Columna Ciudad
+            {
+                "data": "Geolocalizacion",
+                "render": function (data) {
+                    // Renderizar el botón que lleva a la ubicación en el mapa
+                    return "<button class='btn btn-info btn-sm' onclick='abrirMapaDesdeDataTable(\"" + data + "\")'>Ver en Mapa</button>";
                 }
             },
             {
-                "data": "IdProveedor", "render": function (data, type, row, meta) {
+                "data": "IdProveedor",
+                "render": function (data, type, row, meta) {
                     return "<button class='btn btn-primary btn-sm' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>" +
                         "<button class='btn btn-danger btn-sm ml-2' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>"
                 },
@@ -55,33 +61,28 @@ $(document).ready(function () {
                 "searchable": false,
                 "width": "90px"
             }
-
         ],
         "language": {
             "url": $.MisUrls.url.Url_datatable_spanish
         },
         responsive: true
     });
-
-
 })
 
 
 function abrirPopUpForm(json) {
-
     $("#txtid").val(0);
 
     if (json != null) {
-
         $("#txtid").val(json.IdProveedor);
-
         $("#txtRuc").val(json.Ruc);
         $("#txtRazonSocial").val(json.RazonSocial);
         $("#txtTelefono").val(json.Telefono);
         $("#txtCorreo").val(json.Correo);
         $("#txtDireccion").val(json.Direccion);
-        $("#cboEstado").val(json.Activo == true ? 1 : 0);
-
+        $("#cboEstado").val(json.Activo ? 1 : 0);
+        $("#txtCiudad").val(json.Ciudad); // Cambiar de NuevoCampo a Ciudad
+        $("#txtGeolocalizacion").val(json.Geolocalizacion); // Mantener para guardar
     } else {
         $("#txtRuc").val("");
         $("#txtRazonSocial").val("");
@@ -89,10 +90,11 @@ function abrirPopUpForm(json) {
         $("#txtCorreo").val("");
         $("#txtDireccion").val("");
         $("#cboEstado").val(1);
+        $("#txtCiudad").val("");
+        $("#txtGeolocalizacion").val(""); // Mantener para guardar
     }
 
     $('#FormModal').modal('show');
-
 }
 
 
@@ -108,7 +110,9 @@ function Guardar() {
                 Telefono: $("#txtTelefono").val(),
                 Correo: $("#txtCorreo").val(),
                 Direccion: $("#txtDireccion").val(),
-                Activo: parseInt($("#cboEstado").val()) == 1 ? true : false
+                Activo: parseInt($("#cboEstado").val()) == 1 ? true : false,
+                Ciudad: $("#txtCiudad").val(), // Agregar el nuevo campo aquí
+                Geolocalizacion: $("#txtGeolocalizacion").val() // Agregar el nuevo campo aquí
             }
         }
 
@@ -182,3 +186,41 @@ function eliminar($id) {
         });
 
 }
+
+function abrirMapa() {
+    // Crear un mapa y establecer su vista inicial
+    var map = L.map('map').setView([-34.90, -56.18], 13); // Cambia las coordenadas a las que desees
+
+    // Agregar una capa de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(map);
+
+    // Agregar un marcador al mapa
+    var marker = L.marker([-34.90, -56.18]).addTo(map); // Cambia las coordenadas por defecto
+
+    // Al hacer clic en el mapa, actualizar el marcador y el campo de geolocalización
+    map.on('click', function (e) {
+        marker.setLatLng(e.latlng);
+        document.getElementById('txtGeolocalizacion').value = e.latlng.lat + ',' + e.latlng.lng; // Guardar lat, lng en el campo
+    });
+}
+
+// Función para abrir el mapa con coordenadas desde DataTable
+function abrirMapaDesdeDataTable(coordenadas) {
+    if (coordenadas) {
+        var coords = coordenadas.split(','); // Suponiendo que las coordenadas están en formato "lat,lng"
+        var lat = parseFloat(coords[0]);
+        var lng = parseFloat(coords[1]);
+
+        // Redirigir a OpenStreetMap con las coordenadas específicas
+        window.open(`https://www.openstreetmap.org/#map=13/${lat}/${lng}`, '_blank');
+    } else {
+        alert("Coordenadas no disponibles.");
+    }
+}
+
+$('#mapModal').on('shown.bs.modal', function () {
+    // Reinicializar el mapa
+    abrirMapaDesdeDataTable(coordenadas);
+});

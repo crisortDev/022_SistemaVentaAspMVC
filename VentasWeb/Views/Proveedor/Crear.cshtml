@@ -36,6 +36,8 @@
                                     <th>Correo</th>
                                     <th>Direccion</th>
                                     <th>Estado</th>
+                                    <th>Ciudad</th>
+                                    <th>Geolocalizacion</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -48,9 +50,30 @@
     </div>
 </div>
 
+<!-- Modal para mostrar el mapa -->
+<div class="modal fade" id="mapModal" tabindex="-1" role="dialog" aria-labelledby="mapModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mapModalLabel">Ubicación en el Mapa</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="map" style="height: 400px;"></div> <!-- Contenedor del mapa -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal -->
 <div class="modal fade" id="FormModal" tabindex="-1" role="dialog" data-backdrop="static" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
+        <!-- Cambiar a modal-lg -->
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
                 <h5 class="modal-title" id="exampleModalLabel">Proveedor</h5>
@@ -62,39 +85,37 @@
                 <form id="form">
                     <input id="txtid" value="0" type="hidden" />
                     <div class="form-group row">
-                        <label for="staticEmail" class="col-sm-2 col-form-label col-form-label-sm">RUC <span class="error"></span></label>
+                        <label for="txtRuc" class="col-sm-2 col-form-label col-form-label-sm">RUC <span class="error"></span></label>
                         <div class="col-sm-10">
                             <input type="text" class="form-control form-control-sm model" id="txtRuc" name="RUC">
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="staticEmail" class="col-sm-2 col-form-label col-form-label-sm">Razón Social <span class="error"></span></label>
+                        <label for="txtRazonSocial" class="col-sm-2 col-form-label col-form-label-sm">Razón Social <span class="error"></span></label>
                         <div class="col-sm-10">
                             <input type="text" class="form-control form-control-sm model" id="txtRazonSocial" name="RazonSocial">
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="staticEmail" class="col-sm-2 col-form-label col-form-label-sm">Telefono <span class="error"></span></label>
+                        <label for="txtTelefono" class="col-sm-2 col-form-label col-form-label-sm">Telefono <span class="error"></span></label>
                         <div class="col-sm-10">
                             <input type="text" class="form-control form-control-sm model" id="txtTelefono" name="Telefono">
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="staticEmail" class="col-sm-2 col-form-label col-form-label-sm">Correo <span class="error"></span></label>
+                        <label for="txtCorreo" class="col-sm-2 col-form-label col-form-label-sm">Correo <span class="error"></span></label>
                         <div class="col-sm-10">
                             <input type="text" class="form-control form-control-sm model" id="txtCorreo" name="Correo">
                         </div>
                     </div>
-
                     <div class="form-group row">
-                        <label for="inputPassword" class="col-sm-2 col-form-label col-form-label-sm">Direccion <span class="error"></span></label>
+                        <label for="txtDireccion" class="col-sm-2 col-form-label col-form-label-sm">Direccion <span class="error"></span></label>
                         <div class="col-sm-10">
                             <input type="text" class="form-control form-control-sm model" id="txtDireccion" name="Direccion">
                         </div>
                     </div>
-
                     <div class="form-group row">
-                        <label for="inputPassword" class="col-sm-2 col-form-label col-form-label-sm">Activo</label>
+                        <label for="cboEstado" class="col-sm-2 col-form-label col-form-label-sm">Activo</label>
                         <div class="col-sm-10">
                             <select class="form-control form-control-sm model" id="cboEstado" name="Activo">
                                 <option value="1">Activo</option>
@@ -102,7 +123,23 @@
                             </select>
                         </div>
                     </div>
-
+                    <div class="form-group row">
+                        <label for="txtCiudad" class="col-sm-2 col-form-label col-form-label-sm">Ciudad <span class="error"></span></label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control form-control-sm model" id="txtCiudad" name="Ciudad">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="txtGeolocalizacion" class="col-sm-2 col-form-label col-form-label-sm">Geolocalización <span class="error"></span></label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control form-control-sm model" id="txtGeolocalizacion" name="Geolocalizacion" readonly>
+                            <div style="margin-top: 10px;">
+                                <!-- Agregar distancia entre el campo y el botón -->
+                                <button type="button" class="btn btn-primary btn-sm" onclick="abrirMapa()">Seleccionar Ubicación</button> <!-- Cambiar a un color más atractivo -->
+                            </div>
+                            <div id="map" style="height: 300px; margin-top: 10px;"></div> <!-- Reducir la altura del mapa -->
+                        </div>
+                    </div>
 
                 </form>
             </div>
@@ -113,6 +150,7 @@
         </div>
     </div>
 </div>
+
 
 @section scripts{
     <script src="@Url.Content("~/Scripts/Views/Proveedor_Crear.js")" type="text/javascript"></script>

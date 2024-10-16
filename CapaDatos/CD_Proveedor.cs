@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -53,7 +54,9 @@ namespace CapaDatos
                             Telefono = dr["Telefono"].ToString(),
                             Correo = dr["Correo"].ToString(),
                             Direccion = dr["Direccion"].ToString(),
-                            Activo = Convert.ToBoolean(dr["Activo"].ToString())
+                            Activo = Convert.ToBoolean(dr["Activo"].ToString()),
+                            Ciudad = dr["Ciudad"].ToString(),
+                            Geolocalizacion = dr["Geolocalizacion"].ToString()
 
                         });
                     }
@@ -83,6 +86,9 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Telefono", oProveedor.Telefono);
                     cmd.Parameters.AddWithValue("Correo", oProveedor.Correo);
                     cmd.Parameters.AddWithValue("Direccion", oProveedor.Direccion);
+                    cmd.Parameters.AddWithValue("@Ciudad", oProveedor.Ciudad); // Manejo de valor nulo
+                    cmd.Parameters.AddWithValue("@Geolocalizacion", oProveedor.Geolocalizacion); // Manejo de valor nulo
+
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
 

@@ -13,9 +13,13 @@
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
     @Styles.Render("~/Content/PluginsCSS")
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     @RenderSection("estilos", required: false)
 </head>
 <body>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <nav class="navbar navbar-icon-top navbar-expand-lg navbar-dark bg-info" style="font-weight:bold">
         <a class="navbar-brand" href="#">
@@ -31,11 +35,11 @@
                 </li>
                 @Html.ActionLinkAllow()
                 @*<li class="nav-item">
-                    <a class="nav-link" href="https://ouo.io/VRgLgZ" target="_blank"><i class="fas fa-hands-helping"></i> Click y ayuda al Canal</a>
-                </li>*@
+                        <a class="nav-link" href="https://ouo.io/VRgLgZ" target="_blank"><i class="fas fa-hands-helping"></i> Click y ayuda al Canal</a>
+                    </li>*@
             </ul>
             <ul class="nav navbar-nav ml-auto">
-                
+
                 <li class="nav-item">
                     <a href="@Url.Action("Salir", "Home")" class="nav-link">
                         <i class="fas fa-sign-out-alt"></i>
@@ -149,10 +153,10 @@
                 if ($(li).find("div.dropdown-menu").length != 0) {
 
                     var div = $($(li).find("div.dropdown-menu"))
-                   
+
                     div.find("a.dropdown-item").each(function (x, tagA) {
                         if ($(tagA).attr("name") == menuactivo) {
-                            
+
                             $(li).addClass("active");
                             return false;
                         }
@@ -170,6 +174,9 @@
         }
 
     </script>
+
     @RenderSection("scripts", required: false)
+
+
 </body>
 </html>
