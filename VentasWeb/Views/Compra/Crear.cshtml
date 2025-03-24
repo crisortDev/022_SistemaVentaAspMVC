@@ -80,6 +80,7 @@
                         <div class="card border-info">
                             <div class="card-body p-2">
                                 <h6 class="card-title mb-1 text-info">Detalle Producto</h6>
+                                <!-- Primera fila de campos -->
                                 <div class="row">
                                     <input id="txtIdProducto" type="hidden" value="0" />
                                     <div class="col-sm-2">
@@ -97,7 +98,9 @@
                                     <div class="col-sm-2">
                                         <div class="form-group mb-0">
                                             <label for="btnBuscarTienda" class="col-form-label col-form-label-sm invisible">Buscar:</label>
-                                            <button id="btnBuscarProducto" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProducto()"><i class="fas fa-search"></i> Buscar</button>
+                                            <button id="btnBuscarProducto" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProducto()">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="col-sm-2">
@@ -108,14 +111,29 @@
                                     </div>
                                     <div class="col-sm-2">
                                         <div class="form-group mb-0">
-                                            <label for="txtPrecioCompraProducto" class="col-form-label col-form-label-sm">Precio Compra: <span class="error"> Gs/.(00.00)</span></label>
+                                            <label for="txtPrecioCompraProducto" class="col-form-label col-form-label-sm">Precio Compra:</label>
                                             <input type="text" class="form-control form-control-sm model" id="txtPrecioCompraProducto" name="PrecioCompra" value="0">
                                         </div>
                                     </div>
                                     <div class="col-sm-2">
                                         <div class="form-group mb-0">
-                                            <label for="txtPrecioVentaProducto" class="col-form-label col-form-label-sm">Precio Venta: <span class="error"> Gs/.(00.00)</span></label>
+                                            <label for="txtPrecioVentaProducto" class="col-form-label col-form-label-sm">Precio Venta:</label>
                                             <input type="text" class="form-control form-control-sm model" id="txtPrecioVentaProducto" name="PrecioVenta" value="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Segunda fila para StockMinimo y StockMaximo -->
+                                <div class="row mt-2">
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb-0">
+                                            <label for="cboStockMinimo" class="col-form-label col-form-label-sm">Stock Mínimo:</label>
+                                            <input type="text" class="form-control form-control-sm model" id="cboStockMinimo" name="StockMinimo" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb-0">
+                                            <label for="cboStockMaximo" class="col-form-label col-form-label-sm">Stock Máximo:</label>
+                                            <input type="text" class="form-control form-control-sm model" id="cboStockMaximo" name="StockMaximo" value="0">
                                         </div>
                                     </div>
                                 </div>

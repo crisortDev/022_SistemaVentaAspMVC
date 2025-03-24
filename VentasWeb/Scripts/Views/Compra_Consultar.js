@@ -117,7 +117,7 @@ $(document).ready(function () {
             {
                 "data": "TotalCosto", render: function (data) {
 
-                    return "S./ " + (data).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+                    return "G./ " + (data).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
                 }
             },
            

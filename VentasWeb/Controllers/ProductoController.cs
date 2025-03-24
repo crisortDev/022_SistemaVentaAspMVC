@@ -10,99 +10,171 @@ namespace VentasWeb.Controllers
 {
     public class ProductoController : Controller
     {
+        private readonly CD_Producto _productoService = CD_Producto.Instancia;
+        private readonly CD_ProductoTienda _productoTiendaService = CD_ProductoTienda.Instancia;
+
         // GET: Producto
         public ActionResult Crear()
         {
             return View();
         }
 
-        // GET: Producto
+        // GET: Asignación de productos a tiendas
         public ActionResult Asignar()
         {
             return View();
         }
 
-
-
+        [HttpGet]
         public JsonResult Obtener()
         {
-            List<Producto> lista = CD_Producto.Instancia.ObtenerProducto();
-            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                var lista = _productoService.ObtenerProducto();
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
+        [HttpGet]
         public JsonResult ObtenerPorTienda(int IdTienda)
         {
-
-            List<Producto> oListaProducto = CD_Producto.Instancia.ObtenerProducto();
-            List<ProductoTienda> oListaProductoTienda = CD_ProductoTienda.Instancia.ObtenerProductoTienda();
-
-            oListaProducto = oListaProducto.Where(x => x.Activo == true).ToList();
-            if (IdTienda != 0)
+            try
             {
-                oListaProductoTienda = oListaProductoTienda.Where(x => x.oTienda.IdTienda == IdTienda).ToList();
-                oListaProducto = (from producto in oListaProducto
-                                  join productotienda in oListaProductoTienda on producto.IdProducto equals productotienda.oProducto.IdProducto
-                                  where productotienda.oTienda.IdTienda == IdTienda
-                                  select producto).ToList();
-            }
+                var productos = _productoService.ObtenerProducto()
+                    .Where(x => x.Activo == true)
+                    .ToList();
 
-            return Json(new { data = oListaProducto }, JsonRequestBehavior.AllowGet);
+                if (IdTienda != 0)
+                {
+                    var productosTienda = _productoTiendaService.ObtenerProductoTienda()
+                        .Where(x => x.oTienda.IdTienda == IdTienda)
+                        .ToList();
+
+                    productos = (from producto in productos
+                                 join productoTienda in productosTienda
+                                 on producto.IdProducto equals productoTienda.oProducto.IdProducto
+                                 select producto).ToList();
+                }
+
+                return Json(new { data = productos }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpPost]
         public JsonResult Guardar(Producto objeto)
         {
-            bool respuesta = false;
-
-            if (objeto.IdProducto == 0)
+            try
             {
+                bool respuesta;
 
-                respuesta = CD_Producto.Instancia.RegistrarProducto(objeto);
+                if (objeto.IdProducto == 0)
+                {
+                    respuesta = _productoService.RegistrarProducto(objeto);
+                }
+                else
+                {
+                    respuesta = _productoService.ModificarProducto(objeto);
+                }
+
+                return Json(new
+                {
+                    resultado = respuesta,
+                    message = respuesta ? "Operación exitosa" : "Error al guardar"
+                });
             }
-            else
+            catch (Exception ex)
             {
-                respuesta = CD_Producto.Instancia.ModificarProducto(objeto);
+                return Json(new { resultado = false, message = ex.Message });
             }
-
-
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
         }
 
-        [HttpGet]
-        public JsonResult Eliminar(int id = 0)
+        [HttpPost]
+        public JsonResult Eliminar(int id)
         {
-            bool respuesta = CD_Producto.Instancia.EliminarProducto(id);
+            try
+            {
+                if (id <= 0)
+                    return Json(new { resultado = false, mensaje = "ID inválido" });
 
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+                bool resultado = CD_Producto.Instancia.EliminarProducto(id);
+                return Json(new
+                {
+                    resultado = resultado,
+                    mensaje = resultado ? "Producto eliminado correctamente" : "No se pudo eliminar el producto"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    resultado = false,
+                    mensaje = "Error: " + ex.Message
+                });
+            }
         }
 
         [HttpPost]
         public JsonResult RegistrarProductoTienda(ProductoTienda objeto)
         {
-            bool respuesta = CD_ProductoTienda.Instancia.RegistrarProductoTienda(objeto);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                bool respuesta = _productoTiendaService.RegistrarProductoTienda(objeto);
+                return Json(new { resultado = respuesta });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, message = ex.Message });
+            }
         }
 
-        [HttpPost]
+        [HttpPut]
         public JsonResult ModificarProductoTienda(ProductoTienda objeto)
         {
-            bool respuesta = CD_ProductoTienda.Instancia.ModificarProductoTienda(objeto);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                bool respuesta = _productoTiendaService.ModificarProductoTienda(objeto);
+                return Json(new { resultado = respuesta });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, message = ex.Message });
+            }
         }
 
-        [HttpGet]
+        [HttpDelete]
         public JsonResult EliminarProductoTienda(int id)
         {
-            bool respuesta = CD_ProductoTienda.Instancia.EliminarProductoTienda(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                bool respuesta = _productoTiendaService.EliminarProductoTienda(id);
+                return Json(new { resultado = respuesta });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, message = ex.Message });
+            }
         }
-
 
         [HttpGet]
         public JsonResult ObtenerAsignaciones()
         {
-            List<ProductoTienda> lista = CD_ProductoTienda.Instancia.ObtenerProductoTienda();
-            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                var lista = _productoTiendaService.ObtenerProductoTienda();
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
     }
 }
