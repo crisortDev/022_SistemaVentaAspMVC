@@ -92,13 +92,22 @@ namespace VentasWeb.Controllers
         [HttpPost]
         public JsonResult ControlarStock(int idproducto, int idtienda, int cantidad, bool restar)
         {
-            bool respuesta = CD_ProductoTienda.Instancia.ControlarStock(idproducto, idtienda, cantidad, restar);
+            // Llama al método de la capa de negocio que maneja la lógica del stock
+            string respuesta = CD_ProductoTienda.Instancia.ControlarStock(idproducto, idtienda, cantidad, restar);
+
+            // Retorna el mensaje como un JSON con la clave 'resultado'
             return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
         }
+
 
         [HttpPost]
         public JsonResult Guardar(string xml)
         {
+            int numeroTimbrado = 123456;
+            string fechaStr = "31/03/2026"; // La fecha en formato "dd/MM/yyyy"
+            DateTime fechaVencimientoTimbrado = DateTime.ParseExact(fechaStr, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+            bool registroFactura = CD_Venta.Instancia.RegistrarSecuenciaFactura(numeroTimbrado, fechaVencimientoTimbrado);
             xml = xml.Replace("!idusuario¡", SesionUsuario.IdUsuario.ToString());
             int Respuesta = 0;
             Respuesta = CD_Venta.Instancia.RegistrarVenta(xml);
@@ -107,6 +116,5 @@ namespace VentasWeb.Controllers
             else
                 return Json(new { estado = false, valor = "" }, JsonRequestBehavior.AllowGet);
         }
-
     }
 }

@@ -82,12 +82,16 @@ namespace CapaDatos
                             if (doc.Element("DETALLE_COMPRA") != null)
                             {
                                 rptDetalleCompra = (from dato in doc.Elements("DETALLE_COMPRA")
-                                                    select new Compra()
-                                                    {
-                                                        Codigo = dato.Element("Codigo").Value,
-                                                        TotalCosto = Convert.ToDecimal(dato.Element("TotalCosto").Value,new CultureInfo("es-PE")),
-                                                        FechaCompra = dato.Element("FechaCompra").Value
-                                                    }).FirstOrDefault();
+                                                     select new Compra()
+                                                     {
+                                                         Codigo = dato.Element("Codigo")?.Value ?? "",
+                                                         TotalCosto = Convert.ToDecimal(dato.Element("TotalCosto")?.Value ?? "0", new CultureInfo("es-PE")),
+                                                         FechaCompra = dato.Element("FechaCompra")?.Value ?? "",
+                                                         FechaVencimientoTimbrado = dato.Element("FechaVencimientoTimbrado")?.Value ?? "",
+                                                         NumeroTimbrado = dato.Element("NumeroTimbrado")?.Value ?? "",
+                                                         NumeroFactura = dato.Element("NumeroFactura")?.Value ?? "",
+                                                         TotalCostoIvaIncluido = Convert.ToDecimal(dato.Element("TotalCostoIvaIncluido")?.Value ?? "0", new CultureInfo("es-PE")),
+                                                     }).FirstOrDefault();
                                 rptDetalleCompra.oProveedor = (from dato in doc.Element("DETALLE_COMPRA").Elements("DETALLE_PROVEEDOR")
                                                                select new Proveedor()
                                                                {
@@ -107,7 +111,8 @@ namespace CapaDatos
                                                                             Cantidad = int.Parse(producto.Element("Cantidad").Value),
                                                                             oProducto = new Producto() { Nombre = producto.Element("NombreProducto").Value },
                                                                             PrecioUnitarioCompra = Convert.ToDecimal(producto.Element("PrecioUnitarioCompra").Value, new CultureInfo("es-PE")),
-                                                                            TotalCosto = Convert.ToDecimal(producto.Element("TotalCosto").Value, new CultureInfo("es-PE"))
+                                                                            TotalCosto = Convert.ToDecimal(producto.Element("TotalCosto").Value, new CultureInfo("es-PE")),
+                                                                            TotalCostoIvaIncluido = Convert.ToDecimal(producto.Element("TotalCostoIvaIncluido").Value, new CultureInfo("es-PE"))
                                                                         }).ToList();
                             }
                             else
@@ -174,6 +179,43 @@ namespace CapaDatos
                 }
             }
         }
+
+        public string ValidaStockMaximo(int IdProducto, int Cantidad, int Tienda)
+        {
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_ValidaStockMaximo", oConexion);
+                    cmd.Parameters.Add("IdProducto", SqlDbType.Int).Value = IdProducto;
+                    cmd.Parameters.Add("Cantidad", SqlDbType.Int).Value = Cantidad;
+                    cmd.Parameters.Add("IdTienda", SqlDbType.Int).Value = Tienda;
+
+                    // Parámetros de salida
+                    cmd.Parameters.Add("Resultado", SqlDbType.Int).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("Mensaje", SqlDbType.VarChar, 255).Direction = ParameterDirection.Output;
+
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+
+                    // Obtener valores de salida
+                    int resultado = Convert.ToInt32(cmd.Parameters["Resultado"].Value);
+                    string mensaje = cmd.Parameters["Mensaje"].Value?.ToString() ?? "Sin mensaje"; // Manejo de null
+
+                    // Concatenar resultado y mensaje
+                    return $"{resultado},{mensaje}";
+                }
+                catch (Exception ex)
+                {
+                    // Devuelve un código de error y el mensaje de la excepción
+                    return $"-1,Error al validar stock: {ex.Message}";
+                }
+            }
+        }
+
+
     }
 
 

@@ -189,20 +189,32 @@ $("#txtCodigo").on('keypress', function (e) {
 
 
 function asignarProducto() {
-
     var camposvacios = false;
 
-    if ($("#txtIdTienda").val() == "0" || $("#txtIdProducto").val() == "0")
+    if ($("#txtIdTienda").val() == "0" || $("#txtIdProducto").val() == "0") {
         camposvacios = true;
+    }
+
+    var stockMinimo = parseInt($("#txtStockMinimo").val()) || 0;
+    var stockMaximo = parseInt($("#txtStockMaximo").val()) || 0;
+
+    // Validamos que StockMinimo y StockMaximo no sean cero
+    if (stockMinimo === 0 || stockMaximo === 0) {
+        camposvacios = true;
+        swal("Mensaje", "El Stock Mínimo y Stock Máximo no pueden ser cero", "warning");
+    }
 
     if (!camposvacios) {
-
         var request = {
             objeto: {
                 oProducto: { IdProducto: parseInt($("#txtIdProducto").val()) },
                 oTienda: { IdTienda: parseInt($("#txtIdTienda").val()) },
+                StockMinimo: stockMinimo,
+                StockMaximo: stockMaximo,
+                PrecioUnidadCompra: parseFloat($("#txtPrecioCompra").val()) || 0,
+                PrecioUnidadVenta: parseFloat($("#txtPrecioVenta").val()) || 0
             }
-        }
+        };
 
         jQuery.ajax({
             url: $.MisUrls.url._RegistrarProductoTienda,
@@ -211,32 +223,28 @@ function asignarProducto() {
             dataType: "json",
             contentType: "application/json; charset=utf-8",
             success: function (data) {
-
                 if (data.resultado) {
                     tabladata.ajax.reload();
+                    // Limpiar campos después de asignar
                     $("#txtIdProducto").val("0");
                     $("#txtCodigo").val("");
                     $("#txtNombre").val("");
                     $("#txtDescripcion").val("");
+                    $("#txtStockMinimo").val("0");
+                    $("#txtStockMaximo").val("0");
                 } else {
-
-                    swal("Mensaje", "No se pudo registrar la asignación", "warning")
+                    swal("Mensaje", "No se pudo registrar la asignación", "warning");
                 }
             },
             error: function (error) {
-                console.log(error)
-            },
-            beforeSend: function () {
-
-            },
+                console.log(error);
+            }
         });
-
     } else {
-        swal("Mensaje!", "Es necesario completar todos los campos", "warning")
+        swal("Mensaje!", "Es necesario completar todos los campos correctamente", "warning");
     }
-
-
 }
+
 
 
 function eliminar($id) {

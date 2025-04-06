@@ -64,7 +64,8 @@ namespace CapaDatos
                                 Direccion = dr["DireccionTienda"].ToString(),
                             },
                             PrecioUnidadCompra = Convert.ToDecimal(dr["PrecioUnidadCompra"].ToString(), new CultureInfo("es-PE")),
-                            PrecioUnidadVenta = Convert.ToDecimal(dr["PrecioUnidadVenta"].ToString(), new CultureInfo("es-PE")),
+                            PrecioVenta = Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PE")),
+                            PrecioIvaIncluido = Convert.ToDecimal(dr["PrecioIvaIncluido"].ToString(), new CultureInfo("es-PE")),
                             Stock = Convert.ToInt32(dr["Stock"].ToString()),
                             Iniciado = Convert.ToBoolean(dr["Iniciado"].ToString())
                         });
@@ -92,19 +93,23 @@ namespace CapaDatos
                     SqlCommand cmd = new SqlCommand("usp_RegistrarProductoTienda", oConexion);
                     cmd.Parameters.AddWithValue("IdProducto", oProductoTienda.oProducto.IdProducto);
                     cmd.Parameters.AddWithValue("IdTienda", oProductoTienda.oTienda.IdTienda);
+
+                    // Agregar StockMinimo y StockMaximo
+                    cmd.Parameters.AddWithValue("StockMinimo", oProductoTienda.StockMinimo);
+                    cmd.Parameters.AddWithValue("StockMaximo", oProductoTienda.StockMaximo);
+
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
 
                     oConexion.Open();
-
                     cmd.ExecuteNonQuery();
 
                     respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
-
                 }
                 catch (Exception ex)
                 {
                     respuesta = false;
+                    // Considera registrar el error (ej: log, Debug.WriteLine)
                 }
             }
             return respuesta;
@@ -173,9 +178,9 @@ namespace CapaDatos
 
         }
 
-        public bool ControlarStock(int IdProducto, int IdTienda, int Cantidad, bool Restar)
+        public string ControlarStock(int IdProducto, int IdTienda, int Cantidad, bool Restar)
         {
-            bool respuesta = true;
+            string resultado = "";
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
@@ -185,22 +190,22 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("IdTienda", IdTienda);
                     cmd.Parameters.AddWithValue("Cantidad", Cantidad);
                     cmd.Parameters.AddWithValue("Restar", Restar);
-                    cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("Resultado", SqlDbType.VarChar, 255).Direction = ParameterDirection.Output;  // Cambiar BIT a VARCHAR
                     cmd.CommandType = CommandType.StoredProcedure;
 
                     oConexion.Open();
-
                     cmd.ExecuteNonQuery();
 
-                    respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
-
+                    // Obtener el mensaje de la operación
+                    resultado = cmd.Parameters["Resultado"].Value.ToString();
                 }
                 catch (Exception ex)
                 {
-                    respuesta = false;
+                    resultado = "Error en la operación: " + ex.Message;
                 }
             }
-            return respuesta;
+            return resultado;
         }
+
     }
 }

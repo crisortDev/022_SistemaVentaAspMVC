@@ -126,6 +126,18 @@ namespace VentasWeb.Controllers
         {
             try
             {
+                // Validar StockMínimo y StockMáximo
+
+                if (objeto.StockMinimo < 0 || objeto.StockMaximo < 0)
+                {
+                    return Json(new { resultado = false, mensaje = "Los stocks no pueden ser negativos." });
+                }
+
+                if (objeto.StockMaximo <= objeto.StockMinimo)
+                {
+                    return Json(new { resultado = false, mensaje = "Stock máximo debe ser mayor que stock mínimo." });
+                }
+
                 bool respuesta = _productoTiendaService.RegistrarProductoTienda(objeto);
                 return Json(new { resultado = respuesta });
             }

@@ -218,8 +218,8 @@ $("#txtPrecioVentaProducto").inputFilter(function (value) {
 
 
 $('#btnAgregarCompra').on('click', function () {
-
     var existe_codigo = false;
+
     if (
         parseInt($("#txtIdProveedor").val()) == 0 ||
         parseInt($("#txtIdTienda").val()) == 0 ||
@@ -240,7 +240,6 @@ $('#btnAgregarCompra').on('click', function () {
             existe_codigo = true;
             return false;
         }
-
     });
 
     if (!existe_codigo) {
@@ -254,9 +253,10 @@ $('#btnAgregarCompra').on('click', function () {
             $("<td>").append($("#txtNombreProducto").val()),
             $("<td>").addClass("cantidad").append($("#txtCantidadProducto").val()),
             $("<td>").addClass("preciocompra").append($("#txtPrecioCompraProducto").val()),
-            $("<td>").addClass("precioventa").append($("#txtPrecioVentaProducto").val()),
+            $("<td>").addClass("precioventa").append($("#txtPrecioVentaProducto").val())
         ).appendTo("#tbCompra tbody");
 
+        // Limpiar solo campos de producto
         $("#txtIdProducto").val("0");
         $("#txtCodigoProducto").val("");
         $("#txtNombreProducto").val("");
@@ -267,7 +267,8 @@ $('#btnAgregarCompra').on('click', function () {
     } else {
         swal("Mensaje", "El producto ya existe en la compra", "warning")
     }
-})
+});
+
 
 $('#tbCompra tbody').on('click', 'button[class="btn btn-danger btn-sm"]', function () {
     $(this).parents("tr").remove();
@@ -276,101 +277,127 @@ $('#tbCompra tbody').on('click', 'button[class="btn btn-danger btn-sm"]', functi
 
 
 $('#btnTerminarGuardarCompra').on('click', function () {
-
-
-    if ($('#tbCompra > tbody  > tr').length == 0) {
-        swal("Mensaje", "No existen detalles", "warning")
+    if ($('#tbCompra > tbody  > tr').length === 0) {
+        swal("Mensaje", "No existen detalles de compra", "warning");
         return;
     }
 
-    var $xml = "";
-    var compra = "";
-    var detallecompra = ""
-    var detalle = "";
-    var totalcostocompra = 0;
+    const numeroFactura = $("#txtNumeroFactura").val().trim();
+    const numeroTimbrado = $("#txtNumeroTimbrado").val().trim();
+    const fechaVencimientoTimbrado = $("#txtFechaVencimientoTimbrado").val().trim();
 
-    $xml = "<DETALLE>";
-    compra = "<COMPRA>" +
-        "<IdUsuario>!idusuario¡</IdUsuario>" +
-        "<IdProveedor>" + $("#txtIdProveedor").val() + "</IdProveedor>" +
-        "<IdTienda>" + $("#txtIdTienda").val() + "</IdTienda>" +
-        "<TotalCosto>!totalcosto¡</TotalCosto>" +
-        "</COMPRA>";
-    detallecompra = "<DETALLE_COMPRA>"
+    if (!numeroFactura || !numeroTimbrado || !fechaVencimientoTimbrado) {
+        swal("Mensaje", "Debe completar todos los campos de facturación", "warning");
+        return;
+    }
 
-    $('#tbCompra > tbody  > tr').each(function (index, tr) {
+    $.LoadingOverlay("show");
 
-        var fila = tr;
-        var idproducto = parseFloat($(fila).find("td.codigoproducto").data("idproducto"));
-        var cantidad = parseFloat($(fila).find("td.cantidad").text());
-        var preciocompra = parseFloat($(fila).find("td.preciocompra").text());
-        var precioventa = parseFloat($(fila).find("td.precioventa").text());
-        var totalcosto = parseFloat(cantidad) * parseFloat(preciocompra);
+    try {
+        let $xml = "<DETALLE>";
 
-        detalle = detalle + "<DETALLE>" +
-            "<IdCompra>0</IdCompra>" +
-            "<IdProducto>" + idproducto + "</IdProducto>" +
-            "<Cantidad>" + cantidad + "</Cantidad>" +
-            "<PrecioUnidadCompra>" + preciocompra + "</PrecioUnidadCompra>" +
-            "<PrecioUnidadVenta>" + precioventa + "</PrecioUnidadVenta>" +
-            "<TotalCosto>" + totalcosto.toString() + "</TotalCosto>" +
-            "</DETALLE>";
-        totalcostocompra = totalcostocompra + totalcosto;
+        let compra = "<COMPRA>" +
+            "<IdUsuario>!idusuario¡</IdUsuario>" +
+            "<IdProveedor>" + $("#txtIdProveedor").val() + "</IdProveedor>" +
+            "<IdTienda>" + $("#txtIdTienda").val() + "</IdTienda>" +
+            "<NumeroFactura>" + numeroFactura + "</NumeroFactura>" +
+            "<NumeroTimbrado>" + numeroTimbrado + "</NumeroTimbrado>" +
+            "<FechaVencimientoTimbrado>" + fechaVencimientoTimbrado + "</FechaVencimientoTimbrado>" +
+            "<TotalCosto>!totalcosto¡</TotalCosto>" +
+            "</COMPRA>";
 
-    });
+        let detallecompra = "<DETALLE_COMPRA>";
+        let detalle = "";
+        let totalcostocompra = 0;
 
-    compra = compra.replace("!totalcosto¡", totalcostocompra.toString());
-    $xml = $xml + compra + detallecompra + detalle + "</DETALLE_COMPRA></DETALLE>";
+        $('#tbCompra > tbody  > tr').each(function (index, tr) {
+            const fila = $(tr);
+            const idproducto = parseFloat(fila.find("td.codigoproducto").data("idproducto"));
+            const cantidad = parseFloat(fila.find("td.cantidad").text());
+            const preciocompra = parseFloat(fila.find("td.preciocompra").text());
+            const precioventa = parseFloat(fila.find("td.precioventa").text());
+            const totalcosto = cantidad * preciocompra;
 
-    var request = { xml: $xml };
+            detalle += "<DETALLE>" +
+                "<IdCompra>0</IdCompra>" +
+                "<IdProducto>" + idproducto + "</IdProducto>" +
+                "<Cantidad>" + cantidad + "</Cantidad>" +
+                "<PrecioUnidadCompra>" + preciocompra + "</PrecioUnidadCompra>" +
+                "<PrecioUnidadVenta>" + precioventa + "</PrecioUnidadVenta>" +
+                "<TotalCosto>" + totalcosto.toFixed(2) + "</TotalCosto>" +
+                "</DETALLE>";
 
+            totalcostocompra += totalcosto;
+        });
 
+        compra = compra.replace("!totalcosto¡", totalcostocompra.toFixed(2));
+        $xml += compra + detallecompra + detalle + "</DETALLE_COMPRA></DETALLE>";
 
-    jQuery.ajax({
-        url: $.MisUrls.url._GuardarCompra,
-        type: "POST",
-        data: JSON.stringify(request),
-        dataType: "json",
-        contentType: "application/json; charset=utf-8",
-        success: function (data) {
-            $.LoadingOverlay("hide");
+        const request = { xml: $xml };
 
-            if (data.resultado) {
+        jQuery.ajax({
+            url: $.MisUrls.url._GuardarCompra,
+            type: "POST",
+            data: JSON.stringify(request),
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            success: function (data) {
+                $.LoadingOverlay("hide");
 
-                //PROVEEDOR
-                $("#txtIdProveedor").val("0");
-                $("#txtRucProveedor").val("");
-                $("#txtRazonSocialProveedor").val("");
+                // Caso de éxito
+                if (data.resultado === true) {  // Verifica explícitamente si es true
+                    resetPurchaseForm();
+                    swal("Éxito", "Compra registrada correctamente", "success");
+                }
+                // Caso de error controlado (stock máximo)
+                else if (data.resultado === false && data.error) {
+                    swal("Error", data.error, "error"); // Muestra el mensaje específico
+                }
+                // Otros errores no controlados
+                else {
+                    swal("Error", "No se pudo registrar la compra", "error");
+                }
+            },
+            error: function (error) {
+                console.error("Error:", error);
+                $.LoadingOverlay("hide");
 
-                //TIENDA
-                $("#txtIdTienda").val("0");
-                $("#txtRucTienda").val("");
-                $("#txtNombreTienda").val("");
-
-                //PRODUCTO
-                $("#txtIdProducto").val("0");
-                $("#txtCodigoProducto").val("");
-                $("#txtNombreProducto").val("");
-                $("#txtCantidadProducto").val("0");
-                $("#txtPrecioCompraProducto").val("0");
-                $("#txtPrecioVentaProducto").val("0");
-
-                $("#tbCompra tbody").html("");
-
-                swal("Mensaje", "Se registro la compra", "success")
-            } else {
-
-                swal("Mensaje", "No se pudo registrar la compra", "warning")
+                // Si el servidor retorna un JSON con error (ej: excepciones no capturadas)
+                if (error.responseJSON && error.responseJSON.error) {
+                    swal("Error", error.responseJSON.error, "error");
+                } else {
+                    swal("Error", "Ocurrió un error al procesar la compra", "error");
+                }
             }
-        },
-        error: function (error) {
-            console.log(error)
-        },
-        beforeSend: function () {
-            $.LoadingOverlay("show");
-        },
-    });
+        });
 
- 
+    } catch (error) {
+        console.error("Error processing purchase:", error);
+        $.LoadingOverlay("hide");
+        swal("Error", "Ocurrió un error al procesar la compra", "error");
+    }
+});
 
-})
+// Function to reset the purchase form
+function resetPurchaseForm() {
+    $("#txtIdProveedor").val("0");
+    $("#txtRucProveedor").val("");
+    $("#txtRazonSocialProveedor").val("");
+
+    $("#txtIdTienda").val("0");
+    $("#txtRucTienda").val("");
+    $("#txtNombreTienda").val("");
+
+    $("#txtIdProducto").val("0");
+    $("#txtCodigoProducto").val("");
+    $("#txtNombreProducto").val("");
+    $("#txtCantidadProducto").val("0");
+    $("#txtPrecioCompraProducto").val("0");
+    $("#txtPrecioVentaProducto").val("0");
+
+    $("#txtNumeroFactura").val("");
+    $("#txtNumeroTimbrado").val("");
+    $("#txtFechaVencimientoTimbrado").val("");
+
+    $("#tbCompra tbody").empty();
+}

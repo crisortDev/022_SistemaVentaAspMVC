@@ -92,7 +92,10 @@ namespace CapaDatos
                                                        TotalCosto = float.Parse(dato.Element("TotalCosto").Value, NuevaCultura),
                                                        ImporteRecibido = float.Parse(dato.Element("ImporteRecibido").Value, NuevaCultura),
                                                        ImporteCambio = float.Parse(dato.Element("ImporteCambio").Value, NuevaCultura),
-                                                       FechaRegistro = dato.Element("FechaRegistro").Value
+                                                       FechaRegistro = dato.Element("FechaRegistro").Value,
+                                                       NumeroFactura = dato.Element("NumeroFactura").Value,
+                                                       NumeroTimbrado = dato.Element("NumeroTimbrado").Value,
+                                                       VencimientoTimbrado = dato.Element("VencimientoTimbrado").Value,
                                                    }).FirstOrDefault();
                                 rptDetalleVenta.oUsuario = (from dato in doc.Element("DETALLE_VENTA").Elements("DETALLE_USUARIO")
                                                             select new Usuario()
@@ -187,6 +190,42 @@ namespace CapaDatos
                 }
             }
         }
+        public bool RegistrarSecuenciaFactura(int numeroTimbrado, DateTime fechaVencimientoTimbrado)
+        {
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_RegistrarDatosFiscales", oConexion);
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Correct parameter names with @
+                    cmd.Parameters.Add("@NumeroTimbrado", SqlDbType.Int).Value = numeroTimbrado;
+                    cmd.Parameters.Add("@FechaVencimientoTimbrado", SqlDbType.Date).Value = fechaVencimientoTimbrado;
+
+                    // Add return value parameter
+                    SqlParameter resultParam = new SqlParameter("@Resultado", SqlDbType.Int);
+                    resultParam.Direction = ParameterDirection.ReturnValue;
+                    cmd.Parameters.Add(resultParam);
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+
+                    // Get the return value
+                    int respuesta = (int)resultParam.Value;
+
+                    return respuesta == 1; // Returns true if successful
+                }
+                catch (Exception ex)
+                {
+                    // Handle error
+                    Console.WriteLine("Error: " + ex.Message);
+                    return false;
+                }
+            }
+        }
 
     }
+
+
 }

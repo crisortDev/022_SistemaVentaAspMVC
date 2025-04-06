@@ -12,11 +12,16 @@ namespace CapaModelo
         public string Codigo { get; set; }
         public string FechaCompra { get; set; }
         public string NumeroCompra { get; set; }
+        public string NumeroFactura { get; set; }
+
+        public string NumeroTimbrado { get; set; }
+        public  string FechaVencimientoTimbrado { get; set; }
         public Usuario oUsuario { get; set; }
         public Proveedor oProveedor { get; set; }
         public Tienda oTienda { get; set; }
         public List<DetalleCompra> oListaDetalleCompra { get; set; }
         public decimal TotalCosto { get; set; }
+        public decimal TotalCostoIvaIncluido { get; set; }
         public string TipoComprobante { get; set; }
         public bool Activo { get; set; }
         public DateTime FechaRegistro { get; set; }

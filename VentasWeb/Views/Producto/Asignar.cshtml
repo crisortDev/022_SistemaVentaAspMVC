@@ -64,21 +64,34 @@
                                     <input type="text" class="form-control form-control-sm model" id="txtCodigo" name="Codigo" autocomplete="off">
                                 </div>
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-2">
                                 <div class="form-group mb-0">
                                     <label for="txtNombre" class="col-form-label col-form-label-sm">Nombre:</label>
                                     <input type="text" class="form-control form-control-sm model" readonly id="txtNombre" name="Nombre">
                                 </div>
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-2">
                                 <div class="form-group mb-0">
                                     <label for="txtDescripcion" class="col-form-label col-form-label-sm">Descripción:</label>
                                     <input type="text" class="form-control form-control-sm model" readonly id="txtDescripcion" name="Descripcion">
                                 </div>
                             </div>
+                            <!-- Nuevos campos StockMínimo y StockMáximo -->
                             <div class="col-sm-2">
                                 <div class="form-group mb-0">
-                                    <button id="btnBuscarProducto" type="button" class="btn btn-sm btn-success btn-block"  onclick="buscarProducto()"><i class="fas fa-search"></i> Buscar</button>
+                                    <label for="txtStockMinimo" class="col-form-label col-form-label-sm">Stock Mínimo:</label>
+                                    <input type="number" class="form-control form-control-sm model" id="txtStockMinimo" name="StockMinimo" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group mb-0">
+                                    <label for="txtStockMaximo" class="col-form-label col-form-label-sm">Stock Máximo:</label>
+                                    <input type="number" class="form-control form-control-sm model" id="txtStockMaximo" name="StockMaximo" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="form-group mb-0">
+                                    <button id="btnBuscarProducto" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProducto()"><i class="fas fa-search"></i> Buscar</button>
                                 </div>
                             </div>
                             <div class="col-sm-2">

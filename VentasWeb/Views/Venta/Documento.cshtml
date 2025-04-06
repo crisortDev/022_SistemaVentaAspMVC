@@ -60,18 +60,31 @@
                                 </td>
                                 <td style="width:290px">
                                     <table style="width:100%">
-                                        <tr><td><label style="font-size:16px;font-weight:bold;text-align:center;width:100%;display:block">MI TIENDA ONLINE S.A.C TEST</label></td></tr>
+                                        <tr><td><label style="font-size:16px;font-weight:bold;text-align:center;width:100%;display:block">COMPU SPACE</label></td></tr>
                                         <tr><td colspan="4" align="center" style="font-size:14px">Atendido por: <span>@Html.DisplayTextFor(model => model.oUsuario.Nombres) @Html.DisplayTextFor(model => model.oUsuario.Apellidos)</span></td> </tr>
                                         <tr><td colspan="4" align="center" style="font-size:14px"><span>@Html.DisplayTextFor(model => model.oTienda.Direccion)</span></td> </tr>
                                     </table>
                                 </td>
                                 <td style="width:200px;">
-                                    <table style="width: 100%; height: 100px; font-weight: bold;border:2px solid #17a2b8;font-size:14px ">
+                                    <table style="width: 100%; height: 100px; font-weight: bold; border: 2px solid #17a2b8; font-size: 14px;">
+                                        <!-- R.U.C. -->
                                         <tr><td align="center">R.U.C. <span>@Html.DisplayTextFor(model => model.oTienda.RUC)</span></td></tr>
-                                        <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;font-size:16px !important"><td align="center"><span>@Html.DisplayTextFor(model => model.TipoDocumento)</span></td></tr>
-                                        <tr><td align="center">NRO - <span>@Html.DisplayTextFor(model => model.Codigo)</span> </td></tr>
+
+                                        <!-- Tipo de Documento -->
+                                        <tr style="color:#fff; background-color:#17a2b8; -webkit-print-color-adjust: exact; font-size: 16px !important;">
+                                            <td align="center"><span>@Html.DisplayTextFor(model => model.TipoDocumento)</span></td>
+                                        </tr>
+                                        <!-- NumeroFactura -->
+                                        <tr><td align="center">Número Factura: <span>@Html.DisplayTextFor(model => model.NumeroFactura)</span></td></tr>
+
+                                        <!-- NumeroTimbrado -->
+                                        <tr><td align="center">Timbrado: <span>@Html.DisplayTextFor(model => model.NumeroTimbrado)</span></td></tr>
+
+                                        <!-- VencimientoTimbrado -->
+                                        <tr><td align="center">Vencimiento: <span>@Html.DisplayTextFor(model => model.VencimientoTimbrado)</span></td></tr>
                                     </table>
                                 </td>
+
                             </tr>
                         </table>
 
@@ -139,9 +152,9 @@
                                 <td colspan="4">
                                     <table width='250' style="border:1px solid #17a2b8;">
                                         <tr style="border:1px solid #17a2b8;">
-                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Pago con S/.</td>
+                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Pago en G/.</td>
                                             <td><span>@Html.DisplayTextFor(model => model.TextoImporteRecibido)</span></td>
-                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Cambio S/.</td>
+                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Cambio G/.</td>
                                             <td><span>@Html.DisplayTextFor(model => model.TextoImporteCambio)</span></td>
                                         </tr>
                                     </table>
@@ -149,7 +162,7 @@
                                 <td colspan="2" align="right">
                                     <table style="font-weight: bold; width: 150px;border:1px solid #17a2b8;">
                                         <tr>
-                                            <td>Total S/.</td>
+                                            <td>Total G/.</td>
                                             <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;border:1px solid #17a2b8;"><span id="totalcosto">@Html.DisplayTextFor(model => model.TextoTotalCosto)</span></td>
                                         </tr>
                                     </table>

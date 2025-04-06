@@ -160,10 +160,15 @@ function productoSelect(json) {
     $("#txtproductonombre").val(json.oProducto.Nombre);
     $("#txtproductodescripcion").val(json.oProducto.Descripcion);
     $("#txtproductostock").val(json.Stock);
-    $("#txtproductoprecio").val(json.PrecioUnidadVenta);
+
+    // Ajuste: usar PrecioVenta y PrecioIvaIncluido del JSON recibido
+    $("#txtproductoprecio").val(json.PrecioVenta);
+    $("#txtproductoprecioiva").val(json.PrecioIvaIncluido);
+
     $("#txtproductocantidad").val("0");
     $('#modalProducto').modal('hide');
 }
+
 
 function clienteSelect(json) {
 
@@ -235,61 +240,48 @@ $("#txtproductocodigo").on('keypress', function (e) {
 });
 
 
-$('#btnAgregar').on('click', function () {
+$("#btnAgregar").on("click", function () {
+    var idproducto = $("#txtIdProducto").val();
+    var nombre = $("#txtproductonombre").val();
+    var descripcion = $("#txtproductodescripcion").val();
+    var precio = parseFloat($("#txtproductoprecio").val()); // sin IVA
+    var precioiva = parseFloat($("#txtproductoprecioiva").val()); // con IVA
+    var cantidad = parseInt($("#txtproductocantidad").val());
 
-    $("#txtproductocantidad").val($("#txtproductocantidad").val() == "" ? "0" : $("#txtproductocantidad").val());
-
-    var existe_codigo = false;
-    if (
-        parseInt($("#txtIdProducto").val()) == 0 ||
-        parseFloat($("#txtproductocantidad").val()) == 0
-    ) {
-        swal("Mensaje", "Debe completar todos los campos del producto", "warning")
+    if (!idproducto || !nombre || isNaN(precio) || isNaN(precioiva) || isNaN(cantidad) || cantidad <= 0) {
+        toastr.warning("Complete los campos del producto correctamente.");
         return;
     }
 
-    $('#tbVenta > tbody  > tr').each(function (index, tr) {
-        var fila = tr;
-        var idproducto = $(fila).find("td.producto").data("idproducto");
+    var importetotal = precio * cantidad;
+    var importetotaliva = precioiva * cantidad;
 
-        if (idproducto == $("#txtIdProducto").val()) {
-            existe_codigo = true;
-            return false;
-        }
+    var filaHtml = '<tr>' +
+        '<td><button class="btn btn-danger btn-sm eliminar-producto"><i class="fa fa-trash"></i></button></td>' +
+        '<td class="productocantidad">' + cantidad + '</td>' +
+        '<td class="producto" data-idproducto="' + idproducto + '">' + nombre + '</td>' +
+        '<td class="productodescripcion">' + descripcion + '</td>' +
+        '<td class="productoprecio">' + precio.toFixed(2) + '</td>' +
+        '<td class="productoprecioiva">' + precioiva.toFixed(2) + '</td>' +
+        '<td class="importetotal">' + importetotal.toFixed(2) + '</td>' +
+        '<td class="importetotaliva">' + importetotaliva.toFixed(2) + '</td>' +
+        '</tr>';
 
-    });
+    $("#tbVenta > tbody").append(filaHtml);
 
-    if (!existe_codigo) {
+    // Limpiar campos
+    $("#txtIdProducto").val("0");
+    $("#txtproductocodigo").val("");
+    $("#txtproductonombre").val("");
+    $("#txtproductodescripcion").val("");
+    $("#txtproductoprecio").val("");
+    $("#txtproductoprecioiva").val("");
+    $("#txtproductocantidad").val("");
 
-        controlarStock(parseInt($("#txtIdProducto").val()), parseInt($("#txtIdTienda").val()), parseInt($("#txtproductocantidad").val()), true);
+    calcularPrecios();
+});
 
-        var importetotal = parseFloat($("#txtproductoprecio").val()) * parseFloat($("#txtproductocantidad").val());
-        $("<tr>").append(
-            $("<td>").append(
-                $("<button>").addClass("btn btn-danger btn-sm").text("Eliminar").data("idproducto", parseInt($("#txtIdProducto").val())).data("cantidadproducto", parseInt($("#txtproductocantidad").val()))
-            ),
-            $("<td>").addClass("productocantidad").text($("#txtproductocantidad").val()),
-            $("<td>").addClass("producto").data("idproducto", $("#txtIdProducto").val()).text($("#txtproductonombre").val()),
-            $("<td>").text($("#txtproductodescripcion").val()),
-            $("<td>").addClass("productoprecio").text($("#txtproductoprecio").val()),
-            $("<td>").addClass("importetotal").text(importetotal)
-        ).appendTo("#tbVenta tbody");
 
-        $("#txtIdProducto").val("0");
-        $("#txtproductocodigo").val("");
-        $("#txtproductonombre").val("");
-        $("#txtproductodescripcion").val("");
-        $("#txtproductostock").val("");
-        $("#txtproductoprecio").val("");
-        $("#txtproductocantidad").val("0");
-
-        $("#txtproductocodigo").focus();
-
-        calcularPrecios();
-    } else {
-        swal("Mensaje", "El producto ya existe en la venta", "warning")
-    }
-})
 
 $('#tbVenta tbody').on('click', 'button[class="btn btn-danger btn-sm"]', function () {
     var idproducto = $(this).data("idproducto");
@@ -331,24 +323,29 @@ $('#btnTerminarGuardarVenta').on('click', function () {
 
     calcularCambio();
 
-    $('#tbVenta > tbody  > tr').each(function (index, tr) {
+    $('#tbVenta > tbody > tr').each(function (index, tr) {
         var fila = tr;
+
         var productocantidad = parseInt($(fila).find("td.productocantidad").text());
         var idproducto = $(fila).find("td.producto").data("idproducto");
         var productoprecio = parseFloat($(fila).find("td.productoprecio").text());
         var importetotal = parseFloat($(fila).find("td.importetotal").text());
+        var importetotaliva = parseFloat($(fila).find("td.importetotaliva").text());
 
-        $totalproductos = $totalproductos + productocantidad;
-        $totalimportes = $totalimportes + importetotal;
+        $totalproductos += productocantidad;
+        $totalimportes += importetotal;
 
-        DATOS_VENTA = DATOS_VENTA + "<DATOS>" +
-            "<IdVenta>0</IdVenta >" +
+        DATOS_VENTA += "<DATOS>" +
+            "<IdVenta>0</IdVenta>" +
             "<IdProducto>" + idproducto + "</IdProducto>" +
             "<Cantidad>" + productocantidad + "</Cantidad>" +
             "<PrecioUnidad>" + productoprecio + "</PrecioUnidad>" +
             "<ImporteTotal>" + importetotal + "</ImporteTotal>" +
-            "</DATOS>"
+            "<ImporteTotalIva>" + importetotaliva + "</ImporteTotalIva>" +
+            "</DATOS>";
     });
+
+
 
 
     VENTA = "<VENTA>" +
@@ -457,21 +454,26 @@ $('#btncalcular').on('click', function () {
 
 function calcularPrecios() {
     var subtotal = 0;
-    var igv = 0;
-    var sumatotal = 0;
+    var totaliva = 0;
+    var totalconiva = 0;
+
     $('#tbVenta > tbody  > tr').each(function (index, tr) {
         var fila = tr;
-        var importetotal = parseFloat($(fila).find("td.importetotal").text());
-        sumatotal = sumatotal + importetotal;
-    });
-    igv = sumatotal * 0.18;
-    subtotal = sumatotal - igv;
+        var siniva = parseFloat($(fila).find("td.importetotal").text());
+        var coniva = parseFloat($(fila).find("td.importetotaliva").text());
 
+        subtotal += siniva;
+        totalconiva += coniva;
+    });
+
+    totaliva = totalconiva - subtotal;
 
     $("#txtsubtotal").val(subtotal.toFixed(2));
-    $("#txtigv").val(igv.toFixed(2));
-    $("#txttotal").val(sumatotal.toFixed(2));
+    $("#txtigv").val(totaliva.toFixed(2));
+    $("#txttotal").val(totalconiva.toFixed(2));
 }
+
+
 
 
 
