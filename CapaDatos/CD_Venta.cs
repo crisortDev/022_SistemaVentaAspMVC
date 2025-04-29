@@ -124,7 +124,8 @@ namespace CapaDatos
                                                                           Cantidad = int.Parse(producto.Element("Cantidad").Value),
                                                                           NombreProducto = producto.Element("NombreProducto").Value,
                                                                           PrecioUnidad = float.Parse(producto.Element("PrecioUnidad").Value, NuevaCultura),
-                                                                          ImporteTotal = float.Parse(producto.Element("ImporteTotal").Value, NuevaCultura)
+                                                                          ImporteTotal = float.Parse(producto.Element("ImporteTotal").Value, NuevaCultura),
+                                                                          ImporteTotalIvaIncluido = float.Parse(producto.Element("ImporteTotalIvaIncluido").Value, NuevaCultura) // Nuevo campo agregado
                                                                       }).ToList();
                             }
                             else
@@ -175,7 +176,8 @@ namespace CapaDatos
                             FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"].ToString()).ToString("dd/MM/yyyy"),
                             VFechaRegistro = Convert.ToDateTime(dr["FechaRegistro"].ToString()),
                             oCliente = new Cliente() { NumeroDocumento = dr["NumeroDocumento"].ToString(), Nombre = dr["Nombre"].ToString() },
-                            TotalCosto = float.Parse(dr["TotalCosto"].ToString())
+                            TotalCosto = float.Parse(dr["TotalCosto"].ToString()),
+                            ImporteTotalIvaIncluido = float.Parse(dr["ImporteIvaIncluido"].ToString())
                         });
                     }
                     dr.Close();

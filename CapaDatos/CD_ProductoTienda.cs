@@ -150,33 +150,37 @@ namespace CapaDatos
 
         public bool EliminarProductoTienda(int IdProductoTienda)
         {
-            bool respuesta = true;
+            bool respuesta = false;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
                 {
                     SqlCommand cmd = new SqlCommand("usp_EliminarProductoTienda", oConexion);
-                    cmd.Parameters.AddWithValue("IdProductoTienda", IdProductoTienda);
-                    cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    oConexion.Open();
+                    // Parámetro CON @
+                    cmd.Parameters.AddWithValue("@IdProductoTienda", IdProductoTienda);
 
+                    // Parámetro de salida
+                    SqlParameter paramResultado = new SqlParameter("@Resultado", SqlDbType.Bit);
+                    paramResultado.Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add(paramResultado);
+
+                    oConexion.Open();
                     cmd.ExecuteNonQuery();
 
-                    respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
-
+                    // Obtener el valor del parámetro de salida
+                    respuesta = (bool)paramResultado.Value;
                 }
                 catch (Exception ex)
                 {
                     respuesta = false;
+                    // Log del error
                 }
-
             }
-
             return respuesta;
-
         }
+
 
         public string ControlarStock(int IdProducto, int IdTienda, int Cantidad, bool Restar)
         {
@@ -206,6 +210,37 @@ namespace CapaDatos
             }
             return resultado;
         }
+
+        public string BajaStockProductoTienda(int idProductoTienda, int cantidad)
+        {
+            string resultado = "";
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_BajaStockProductoTienda", oConexion);
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Parámetros CON el prefijo @
+                    cmd.Parameters.AddWithValue("@IdProductoTienda", idProductoTienda);
+                    cmd.Parameters.AddWithValue("@Cantidad", cantidad);
+
+                    oConexion.Open();
+
+                    // Ejecutar y obtener el mensaje del SELECT
+                    resultado = cmd.ExecuteScalar().ToString();
+                }
+                catch (Exception ex)
+                {
+                    resultado = "Error: " + ex.Message;
+                }
+            }
+            return resultado;
+        }
+
+
+
+
 
     }
 }

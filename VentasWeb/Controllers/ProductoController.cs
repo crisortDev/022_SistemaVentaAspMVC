@@ -160,20 +160,29 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, message = ex.Message });
             }
         }
-
-        [HttpDelete]
+        [HttpPost]
         public JsonResult EliminarProductoTienda(int id)
         {
             try
             {
-                bool respuesta = _productoTiendaService.EliminarProductoTienda(id);
-                return Json(new { resultado = respuesta });
+                if (id <= 0)
+                    return Json(new { resultado = false, mensaje = "ID inválido" });
+
+                bool resultado = CD_ProductoTienda.Instancia.EliminarProductoTienda(id);
+                return Json(new
+                {
+                    resultado = resultado,
+                    mensaje = resultado
+                        ? "Asignación eliminada correctamente"
+                        : "No se pudo eliminar (el producto ya está en uso)"
+                });
             }
             catch (Exception ex)
             {
-                return Json(new { resultado = false, message = ex.Message });
+                return Json(new { resultado = false, mensaje = "Error: " + ex.Message });
             }
         }
+
 
         [HttpGet]
         public JsonResult ObtenerAsignaciones()
@@ -188,5 +197,27 @@ namespace VentasWeb.Controllers
                 return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
+
+        [HttpPost]
+        public JsonResult BajaStockProductoTienda(int idProductoTienda, int cantidad)
+        {
+            try
+            {
+                // Llamamos al servicio que maneja la baja de stock
+                string resultado = _productoTiendaService.BajaStockProductoTienda(idProductoTienda, cantidad);
+
+                if (resultado.Contains("Error"))
+                {
+                    return Json(new { resultado = false, mensaje = resultado });
+                }
+
+                return Json(new { resultado = true, mensaje = "Stock reducido correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = "Error: " + ex.Message });
+            }
+        }
+
     }
 }

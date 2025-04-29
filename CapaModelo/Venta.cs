@@ -21,6 +21,7 @@ namespace CapaModelo
         public string NumeroFactura { get; set; }
         public string NumeroTimbrado { get; set; }
         public string VencimientoTimbrado { get; set; }
+        public float ImporteTotalIvaIncluido { get; set; }
         public DateTime VFechaRegistro { get; set; }
         public Usuario oUsuario { get; set; }
         public Tienda oTienda { get; set; }

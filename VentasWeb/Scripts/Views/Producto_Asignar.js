@@ -88,26 +88,36 @@ $(document).ready(function () {
             "datatype": "json"
         },
         "columns": [
-            { "data": "oTienda", render: function (data) { return data.Nombre   } },
-            { "data": "oTienda", render: function (data) { return data.RUC   } },
-            { "data": "oProducto", render: function (data) { return data.Codigo   } },
-            { "data": "oProducto", render: function (data) { return data.Nombre   } },
+            { "data": "oTienda", render: function (data) { return data.Nombre; } },
+            { "data": "oTienda", render: function (data) { return data.RUC; } },
+            { "data": "oProducto", render: function (data) { return data.Codigo; } },
+            { "data": "oProducto", render: function (data) { return data.Nombre; } },
             { "data": "Stock" },
             {
                 "data": "IdProductoTienda", "render": function (data, type, row, meta) {
-                    return  "<button class='btn btn-danger btn-sm ml-2' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>"
+                    return "<button class='btn btn-danger btn-sm ml-2' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>";
+                },
+                "orderable": false,
+                "searchable": false,
+                "width": "80px"
+            },
+            // Nueva columna: Baja de Stock
+            {
+                "data": "Stock", "render": function (data, type, row, meta) {
+                    return "<button class='btn btn-warning btn-sm ml-2' type='button' onclick='bajaStock(" + row.IdProductoTienda + ", " + data + ")'><i class='fas fa-arrow-down'></i></button>";
                 },
                 "orderable": false,
                 "searchable": false,
                 "width": "80px"
             }
-
         ],
         "language": {
             "url": $.MisUrls.url.Url_datatable_spanish
         },
         responsive: true
     });
+
+
 
 })
 
@@ -248,42 +258,94 @@ function asignarProducto() {
 
 
 function eliminar($id) {
-
     swal({
         title: "Mensaje",
         text: "¿Desea eliminar la asignación?",
         type: "warning",
         showCancelButton: true,
-
         confirmButtonText: "Si",
         confirmButtonColor: "#DD6B55",
-
         cancelButtonText: "No",
-
         closeOnConfirm: true
     },
-
         function () {
             jQuery.ajax({
-                url: $.MisUrls.url._EliminarProductoTienda + "?id=" + $id,
-                type: "GET",
+                url: $.MisUrls.url._EliminarProductoTienda, // Sin el ?id=...
+                type: "POST", // Cambiado a POST
+                data: { id: $id }, // Envía el id en el cuerpo
                 dataType: "json",
-                contentType: "application/json; charset=utf-8",
                 success: function (data) {
-
                     if (data.resultado) {
                         tabladata.ajax.reload();
                     } else {
-                        swal("Mensaje", "No se pudo eliminar la asignación?", "warning")
+                        swal("Mensaje", data.mensaje || "No se pudo eliminar", "warning");
                     }
                 },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
+                error: function (xhr, status, error) {
+                    swal("Error", "No se pudo procesar la solicitud", "error");
+                }
             });
         });
-
 }
+
+function bajaStock(idProductoTienda, stockActual) {
+    Swal.fire({
+        title: "Ingrese la cantidad a reducir",
+        text: "Cantidad a reducir del stock actual: " + stockActual,
+        input: 'number',
+        inputAttributes: {
+            min: 1,
+            max: stockActual,
+            step: 1
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Aceptar',
+        cancelButtonText: 'Cancelar',
+        showLoaderOnConfirm: true,
+        preConfirm: (cantidad) => {
+            return new Promise((resolve, reject) => {
+                if (!cantidad || isNaN(cantidad) || cantidad <= 0) {
+                    reject('Por favor ingrese un número válido mayor a cero');
+                    return;
+                }
+
+                if (cantidad > stockActual) {
+                    reject('No puede reducir más stock del disponible');
+                    return;
+                }
+
+                // Hacer la llamada AJAX para reducir el stock
+                jQuery.ajax({
+                    url: '/Producto/BajaStockProductoTienda',
+                    type: 'POST',
+                    data: {
+                        idProductoTienda: idProductoTienda,  // Asegúrate de que este valor es correcto
+                        cantidad: cantidad  // Asegúrate de que este valor es correcto
+                    },
+                    success: function (data) {
+                        if (data.resultado) {
+                            resolve();
+                        } else {
+                            reject(data.mensaje);
+                        }
+                    },
+                    error: function () {
+                        reject('Error al procesar la solicitud');
+                    }
+                });
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            tabladata.ajax.reload();
+            Swal.fire('Éxito', 'El stock se ha reducido correctamente', 'success');
+        }
+    }).catch((error) => {
+        Swal.fire('Error', error, 'error');
+    });
+}
+
+
+
+
+

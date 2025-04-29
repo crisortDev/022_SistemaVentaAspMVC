@@ -244,8 +244,8 @@ $("#btnAgregar").on("click", function () {
     var idproducto = $("#txtIdProducto").val();
     var nombre = $("#txtproductonombre").val();
     var descripcion = $("#txtproductodescripcion").val();
-    var precio = parseFloat($("#txtproductoprecio").val()); // sin IVA
-    var precioiva = parseFloat($("#txtproductoprecioiva").val()); // con IVA
+    var precio = parseFloat($("#txtproductoprecio").val()); // Precio sin IVA
+    var precioiva = parseFloat($("#txtproductoprecioiva").val()); // Precio con IVA
     var cantidad = parseInt($("#txtproductocantidad").val());
 
     if (!idproducto || !nombre || isNaN(precio) || isNaN(precioiva) || isNaN(cantidad) || cantidad <= 0) {
@@ -253,8 +253,8 @@ $("#btnAgregar").on("click", function () {
         return;
     }
 
-    var importetotal = precio * cantidad;
-    var importetotaliva = precioiva * cantidad;
+    var importetotal = precio * cantidad;  // Importe total sin IVA
+    var importetotaliva = precioiva * cantidad;  // Importe total con IVA
 
     var filaHtml = '<tr>' +
         '<td><button class="btn btn-danger btn-sm eliminar-producto"><i class="fa fa-trash"></i></button></td>' +
@@ -280,6 +280,8 @@ $("#btnAgregar").on("click", function () {
 
     calcularPrecios();
 });
+
+
 
 
 
@@ -440,12 +442,13 @@ $('#btnTerminarGuardarVenta').on('click', function () {
 
 function calcularCambio() {
     var montopago = $("#txtmontopago").val().trim() == "" ? 0 : parseFloat($("#txtmontopago").val().trim());
-    var totalcosto = parseFloat($("#txttotal").val().trim());
-    var cambio = 0;
-    cambio = (montopago <= totalcosto ? totalcosto : montopago) - totalcosto;
+    var totalcosto = parseFloat($("#txttotal").val().trim());  // Usamos el total con IVA para el cálculo del vuelto
+    var cambio = (montopago <= totalcosto ? totalcosto : montopago) - totalcosto;
 
     $("#txtcambio").val(cambio.toFixed(2));
 }
+
+
 
 $('#btncalcular').on('click', function () {
     calcularCambio();
@@ -454,10 +457,10 @@ $('#btncalcular').on('click', function () {
 
 function calcularPrecios() {
     var subtotal = 0;
-    var totaliva = 0;
     var totalconiva = 0;
+    var iva = 0.10;  // IVA del 10%
 
-    $('#tbVenta > tbody  > tr').each(function (index, tr) {
+    $('#tbVenta > tbody > tr').each(function (index, tr) {
         var fila = tr;
         var siniva = parseFloat($(fila).find("td.importetotal").text());
         var coniva = parseFloat($(fila).find("td.importetotaliva").text());
@@ -466,12 +469,16 @@ function calcularPrecios() {
         totalconiva += coniva;
     });
 
-    totaliva = totalconiva - subtotal;
+    // Calcular el IVA sobre el subtotal
+    var totalIVA = subtotal * iva;
 
-    $("#txtsubtotal").val(subtotal.toFixed(2));
-    $("#txtigv").val(totaliva.toFixed(2));
-    $("#txttotal").val(totalconiva.toFixed(2));
+    // Actualizamos los campos de subtotal y total con IVA
+    $("#txtsubtotal").val(subtotal.toFixed(2));  // Muestra el subtotal (sin IVA)
+    $("#txttotal").val((subtotal + totalIVA).toFixed(2));  // Muestra el total (con IVA)
 }
+
+
+
 
 
 

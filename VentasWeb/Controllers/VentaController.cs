@@ -27,38 +27,34 @@ namespace VentasWeb.Controllers
 
         public ActionResult Documento(int IdVenta = 0)
         {
-
             Venta oVenta = CD_Venta.Instancia.ObtenerDetalleVenta(IdVenta);
-
-
-
-            NumberFormatInfo formato = new CultureInfo("es-PE").NumberFormat;
-            formato.CurrencyGroupSeparator = ".";
-
 
             if (oVenta == null)
                 oVenta = new Venta();
-            else {
+            else
+            {
+                // Calcular el total con IVA
+                oVenta.ImporteTotalIvaIncluido = oVenta.oListaDetalleVenta.Sum(x => x.ImporteTotalIvaIncluido);
 
+                // El resto de la lógica para la venta
                 oVenta.oListaDetalleVenta = (from dv in oVenta.oListaDetalleVenta
                                              select new DetalleVenta()
                                              {
                                                  Cantidad = dv.Cantidad,
                                                  NombreProducto = dv.NombreProducto,
                                                  PrecioUnidad = dv.PrecioUnidad,
-                                                 TextoPrecioUnidad = dv.PrecioUnidad.ToString("N", formato), //numero.ToString("C", formato)
                                                  ImporteTotal = dv.ImporteTotal,
-                                                 TextoImporteTotal = dv.ImporteTotal.ToString("N", formato)
+                                                 ImporteTotalIvaIncluido = dv.ImporteTotalIvaIncluido
                                              }).ToList();
 
-                oVenta.TextoImporteRecibido = oVenta.ImporteRecibido.ToString("N", formato);
-                oVenta.TextoImporteCambio = oVenta.ImporteCambio.ToString("N", formato);
-                oVenta.TextoTotalCosto = oVenta.TotalCosto.ToString("N", formato);
+                oVenta.ImporteRecibido = oVenta.ImporteRecibido;
+                oVenta.ImporteCambio = oVenta.ImporteCambio;
+                oVenta.TotalCosto = oVenta.TotalCosto;
             }
-               
 
             return View(oVenta);
         }
+
 
 
         public JsonResult Obtener(string codigo, string fechainicio, string fechafin, string numerodocumento, string nombres)

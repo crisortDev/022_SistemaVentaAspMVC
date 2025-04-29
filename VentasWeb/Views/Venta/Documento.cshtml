@@ -136,8 +136,8 @@
                                     <tr>
                                         <td>@Html.DisplayFor(modelItem => item.Cantidad)</td>
                                         <td>@Html.DisplayFor(modelItem => item.NombreProducto)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.TextoPrecioUnidad)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.TextoImporteTotal)</td>
+                                        <td>@Html.DisplayFor(modelItem => item.PrecioUnidad)</td>
+                                        <td>@Html.DisplayFor(modelItem => item.ImporteTotalIvaIncluido)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -153,9 +153,9 @@
                                     <table width='250' style="border:1px solid #17a2b8;">
                                         <tr style="border:1px solid #17a2b8;">
                                             <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Pago en G/.</td>
-                                            <td><span>@Html.DisplayTextFor(model => model.TextoImporteRecibido)</span></td>
+                                            <td><span>@Html.DisplayTextFor(model => model.ImporteRecibido)</span></td>
                                             <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Cambio G/.</td>
-                                            <td><span>@Html.DisplayTextFor(model => model.TextoImporteCambio)</span></td>
+                                            <td><span>@Html.DisplayTextFor(model => model.ImporteCambio)</span></td>
                                         </tr>
                                     </table>
                                 </td>
@@ -163,7 +163,9 @@
                                     <table style="font-weight: bold; width: 150px;border:1px solid #17a2b8;">
                                         <tr>
                                             <td>Total G/.</td>
-                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;border:1px solid #17a2b8;"><span id="totalcosto">@Html.DisplayTextFor(model => model.TextoTotalCosto)</span></td>
+                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;border:1px solid #17a2b8;">
+                                                <span>@Html.DisplayTextFor(model => model.ImporteTotalIvaIncluido)</span>
+                                            </td>
                                         </tr>
                                     </table>
                                 </td>
