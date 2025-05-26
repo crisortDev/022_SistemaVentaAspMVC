@@ -48,13 +48,18 @@ namespace CapaDatos
                     {
                         rptListaCliente.Add(new Cliente()
                         {
-                            IdCliente = Convert.ToInt32(dr["IdCliente"].ToString()),
+                            IdCliente = Convert.ToInt32(dr["IdCliente"]),
                             TipoDocumento = dr["TipoDocumento"].ToString(),
                             NumeroDocumento = dr["NumeroDocumento"].ToString(),
                             Nombre = dr["Nombre"].ToString(),
                             Direccion = dr["Direccion"].ToString(),
                             Telefono = dr["Telefono"].ToString(),
-                            Activo = Convert.ToBoolean(dr["Activo"])
+                            Activo = Convert.ToBoolean(dr["Activo"]),
+                            Ciudad = dr["Ciudad"].ToString(),
+                            Barrio = dr["Barrio"].ToString(),
+                            Calle = dr["Calle"].ToString(),
+                            NumeroCasa = dr["NumeroCasa"].ToString(),
+                            Referencia = dr["Referencia"].ToString()
 
                         });
                     }
@@ -85,6 +90,11 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Nombre", oCliente.Nombre);
                     cmd.Parameters.AddWithValue("Direccion", oCliente.Direccion);
                     cmd.Parameters.AddWithValue("Telefono", oCliente.Telefono);
+                    cmd.Parameters.AddWithValue("Ciudad", oCliente.Ciudad);
+                    cmd.Parameters.AddWithValue("Barrio", oCliente.Barrio);
+                    cmd.Parameters.AddWithValue("Calle", oCliente.Calle);
+                    cmd.Parameters.AddWithValue("NumeroCasa", oCliente.NumeroCasa);
+                    cmd.Parameters.AddWithValue("Referencia", oCliente.Referencia);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
 
@@ -121,6 +131,11 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Direccion", oCliente.Direccion);
                     cmd.Parameters.AddWithValue("Telefono", oCliente.Telefono);
                     cmd.Parameters.AddWithValue("Activo", oCliente.Activo);
+                    cmd.Parameters.AddWithValue("Ciudad", oCliente.Ciudad);
+                    cmd.Parameters.AddWithValue("Barrio", oCliente.Barrio);
+                    cmd.Parameters.AddWithValue("Calle", oCliente.Calle);
+                    cmd.Parameters.AddWithValue("NumeroCasa", oCliente.NumeroCasa);
+                    cmd.Parameters.AddWithValue("Referencia", oCliente.Referencia);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
 

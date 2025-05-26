@@ -15,5 +15,10 @@ namespace CapaModelo
         public string NumeroDocumento { get; set; }
         public string Telefono { get; set; }
         public bool Activo { get; set; }
+        public string Ciudad { get; set; }
+        public string Barrio { get; set; }
+        public string Calle { get; set; }
+        public string NumeroCasa { get; set; }
+        public string Referencia { get; set; }
     }
 }

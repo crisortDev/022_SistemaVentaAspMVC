@@ -67,7 +67,8 @@ namespace CapaDatos
                             PrecioVenta = Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PE")),
                             PrecioIvaIncluido = Convert.ToDecimal(dr["PrecioIvaIncluido"].ToString(), new CultureInfo("es-PE")),
                             Stock = Convert.ToInt32(dr["Stock"].ToString()),
-                            Iniciado = Convert.ToBoolean(dr["Iniciado"].ToString())
+                            Iniciado = Convert.ToBoolean(dr["Iniciado"].ToString()),
+                            //PrecioUnidadVenta = Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PE")),
                         });
                     }
                     dr.Close();
@@ -211,9 +212,10 @@ namespace CapaDatos
             return resultado;
         }
 
-        public string BajaStockProductoTienda(int idProductoTienda, int cantidad)
+        public string BajaStockProductoTienda(int idProductoTienda, int cantidad, string motivo, int idProducto)
         {
             string resultado = "";
+
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
@@ -221,9 +223,11 @@ namespace CapaDatos
                     SqlCommand cmd = new SqlCommand("usp_BajaStockProductoTienda", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Parámetros CON el prefijo @
+                    // Agregar los parámetros al comando
                     cmd.Parameters.AddWithValue("@IdProductoTienda", idProductoTienda);
                     cmd.Parameters.AddWithValue("@Cantidad", cantidad);
+                    cmd.Parameters.AddWithValue("@Motivo", motivo);
+                    cmd.Parameters.AddWithValue("@IdProducto", idProducto); // Agregar el idProducto
 
                     oConexion.Open();
 
@@ -237,10 +241,5 @@ namespace CapaDatos
             }
             return resultado;
         }
-
-
-
-
-
     }
 }

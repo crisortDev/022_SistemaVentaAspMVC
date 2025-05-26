@@ -1,8 +1,33 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = "Crear";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
+<style>
+    .historial-precio-wrapper {
+        max-height: 200px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+
+    #tbHistorialPrecio {
+        table-layout: fixed;
+        width: auto;
+        min-width: 480px; /* mínimo necesario para que se vean las 3 columnas bien */
+    }
+
+        #tbHistorialPrecio th,
+        #tbHistorialPrecio td {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            padding: 4px 8px;
+            font-size: 0.875rem;
+        }
+
+</style>
+
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -20,6 +45,7 @@
             <div class="card-body card-compra p-2">
                 <div class="row">
 
+                    <!-- Detalle Proveedor -->
                     <div class="col-sm-6">
                         <div class="card border-info">
                             <div class="card-body p-2">
@@ -47,6 +73,8 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Detalle Tienda -->
                     <div class="col-sm-6">
                         <div class="card border-info">
                             <div class="card-body p-2">
@@ -74,13 +102,15 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
+
+                <!-- Detalle Producto -->
                 <div class="row mt-2">
                     <div class="col-sm-12">
                         <div class="card border-info">
                             <div class="card-body p-2">
                                 <h6 class="card-title mb-1 text-info">Detalle Producto</h6>
-                                <!-- Primera fila de campos principales -->
                                 <div class="row">
                                     <input id="txtIdProducto" type="hidden" value="0" />
                                     <div class="col-sm-2">
@@ -97,12 +127,35 @@
                                     </div>
                                     <div class="col-sm-2">
                                         <div class="form-group mb-0">
-                                            <label for="btnBuscarTienda" class="col-form-label col-form-label-sm invisible">Buscar:</label>
+                                            <label class="col-form-label col-form-label-sm invisible">Buscar:</label>
                                             <button id="btnBuscarProducto" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProducto()">
                                                 <i class="fas fa-search"></i> Buscar
                                             </button>
                                         </div>
                                     </div>
+
+                                    <!-- Sección de Histórico de Precios con estilos mejorados -->
+                                    <div class="col-auto mt-2">
+                                        <div class="card border-secondary" style="display: inline-block;">
+                                            <div class="card-body p-2">
+                                                <h6 class="card-title mb-1 text-secondary">Histórico de Precios de Compra</h6>
+                                                <div class="historial-precio-wrapper">
+                                                    <table id="tbHistorialPrecio" class="table table-sm table-bordered table-striped mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th style="width: 100px;">Fecha</th>
+                                                                <th style="width: 130px;">Precio Gs.</th>
+                                                                <th style="width: 250px;">Observaciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
                                     <div class="col-sm-1">
                                         <div class="form-group mb-0">
                                             <label for="txtCantidadProducto" class="col-form-label col-form-label-sm">Cantidad:</label>
@@ -115,13 +168,6 @@
                                             <input type="text" class="form-control form-control-sm model" id="txtPrecioCompraProducto" name="PrecioCompra" value="0">
                                         </div>
                                     </div>
-                                    @*<div class="col-sm-1">
-            <div class="form-group mb-0">
-                <label for="txtPrecioVentaProducto" class="col-form-label col-form-label-sm">P. Venta:</label>
-                <input type="text" class="form-control form-control-sm model" id="txtPrecioVentaProducto" name="PrecioVenta" value="0">
-            </div>
-        </div>*@
-
                                     <div class="col-sm-2">
                                         <div class="form-group mb-0">
                                             <label for="txtNumeroFactura" class="col-form-label col-form-label-sm">N° Factura:</label>
@@ -145,16 +191,19 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Botón agregar -->
                 <div class="row mt-2">
                     <div class="col-sm-12">
                         <button id="btnAgregarCompra" class="btn btn-primary btn-sm float-right">
                             <i class="fas fa-plus"></i> Agregar a compra
                         </button>
                     </div>
-
                 </div>
 
                 <hr />
+
+                <!-- Tabla de compras agregadas -->
                 <div class="row mt-3">
                     <div class="col-sm-12">
                         <div class="table-responsive-sm">
@@ -168,17 +217,16 @@
                                         <th>Nombre Producto</th>
                                         <th>Cantidad</th>
                                         <th>Precio Compra</th>
-                                        <th>Precio Venta</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
                             </table>
-
                         </div>
-
                     </div>
                 </div>
             </div>
+
+            <!-- Footer -->
             <div class="card-footer bg-white border-info">
                 <button id="btnTerminarGuardarCompra" class="btn btn-primary btn-sm float-right">
                     <i class="fas fa-tags"></i> Terminar y Guardar Compra
@@ -187,106 +235,107 @@
         </div>
     </div>
 </div>
-
-
-<!-- MODAL PROVEEDOR -->
-<div class="modal fade" id="modalProveedor" tabindex="-1" role="dialog" data-backdrop="static" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<!-- MODAL SELECCIONAR PROVEEDOR -->
+<div class="modal fade" id="modalProveedor" tabindex="-1" role="dialog" aria-labelledby="modalProveedorLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title">Proveedores</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Seleccionar Proveedor</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="table-responsive">
-                    <table id="tbProveedor" class="table table-striped table-bordered nowrap compact" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>RUC</th>
-                                <th>Razon Social</th>
-                                <th>Direccion</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Cerrar</button>
+                <table id="tbProveedor" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>RUC</th>
+                            <th>Razón Social</th>
+                            <th>Dirección</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
 <!-- MODAL TIENDA -->
-<div class="modal fade" id="modalTienda" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="modalTienda" tabindex="-1" role="dialog" aria-labelledby="modalTiendaLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title">Tiendas</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Seleccionar Tienda</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="table-responsive">
-                    <table id="tbTienda" class="table table-striped table-bordered nowrap compact" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>RUC</th>
-                                <th>Razón Social</th>
-                                <th>Direccion</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Cerrar</button>
+                <table id="tbTienda" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>RUC</th>
+                            <th>Nombre</th>
+                            <th>Dirección</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
 <!-- MODAL PRODUCTO -->
-<div class="modal fade" id="modalProducto" tabindex="-1" role="dialog" data-backdrop="static" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="modalProducto" tabindex="-1" role="dialog" aria-labelledby="modalProductoLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title">Productos</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Seleccionar Producto</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="table-responsive">
-                    <table id="tbProducto" class="table table-striped table-bordered nowrap compact" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Codigo</th>
-                                <th>Nombre</th>
-                                <th>Descripcion</th>
-                                <th>Categoria</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Cerrar</button>
+                <table id="tbProducto" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
+
+<!-- MODALES -->
+<!-- Los modales de Proveedor, Tienda y Producto se mantienen sin cambios -->
 @section scripts{
+    <script type="text/javascript">
+        $.MisUrls = { url: {} };
+        $.MisUrls.urls = function (urls) { $.extend($.MisUrls.url, urls); };
+
+        $.MisUrls.urls({
+            _ObtenerProveedores: '@Url.Action("ObtenerProveedores", "Compra")',
+            _GuardarProveedor: '@Url.Action("Guardar", "Proveedor")',
+            _EliminarProveedor: '@Url.Action("Eliminar", "Proveedor")',
+            _ObtenerTiendas: '@Url.Action("Obtener", "Tienda")',
+            _ObtenerProductosPorTienda: '@Url.Action("ObtenerPorTienda", "Producto")',
+            _ObtenerProductos: '@Url.Action("Obtener", "Producto")',
+            _GuardarCompra: '@Url.Action("Guardar", "Compra")',
+            _ObtenerHistorialPrecio: '@Url.Action("ObtenerHistorialPrecio", "Compra")'
+        });
+    </script>
 
     <script src="@Url.Content("~/Scripts/Views/Compra_Crear.js")" type="text/javascript"></script>
 }

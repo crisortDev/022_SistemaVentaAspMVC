@@ -125,6 +125,7 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Controllers\CategoriaController.cs" />
     <Compile Include="Controllers\ClienteController.cs" />
+    <Compile Include="Controllers\ConsultarCajaCompraController.cs" />
     <Compile Include="Controllers\CompraController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LoginController.cs" />
@@ -2001,6 +2002,7 @@
     <Content Include="Scripts\umd\popper-utils.min.js" />
     <Content Include="Scripts\umd\popper.js" />
     <Content Include="Scripts\umd\popper.min.js" />
+    <Content Include="Scripts\Views\ConsultarCompraCaja.js" />
     <Content Include="Scripts\Views\Compra_Consultar.js" />
     <Content Include="Scripts\Views\Compra_Crear.js" />
     <Content Include="Scripts\Views\Producto_Asignar.js" />
@@ -2059,6 +2061,7 @@
     <Content Include="Views\Compra\Documento.cshtml" />
     <Content Include="Views\Venta\Documento.cshtml" />
     <Content Include="Views\Cliente\Crear.cshtml" />
+    <Content Include="Views\ConsultarCajaCompra\ConsultarCajaCompra.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

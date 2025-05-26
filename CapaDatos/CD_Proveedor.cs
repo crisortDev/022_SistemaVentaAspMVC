@@ -48,15 +48,18 @@ namespace CapaDatos
                     {
                         rptListaProveedor.Add(new Proveedor()
                         {
-                            IdProveedor = Convert.ToInt32(dr["IdProveedor"].ToString()),
+                            IdProveedor = Convert.ToInt32(dr["IdProveedor"]),
                             Ruc = dr["Ruc"].ToString(),
                             RazonSocial = dr["RazonSocial"].ToString(),
                             Telefono = dr["Telefono"].ToString(),
                             Correo = dr["Correo"].ToString(),
                             Direccion = dr["Direccion"].ToString(),
-                            Activo = Convert.ToBoolean(dr["Activo"].ToString()),
+                            Activo = Convert.ToBoolean(dr["Activo"]),
                             Ciudad = dr["Ciudad"].ToString(),
-                            Geolocalizacion = dr["Geolocalizacion"].ToString()
+                            Geolocalizacion = dr["Geolocalizacion"].ToString(),
+                            Barrio = dr["Barrio"].ToString(),
+                            Calle = dr["Calle"].ToString(),
+                            Referencia = dr["Referencia"].ToString()
 
                         });
                     }
@@ -87,6 +90,9 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Correo", oProveedor.Correo);
                     cmd.Parameters.AddWithValue("Direccion", oProveedor.Direccion);
                     cmd.Parameters.AddWithValue("@Ciudad", oProveedor.Ciudad); // Manejo de valor nulo
+                    cmd.Parameters.AddWithValue("@Barrio", oProveedor.Barrio);
+                    cmd.Parameters.AddWithValue("@Calle", oProveedor.Calle);
+                    cmd.Parameters.AddWithValue("@Referencia", oProveedor.Referencia);
                     cmd.Parameters.AddWithValue("@Geolocalizacion", oProveedor.Geolocalizacion); // Manejo de valor nulo
 
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
@@ -123,6 +129,9 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Correo", oProveedor.Correo);
                     cmd.Parameters.AddWithValue("Direccion", oProveedor.Direccion);
                     cmd.Parameters.AddWithValue("Activo", oProveedor.Activo);
+                    cmd.Parameters.AddWithValue("@Barrio", oProveedor.Barrio);
+                    cmd.Parameters.AddWithValue("@Calle", oProveedor.Calle);
+                    cmd.Parameters.AddWithValue("@Referencia", oProveedor.Referencia);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
 

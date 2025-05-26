@@ -15,9 +15,10 @@ namespace CapaModelo
         public string Correo { get; set; }
         public string Direccion { get; set; }
         public bool Activo { get; set; }
-        public string Ciudad { get; set; } // Agregar el nuevo campo
+        public string Ciudad { get; set; }
         public string Geolocalizacion { get; set; }
-
-
+        public string Barrio { get; set; }
+        public string Calle { get; set; }
+        public string Referencia { get; set; }
     }
 }

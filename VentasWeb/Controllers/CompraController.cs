@@ -26,7 +26,12 @@ namespace VentasWeb.Controllers
         {
             return View();
         }
-
+        [HttpGet]
+        public JsonResult ObtenerProveedores()
+        {
+            List<Proveedor> lista = CD_Proveedor.Instancia.ObtenerProveedor();
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
         public ActionResult Documento(int idcompra = 0) {
             
             Compra oCompra = CD_Compra.Instancia.ObtenerDetalleCompra(idcompra);
@@ -105,7 +110,20 @@ namespace VentasWeb.Controllers
             }
         }
 
+        [HttpGet]
+        public JsonResult ObtenerHistorialPrecio(int idproducto)
+        {
+            try
+            {
+                List<HistorialPrecioCompra> lista = CD_Compra.Instancia.ObtenerHistorialPrecioCompra(idproducto);
 
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { data = new List<HistorialPrecioCompra>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
 
     }
 }

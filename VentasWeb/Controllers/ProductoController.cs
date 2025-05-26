@@ -199,12 +199,12 @@ namespace VentasWeb.Controllers
         }
 
         [HttpPost]
-        public JsonResult BajaStockProductoTienda(int idProductoTienda, int cantidad)
+        public JsonResult BajaStockProductoTienda(int idProductoTienda, int cantidad, string motivo, int idProducto)
         {
             try
             {
-                // Llamamos al servicio que maneja la baja de stock
-                string resultado = _productoTiendaService.BajaStockProductoTienda(idProductoTienda, cantidad);
+                // Llamamos al servicio que maneja la baja de stock, pasando todos los parámetros
+                string resultado = _productoTiendaService.BajaStockProductoTienda(idProductoTienda, cantidad, motivo, idProducto);
 
                 if (resultado.Contains("Error"))
                 {

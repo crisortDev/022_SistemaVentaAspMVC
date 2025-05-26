@@ -102,9 +102,11 @@ $(document).ready(function () {
                 "width": "80px"
             },
             // Nueva columna: Baja de Stock
+            // Dentro de la configuración de tabladata:
             {
-                "data": "Stock", "render": function (data, type, row, meta) {
-                    return "<button class='btn btn-warning btn-sm ml-2' type='button' onclick='bajaStock(" + row.IdProductoTienda + ", " + data + ")'><i class='fas fa-arrow-down'></i></button>";
+                "data": "Stock",
+                "render": function (data, type, row, meta) {
+                    return "<button class='btn btn-warning btn-sm ml-2' type='button' onclick='bajaStock(" + row.IdProductoTienda + ", " + data + ", " + row.oProducto.IdProducto + ")'><i class='fas fa-arrow-down'></i></button>";
                 },
                 "orderable": false,
                 "searchable": false,
@@ -288,62 +290,84 @@ function eliminar($id) {
         });
 }
 
-function bajaStock(idProductoTienda, stockActual) {
+function bajaStock(idProductoTienda, stockActual, idProducto) {
+
+    // El resto de tu lógica de baja de stock
     Swal.fire({
-        title: "Ingrese la cantidad a reducir",
-        text: "Cantidad a reducir del stock actual: " + stockActual,
-        input: 'number',
-        inputAttributes: {
-            min: 1,
-            max: stockActual,
-            step: 1
-        },
+        title: "Ingrese los detalles de la baja",
+        html: `
+            <div>
+                <label for="cantidad">Cantidad a reducir:</label>
+                <input type="number" id="cantidad" class="swal2-input" min="1" max="${stockActual}" value="1">
+                <br><br>
+                <label for="motivo">Motivo de la baja:</label>
+                <input type="text" id="motivo" class="swal2-input" placeholder="Motivo de la baja">
+            </div>
+        `,
+        focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: 'Aceptar',
         cancelButtonText: 'Cancelar',
-        showLoaderOnConfirm: true,
-        preConfirm: (cantidad) => {
-            return new Promise((resolve, reject) => {
-                if (!cantidad || isNaN(cantidad) || cantidad <= 0) {
-                    reject('Por favor ingrese un número válido mayor a cero');
-                    return;
-                }
+        preConfirm: () => {
+            const cantidad = document.getElementById('cantidad').value;
+            const motivo = document.getElementById('motivo').value;
 
-                if (cantidad > stockActual) {
-                    reject('No puede reducir más stock del disponible');
-                    return;
-                }
+            // Validaciones
+            if (!cantidad || isNaN(cantidad) || cantidad <= 0) {
+                Swal.showValidationMessage('Por favor ingrese una cantidad válida mayor a cero');
+                return false;
+            }
 
-                // Hacer la llamada AJAX para reducir el stock
-                jQuery.ajax({
-                    url: '/Producto/BajaStockProductoTienda',
-                    type: 'POST',
-                    data: {
-                        idProductoTienda: idProductoTienda,  // Asegúrate de que este valor es correcto
-                        cantidad: cantidad  // Asegúrate de que este valor es correcto
-                    },
-                    success: function (data) {
-                        if (data.resultado) {
-                            resolve();
-                        } else {
-                            reject(data.mensaje);
-                        }
-                    },
-                    error: function () {
-                        reject('Error al procesar la solicitud');
-                    }
-                });
-            });
+            if (cantidad > stockActual) {
+                Swal.showValidationMessage('No puede reducir más stock del disponible');
+                return false;
+            }
+
+            if (!motivo.trim()) {
+                Swal.showValidationMessage('Por favor ingrese un motivo para la baja de stock');
+                return false;
+            }
+
+            return {
+                cantidad: cantidad,
+                motivo: motivo
+            };
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            tabladata.ajax.reload();
-            Swal.fire('Éxito', 'El stock se ha reducido correctamente', 'success');
+            const { cantidad, motivo } = result.value;
+
+            // Llamada AJAX para reducir el stock
+            jQuery.ajax({
+                url: '/Producto/BajaStockProductoTienda',
+                type: 'POST',
+                data: {
+                    idProductoTienda: idProductoTienda,
+                    cantidad: cantidad,
+                    motivo: motivo,
+                    idProducto: idProducto // Asegúrate de enviar idProducto
+                },
+                success: function (data) {
+                    if (data.resultado) {
+                        tabladata.ajax.reload();
+                        Swal.fire('Éxito', 'El stock se ha reducido correctamente', 'success');
+                    } else {
+                        Swal.fire('Error', data.mensaje, 'error');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.log("Error:", error);
+                    console.log("Response Text:", xhr.responseText);
+                    Swal.fire('Error', 'Error al procesar la solicitud', 'error');
+                }
+            });
         }
-    }).catch((error) => {
-        Swal.fire('Error', error, 'error');
     });
 }
+
+
+
+
 
 
 

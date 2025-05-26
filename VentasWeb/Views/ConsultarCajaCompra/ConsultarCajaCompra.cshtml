@@ -1,0 +1,59 @@
+﻿@{
+    ViewBag.Title = "Consultar Caja Compra";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Compras</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Consultar Caja Compra</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                Consultar Compras
+            </div>
+            <div class="card-body p-2">
+                <div class="row align-items-end">
+                    <div class="col-sm-2">
+                        <label for="txtFechaInicio" class="col-form-label col-form-label-sm">Fecha Inicio:</label>
+                        <input type="date" class="form-control form-control-sm" id="txtFechaInicio" name="FechaInicio" autocomplete="off" value="@ViewBag.FechaInicio" />
+                    </div>
+                    <div class="col-sm-2">
+                        <label for="txtFechaFin" class="col-form-label col-form-label-sm">Fecha Fin:</label>
+                        <input type="date" class="form-control form-control-sm" id="txtFechaFin" name="FechaFin" autocomplete="off" value="@ViewBag.FechaFin" />
+                    </div>
+                    <div class="col-sm-2">
+                        <button id="btnBuscar" type="button" class="btn btn-primary btn-sm btn-block" onclick="buscar()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+                <hr />
+                <table id="tbCompras" class="table table-striped table-bordered nowrap" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Número Factura</th>
+                            <th>Número Timbrado</th>
+                            <th>Fecha Transacción</th>
+                            <th>Monto Operación</th>
+                            <th>Estado Pago</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/Views/ConsultarCompraCaja.js"></script>
+}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+

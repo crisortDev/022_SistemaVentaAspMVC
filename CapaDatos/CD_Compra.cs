@@ -35,6 +35,8 @@ namespace CapaDatos
 
         public bool RegistrarCompra(string Detalle)
         {
+
+
             bool respuesta = true;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -213,6 +215,33 @@ namespace CapaDatos
                     return $"-1,Error al validar stock: {ex.Message}";
                 }
             }
+        }
+        public List<HistorialPrecioCompra> ObtenerHistorialPrecioCompra(int idproducto)
+        {
+            List<HistorialPrecioCompra> lista = new List<HistorialPrecioCompra>();
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand("sp_ObtenerHistorialPrecioCompra", oConexion);
+                cmd.Parameters.AddWithValue("@IdProducto", idproducto);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                oConexion.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        lista.Add(new HistorialPrecioCompra()
+                        {
+                            FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"]).ToString("yyyy-MM-dd"),
+                            PrecioCompra = Convert.ToDecimal(dr["PrecioCompra"]),
+                            Observaciones = dr["Observaciones"] != DBNull.Value ? dr["Observaciones"].ToString() : ""
+                        });
+                    }
+                }
+            }
+
+            return lista;
         }
 
 
