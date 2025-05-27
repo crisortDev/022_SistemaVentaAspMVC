@@ -16,11 +16,19 @@ namespace VentasWeb.Controllers
     {
         private static Usuario SesionUsuario;
         // GET: Compra
+        //public ActionResult Crear()
+        //{
+        //    SesionUsuario = (Usuario)Session["Usuario"];
+        //    return View();
+        //}
+
         public ActionResult Crear()
         {
-            SesionUsuario = (Usuario)Session["Usuario"];
+            var usuario = (Usuario)Session["Usuario"];
+            ViewBag.IdUsuario = usuario?.IdUsuario;
             return View();
         }
+
         // GET: Compra
         public ActionResult Consultar()
         {
@@ -55,6 +63,12 @@ namespace VentasWeb.Controllers
         {
             try
             {
+                SesionUsuario = (Usuario)Session["Usuario"];
+                if (SesionUsuario == null)
+                {
+                    return Json(new { resultado = false, error = "La sesión ha expirado. Por favor inicie sesión nuevamente." });
+                }
+
                 xml = xml.Replace("!idusuario¡", SesionUsuario.IdUsuario.ToString());
 
                 var serializer = new XmlSerializer(typeof(ValidaStockMaximo.DetalleRoot));

@@ -37,6 +37,7 @@
 </nav>
 
 <div class="row">
+    <input type="hidden" id="hdnIdUsuario" value="@ViewBag.IdUsuario" />
     <div class="col-sm-12">
         <div class="card border-info">
             <div class="card-header bg-info text-white">
@@ -69,6 +70,25 @@
                                             <button id="btnBuscarProveedor" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProveedor()"><i class="fas fa-search"></i> Buscar</button>
                                         </div>
                                     </div>
+                                    <div class="col-sm-4 mt-2">
+                                        <div class="form-group mb-0">
+                                            <label for="txtNumeroFactura" class="col-form-label col-form-label-sm">N° Factura:</label>
+                                            <input type="text" class="form-control form-control-sm model" id="txtNumeroFactura" name="NumeroFactura">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 mt-2">
+                                        <div class="form-group mb-0">
+                                            <label for="txtNumeroTimbrado" class="col-form-label col-form-label-sm">N° Timbrado:</label>
+                                            <input type="text" class="form-control form-control-sm model" id="txtNumeroTimbrado" name="NumeroTimbrado">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 mt-2">
+                                        <div class="form-group mb-0">
+                                            <label for="txtFechaVencimientoTimbrado" class="col-form-label col-form-label-sm">Venc. Timbrado:</label>
+                                            <input type="date" class="form-control form-control-sm model" id="txtFechaVencimientoTimbrado" name="FechaVencimientoTimbrado">
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -133,6 +153,19 @@
                                             </button>
                                         </div>
                                     </div>
+                                    <div class="col-sm-1">
+                                        <div class="form-group mb-0">
+                                            <label for="txtIvaPorcentaje" class="col-form-label col-form-label-sm">IVA %:</label>
+                                            <input type="text" class="form-control form-control-sm model" id="txtIvaPorcentaje" name="IvaPorcentaje" value="10">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb-0">
+                                            <label for="txtPrecioCompraConIva" class="col-form-label col-form-label-sm">P. Compra c/IVA:</label>
+                                            <input type="text" class="form-control form-control-sm model" id="txtPrecioCompraConIva" name="PrecioCompraConIva" readonly>
+                                        </div>
+                                    </div>
 
                                     <!-- Sección de Histórico de Precios con estilos mejorados -->
                                     <div class="col-auto mt-2">
@@ -168,24 +201,6 @@
                                             <input type="text" class="form-control form-control-sm model" id="txtPrecioCompraProducto" name="PrecioCompra" value="0">
                                         </div>
                                     </div>
-                                    <div class="col-sm-2">
-                                        <div class="form-group mb-0">
-                                            <label for="txtNumeroFactura" class="col-form-label col-form-label-sm">N° Factura:</label>
-                                            <input type="text" class="form-control form-control-sm model" id="txtNumeroFactura" name="NumeroFactura">
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <div class="form-group mb-0">
-                                            <label for="txtNumeroTimbrado" class="col-form-label col-form-label-sm">N° Timbrado:</label>
-                                            <input type="text" class="form-control form-control-sm model" id="txtNumeroTimbrado" name="NumeroTimbrado">
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <div class="form-group mb-0">
-                                            <label for="txtFechaVencimientoTimbrado" class="col-form-label col-form-label-sm">Venc. Timbrado:</label>
-                                            <input type="date" class="form-control form-control-sm model" id="txtFechaVencimientoTimbrado" name="FechaVencimientoTimbrado">
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -211,12 +226,12 @@
                                 <thead>
                                     <tr>
                                         <th></th>
-                                        <th>Ruc Proveedor</th>
-                                        <th>Ruc Tienda</th>
-                                        <th>Codigo Producto</th>
+                                        <th>Código Producto</th>
                                         <th>Nombre Producto</th>
                                         <th>Cantidad</th>
-                                        <th>Precio Compra</th>
+                                        <th>Precio Unidad Compra</th>
+                                        <th>Precio Total Compra</th>
+                                        <th>Precio Total Compra c/IVA</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>

@@ -20,6 +20,9 @@ $.fn.inputFilter = function (inputFilter) {
 $(document).ready(function () {
     activarMenu("Compras");
     inicializarDataTables();
+    $(document).on('click', '#tbCompra tbody button.btn-danger', function () {
+        $(this).closest('tr').remove();
+    });
 });
 // Delegación del evento para seleccionar proveedor desde el modal
 $(document).on('click', '.seleccionar-proveedor', function () {
@@ -77,12 +80,12 @@ function inicializarDataTables() {
                 "data": null,
                 "render": function (data, type, row) {
                     return `
-                <button class="btn btn-sm btn-primary seleccionar-tienda"
-                        data-id="${row.IdTienda}"
-                        data-ruc="${row.RUC}"
-                        data-nombre="${row.Nombre}">
-                    <i class="fas fa-check"></i>
-                </button>`;
+                    <button class="btn btn-sm btn-primary seleccionar-tienda"
+                            data-id="${row.IdTienda}"
+                            data-ruc="${row.RUC}"
+                            data-nombre="${row.Nombre}">
+                        <i class="fas fa-check"></i>
+                    </button>`;
                 },
                 "orderable": false,
                 "searchable": false,
@@ -90,10 +93,17 @@ function inicializarDataTables() {
             },
             { "data": "RUC" },
             { "data": "Nombre" },
-            { "data": "Direccion" }
+            {
+                "data": "Direccion",
+                "render": function (data, type, row) {
+                    // Suponiendo que dirección pueda ser texto normal
+                    return data;
+                }
+            }
         ],
         "language": lenguajeDataTable()
     });
+
     $(document).on('click', '.seleccionar-tienda', function () {
         const id = $(this).data('id');
         const ruc = $(this).data('ruc');
@@ -178,13 +188,29 @@ function configurarFiltrosEntrada() {
     // Configurar filtros de entrada numéricos
     $("#txtCantidadProducto").inputFilter(value => /^\d*$/.test(value));
     $("#txtPrecioCompraProducto").inputFilter(value => /^\d*[.]?\d{0,2}$/.test(value));
-    $("#txtPrecioVentaProducto").inputFilter(value => /^\d*[.]?\d{0,2}$/.test(value));
+    // Solo permitir números y decimales
+    $("#txtIvaPorcentaje").inputFilter(value => /^\d{0,2}([.]\d{0,2})?$/.test(value));
+
+    // Evento que recalcula el Precio Compra con IVA cuando cambia Precio o IVA %
+    $("#txtPrecioCompraProducto, #txtIvaPorcentaje").on("input", function () {
+        calcularPrecioConIva();
+    });
+
 
     // Evento búsqueda por código producto
     $("#txtCodigoProducto").on('keypress', async function (e) {
         if (e.which === 13) await buscarProductoPorCodigo();
     });
 }
+function calcularPrecioConIva() {
+    const precioCompra = parseFloat($("#txtPrecioCompraProducto").val()) || 0;
+    const iva = parseFloat($("#txtIvaPorcentaje").val()) || 0;
+
+    const precioConIva = precioCompra * (1 + (iva / 100));
+    // Asignar valor formateado
+    $("#txtPrecioCompraConIva").val(formatearMonedaGs(Math.round(precioConIva)));
+}
+
 
 async function buscarProductoPorCodigo() {
     try {
@@ -210,6 +236,17 @@ async function buscarProductoPorCodigo() {
         console.error("Error buscando producto:", error);
         mostrarError("Error al buscar producto");
     }
+}
+function limpiarCamposProducto() {
+    $("#txtIdProducto").val("0");
+    $("#txtCodigoProducto").val("");
+    $("#txtNombreProducto").val("");
+    $("#txtCantidadProducto").val("0");
+    $("#txtPrecioCompraProducto").val("0");
+    $("#txtPrecioCompraConIva").val("");
+    $("#txtIvaPorcentaje").val("10"); // o lo que quieras por defecto
+    // Si estás usando Precio Venta y lo querés limpiar también:
+    $("#txtPrecioVentaProducto").val("0");
 }
 
 // Funciones de selección
@@ -270,7 +307,6 @@ function validarCamposRequeridos() {
         { id: "#txtIdProducto", nombre: "Producto" },
         { id: "#txtCantidadProducto", nombre: "Cantidad" },
         { id: "#txtPrecioCompraProducto", nombre: "Precio Compra" },
-        { id: "#txtPrecioVentaProducto", nombre: "Precio Venta" }
     ];
 
     for (let campo of campos) {
@@ -283,21 +319,29 @@ function validarCamposRequeridos() {
 }
 
 function agregarFilaProducto() {
+    const cantidad = parseFloat($("#txtCantidadProducto").val()) || 0;
+    const precioUnidad = parseFloat($("#txtPrecioCompraProducto").val()) || 0;
+    const ivaPorcentaje = parseFloat($("#txtIvaPorcentaje").val()) || 0;
+
+    const totalSinIva = cantidad * precioUnidad;
+    const totalConIva = totalSinIva * (1 + ivaPorcentaje / 100);
+
     const fila = `
         <tr>
             <td><button class="btn btn-danger btn-sm">Eliminar</button></td>
-            <td>${$("#txtRucProveedor").val()}</td>
-            <td>${$("#txtRucTienda").val()}</td>
             <td class="codigoproducto" data-idproducto="${$("#txtIdProducto").val()}">
                 ${$("#txtCodigoProducto").val()}
             </td>
             <td>${$("#txtNombreProducto").val()}</td>
-            <td class="cantidad">${$("#txtCantidadProducto").val()}</td>
-            <td class="preciocompra">${$("#txtPrecioCompraProducto").val()}</td>
-            <td class="precioventa">${$("#txtPrecioVentaProducto").val()}</td>
+            <td class="cantidad">${cantidad}</td>
+            <td class="preciocompra">${formatearMonedaGs(Math.round(precioUnidad))}</td>
+            <td class="totalcompra">${formatearMonedaGs(Math.round(totalSinIva))}</td>
+            <td class="totalcompraiva">${formatearMonedaGs(Math.round(totalConIva))}</td>
         </tr>`;
     $("#tbCompra tbody").append(fila);
 }
+
+
 
 // Gestión del formulario
 $('#btnTerminarGuardarCompra').on('click', guardarCompra);
@@ -320,6 +364,15 @@ async function guardarCompra() {
         mostrarError("Error al procesar la compra");
     }
 }
+function validarListaProductos() {
+    const filas = $("#tbCompra tbody tr");
+    if (filas.length === 0) {
+        mostrarError("Debe agregar al menos un producto a la lista de compra.");
+        return false;
+    }
+    return true;
+}
+
 
 function construirXMLCompra() {
     let totalCosto = 0;
@@ -327,18 +380,22 @@ function construirXMLCompra() {
 
     $("#tbCompra tbody tr").each(function () {
         const $tds = $(this).find('td');
-        const cantidad = parseFloat($tds.eq(5).text());
-        const precioCompra = parseFloat($tds.eq(6).text());
-        const total = cantidad * precioCompra;
-        totalCosto += total;
+        const idProducto = $tds.eq(1).data('idproducto'); // columna Código Producto
+        const cantidad = parseInt($tds.eq(3).text());
+        const precioCompra = parseInt($tds.eq(4).text());
+        const totalSinIva = parseInt($tds.eq(5).text());
+        const totalConIva = parseInt($tds.eq(6).text());
+
+        totalCosto += totalSinIva;
 
         detalleXML += `
             <DETALLE>
-                <IdProducto>${$tds.eq(3).data('idproducto')}</IdProducto>
+                <IdProducto>${idProducto}</IdProducto>
                 <Cantidad>${cantidad}</Cantidad>
                 <PrecioUnidadCompra>${precioCompra}</PrecioUnidadCompra>
-                <PrecioUnidadVenta>${parseFloat($tds.eq(7).text())}</PrecioUnidadVenta>
-                <TotalCosto>${total.toFixed(2)}</TotalCosto>
+                <PrecioUnidadCompraConIva>${totalConIva / cantidad}</PrecioUnidadCompraConIva>
+                <PrecioUnidadVenta>0</PrecioUnidadVenta>
+                <TotalCosto>${totalSinIva}</TotalCosto>
             </DETALLE>`;
     });
 
@@ -351,12 +408,16 @@ function construirXMLCompra() {
                 <NumeroFactura>${$("#txtNumeroFactura").val()}</NumeroFactura>
                 <NumeroTimbrado>${$("#txtNumeroTimbrado").val()}</NumeroTimbrado>
                 <FechaVencimientoTimbrado>${$("#txtFechaVencimientoTimbrado").val()}</FechaVencimientoTimbrado>
-                <TotalCosto>${totalCosto.toFixed(2)}</TotalCosto>
+                <TotalCosto>${totalCosto}</TotalCosto>
             </COMPRA>
             <DETALLE_COMPRA>
                 ${detalleXML}
             </DETALLE_COMPRA>
         </DETALLE>`;
+}
+
+function obtenerIdUsuario() {
+    return $("#hdnIdUsuario").val();
 }
 
 async function enviarCompraAlServidor(xmlData) {
@@ -428,4 +489,24 @@ function buscarTienda() {
 function buscarProducto() {
     $('#modalProducto').modal('show');
     tablaproducto.ajax.reload(); // Cargar la tabla de productos cada vez que se abre
+}
+
+function buscarProductoEnLista() {
+    const idProductoActual = $("#txtIdProducto").val();
+    let encontrado = false;
+
+    $("#tbCompra tbody tr").each(function () {
+        const idEnTabla = $(this).find("td.codigoproducto").data("idproducto");
+        if (idProductoActual && idProductoActual === idEnTabla.toString()) {
+            encontrado = true;
+            return false; // salir del .each()
+        }
+    });
+
+    return encontrado;
+}
+
+function formatearMonedaGs(valor) {
+    if (isNaN(valor)) return "0";
+    return valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
