@@ -164,6 +164,8 @@ function productoSelect(json) {
     // Ajuste: usar PrecioVenta y PrecioIvaIncluido del JSON recibido
     $("#txtproductoprecio").val(json.PrecioVenta);
     $("#txtproductoprecioiva").val(json.PrecioIvaIncluido);
+    $("#txtproductoprecioiva").val(json.PrecioVentaIvaIncluido); // Con IVA
+
 
     $("#txtproductocantidad").val("0");
     $('#modalProducto').modal('hide');
@@ -207,6 +209,8 @@ $("#txtproductocodigo").on('keypress', function (e) {
                             $("#txtproductodescripcion").val(item.oProducto.Descripcion);
                             $("#txtproductostock").val(item.Stock);
                             $("#txtproductoprecio").val(item.PrecioUnidadVenta);
+                            $("#txtproductoprecioiva").val(item.PrecioVentaIvaIncluido); // <- Agregar esta línea
+
                             encontrado = true;
                             return false;
                         }
@@ -261,11 +265,13 @@ $("#btnAgregar").on("click", function () {
         '<td class="productocantidad">' + cantidad + '</td>' +
         '<td class="producto" data-idproducto="' + idproducto + '">' + nombre + '</td>' +
         '<td class="productodescripcion">' + descripcion + '</td>' +
-        '<td class="productoprecio">' + precio.toFixed(2) + '</td>' +
-        '<td class="productoprecioiva">' + precioiva.toFixed(2) + '</td>' +
-        '<td class="importetotal">' + importetotal.toFixed(2) + '</td>' +
-        '<td class="importetotaliva">' + importetotaliva.toFixed(2) + '</td>' +
+        '<td class="productoprecio" data-precio="' + precio + '">' + formatoGuaranies(precio) + '</td>' +
+        '<td class="productoprecioiva" data-precioiva="' + precioiva + '">' + formatoGuaranies(precioiva) + '</td>' +
+        '<td class="importetotal" data-importetotal="' + importetotal + '">' + formatoGuaranies(importetotal) + '</td>' +
+        '<td class="importetotaliva" data-importetotaliva="' + importetotaliva + '">' + formatoGuaranies(importetotaliva) + '</td>' +
         '</tr>';
+
+
 
     $("#tbVenta > tbody").append(filaHtml);
 
@@ -526,3 +532,18 @@ window.onbeforeunload = function () {
         });
     }
 };
+
+//function formatoMoneda(valor) {
+//    if (isNaN(valor)) return valor;
+//    return new Intl.NumberFormat('es-ES', {
+//        minimumFractionDigits: 2,
+//        maximumFractionDigits: 2
+//    }).format(valor);
+//}
+
+function formatoGuaranies(valor) {
+    return new Intl.NumberFormat('es-PY', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(valor);
+}

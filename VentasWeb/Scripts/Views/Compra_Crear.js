@@ -22,6 +22,7 @@ $(document).ready(function () {
     inicializarDataTables();
     $(document).on('click', '#tbCompra tbody button.btn-danger', function () {
         $(this).closest('tr').remove();
+        actualizarTotalesCompra();
     });
 });
 // Delegación del evento para seleccionar proveedor desde el modal
@@ -129,6 +130,7 @@ function inicializarDataTables() {
     });
 
     // DataTable Productos
+    // Inicialización DataTable Productos con data-iva agregado para obtener IVA real
     tablaproducto = $('#tbProducto').DataTable({
         "ajax": {
             "url": `${$.MisUrls.url._ObtenerProductosPorTienda}?IdTienda=0`,
@@ -143,7 +145,8 @@ function inicializarDataTables() {
                 <button class="btn btn-sm btn-primary seleccionar-producto"
                         data-id="${row.IdProducto}"
                         data-codigo="${row.Codigo}"
-                        data-nombre="${row.Nombre}">
+                        data-nombre="${row.Nombre}"
+                        data-iva="${row.IvaPorcentaje || 10}">
                     <i class="fas fa-check"></i>
                 </button>`;
                 },
@@ -161,6 +164,52 @@ function inicializarDataTables() {
         ],
         "language": lenguajeDataTable()
     });
+
+    // Evento para seleccionar producto y rellenar campos, sin afectar historial
+    $(document).on('click', '.seleccionar-producto', function () {
+        const id = $(this).data('id');
+        const codigo = $(this).data('codigo');
+        const nombre = $(this).data('nombre');
+        const iva = $(this).data('iva') || 10; // IVA que viene o 10 por defecto
+
+        $("#txtIdProducto").val(id);
+        $("#txtCodigoProducto").val(codigo);
+        $("#txtNombreProducto").val(nombre);
+        $("#txtIvaPorcentaje").val(iva);
+
+        // Inicializa Cantidad y Precio Compra para ingreso manual
+        $("#txtCantidadProducto").val("0");
+        $("#txtPrecioCompraProducto").val("0");
+
+        // Limpia Precio Compra con IVA
+        $("#txtPrecioCompraConIva").val("0");
+
+        // Fuerza cálculo para actualizar el campo Precio Compra c/IVA
+        calcularPrecioConIva();
+
+        $('#modalProducto').modal('hide');
+    });
+
+    // Función para calcular Precio Compra con IVA
+    function calcularPrecioConIva() {
+        const precioCompra = parseFloat($("#txtPrecioCompraProducto").val()) || 0;
+        const iva = parseFloat($("#txtIvaPorcentaje").val()) || 0;
+
+        const precioConIva = precioCompra * (1 + (iva / 100));
+        $("#txtPrecioCompraConIva").val(formatearMonedaGs(Math.round(precioConIva)));
+    }
+
+    // Evento para recalcular Precio Compra con IVA al cambiar Precio o IVA
+    $("#txtPrecioCompraProducto, #txtIvaPorcentaje").on("input", function () {
+        calcularPrecioConIva();
+    });
+
+    // Función formatear con separadores de miles
+    function formatearMonedaGs(valor) {
+        if (isNaN(valor)) return "0";
+        return valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
 
     configurarFiltrosEntrada();
 }
@@ -339,6 +388,7 @@ function agregarFilaProducto() {
             <td class="totalcompraiva">${formatearMonedaGs(Math.round(totalConIva))}</td>
         </tr>`;
     $("#tbCompra tbody").append(fila);
+    actualizarTotalesCompra();
 }
 
 
@@ -355,7 +405,10 @@ async function guardarCompra() {
 
         if (response.resultado) {
             mostrarExito("Compra registrada exitosamente");
-            resetPurchaseForm();
+            // Recarga la página para empezar una compra nueva
+            setTimeout(() => {
+                location.reload();
+            }, 1000); // espera 1 segundo para que el usuario vea el mensaje
         } else {
             manejarErrorServidor(response);
         }
@@ -364,6 +417,7 @@ async function guardarCompra() {
         mostrarError("Error al procesar la compra");
     }
 }
+
 function validarListaProductos() {
     const filas = $("#tbCompra tbody tr");
     if (filas.length === 0) {
@@ -382,9 +436,10 @@ function construirXMLCompra() {
         const $tds = $(this).find('td');
         const idProducto = $tds.eq(1).data('idproducto'); // columna Código Producto
         const cantidad = parseInt($tds.eq(3).text());
-        const precioCompra = parseInt($tds.eq(4).text());
-        const totalSinIva = parseInt($tds.eq(5).text());
-        const totalConIva = parseInt($tds.eq(6).text());
+        const precioCompra = parseMonedaGs($tds.eq(4).text());
+        const totalSinIva = parseMonedaGs($tds.eq(5).text());
+        const totalConIva = parseMonedaGs($tds.eq(6).text());
+
 
         totalCosto += totalSinIva;
 
@@ -443,6 +498,7 @@ function resetPurchaseForm() {
     $("#tbCompra tbody").empty();
     $(".form-control").val("");
     $("input[type='hidden']").val("0");
+    actualizarTotalesCompra(); // para que muestre 0 en totales
 }
 
 function cargarHistorialPrecioCompra(idProducto) {
@@ -506,7 +562,49 @@ function buscarProductoEnLista() {
     return encontrado;
 }
 
+//function formatearMonedaGs(valor) {
+//    if (isNaN(valor)) return "0";
+//    return valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+//}
+
+function parseMonedaGs(valor) {
+    if (!valor) return 0;
+    // Quitar puntos usados como separadores de miles y convertir a entero
+    return parseInt(valor.toString().replace(/\./g, ''), 10) || 0;
+}
+
 function formatearMonedaGs(valor) {
     if (isNaN(valor)) return "0";
     return valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+
+function actualizarTotalesCompra() {
+    let totalCantidad = 0;
+    let totalPrecioUnidadCompra = 0;
+    let totalPrecioTotalCompra = 0;
+    let totalPrecioTotalCompraIVA = 0;
+
+    $("#tbCompra tbody tr").each(function () {
+        const $tds = $(this).find('td');
+
+        // Cantidad es número sin formato, ok
+        let cantidad = parseFloat($tds.eq(3).text()) || 0;
+
+        // Para las otras columnas, que están formateadas con puntos, parseamos quitando puntos
+        let precioUnidad = parseMonedaGs($tds.eq(4).text());
+        let totalSinIva = parseMonedaGs($tds.eq(5).text());
+        let totalConIva = parseMonedaGs($tds.eq(6).text());
+
+        totalCantidad += cantidad;
+        totalPrecioUnidadCompra += precioUnidad;
+        totalPrecioTotalCompra += totalSinIva;
+        totalPrecioTotalCompraIVA += totalConIva;
+    });
+
+    // Mostrar totales con formato
+    $("#totalCantidad").text(totalCantidad);
+    $("#totalPrecioUnidadCompra").text(formatearMonedaGs(Math.round(totalPrecioUnidadCompra)));
+    $("#totalPrecioTotalCompra").text(formatearMonedaGs(Math.round(totalPrecioTotalCompra)));
+    $("#totalPrecioTotalCompraIVA").text(formatearMonedaGs(Math.round(totalPrecioTotalCompraIVA)));
 }
