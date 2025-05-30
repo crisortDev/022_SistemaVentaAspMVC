@@ -59,9 +59,10 @@ namespace CapaDatos
                             Barrio = dr["Barrio"].ToString(),
                             Calle = dr["Calle"].ToString(),
                             NumeroCasa = dr["NumeroCasa"].ToString(),
-                            Referencia = dr["Referencia"].ToString()
-
+                            Referencia = dr["Referencia"].ToString(),
+                            Geolocalizacion = dr["Geolocalizacion"] == DBNull.Value ? null : dr["Geolocalizacion"].ToString()  // Agregado
                         });
+
                     }
                     dr.Close();
 
@@ -95,8 +96,10 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Calle", oCliente.Calle);
                     cmd.Parameters.AddWithValue("NumeroCasa", oCliente.NumeroCasa);
                     cmd.Parameters.AddWithValue("Referencia", oCliente.Referencia);
+                    cmd.Parameters.AddWithValue("Geolocalizacion", string.IsNullOrEmpty(oCliente.Geolocalizacion) ? (object)DBNull.Value : oCliente.Geolocalizacion); // Agregado
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
+
 
                     oConexion.Open();
 
@@ -136,8 +139,10 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Calle", oCliente.Calle);
                     cmd.Parameters.AddWithValue("NumeroCasa", oCliente.NumeroCasa);
                     cmd.Parameters.AddWithValue("Referencia", oCliente.Referencia);
+                    cmd.Parameters.AddWithValue("Geolocalizacion", string.IsNullOrEmpty(oCliente.Geolocalizacion) ? (object)DBNull.Value : oCliente.Geolocalizacion); // Agregado
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
+
 
                     oConexion.Open();
 
@@ -189,3 +194,4 @@ namespace CapaDatos
 
     }
 }
+

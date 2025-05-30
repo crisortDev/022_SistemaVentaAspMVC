@@ -16,9 +16,9 @@
         <div class="card border-info">
             <div class="card-header p-2 bg-info text-white">
                 Detalle Venta
-                <button id="btnTerminarGuardarVenta" class="btn btn-warning btn-sm float-right">
+                @*<button id="btnTerminarGuardarVenta" class="btn btn-warning btn-sm float-right">
                     <i class="fa fa-print" aria-hidden="true"></i> Imprimir y Terminar Venta
-                </button>
+                </button>*@
             </div>
             <div class="card-body p-2 card-venta">
                 <div class="row">
@@ -218,7 +218,7 @@
                                     </div>
                                     <div class="col-sm-3">
                                         <div class="form-group mb-0">
-                                            <label for="txtproductoprecio" class="col-form-label col-form-label-sm">Precio:</label>
+                                            <label for="txtproductoprecio" class="col-form-label col-form-label-sm">Precio Vigente:</label>
                                             <input type="text" class="form-control form-control-sm model" readonly id="txtproductoprecio" name="Nombre">
                                         </div>
                                     </div>
@@ -264,61 +264,45 @@
                                         <th>Precio Unidad</th>
                                         <th>Precio Iva Incluido</th>
                                         <th>Importe Total Sin Iva</th>
-                                        <th>Importe Total con Iva</th> <!-- Nueva columna -->
+                                        <th>Importe Total con Iva</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Aquí deberías asegurarte de agregar una nueva celda <td> por fila -->
+                                    <!-- filas -->
                                 </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th>Total:</th>
+                                        <th id="total-cantidad"></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th id="total-preciounidad"></th>
+                                        <th id="total-precioiva"></th>
+                                        <th id="total-importesiniva"></th>
+                                        <th id="total-importeconiva"></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-sm-12">
+                        <div class="table-responsive-sm">
+                            <table id="tbVenta" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                                <!-- tabla -->
                             </table>
                         </div>
+                        <!-- Botón movido aquí -->
+                        <button id="btnTerminarGuardarVenta" class="btn btn-warning btn-sm mt-2">
+                            <i class="fa fa-print" aria-hidden="true"></i> Imprimir y Terminar Venta
+                        </button>
                     </div>
                 </div>
 
 
                 <hr />
-                <div class="row">
-                    <div class="col-sm-4">
-                        <div class="input-group input-group-sm mb-2">
-                            <div class="input-group-prepend">
-                                <label class="input-group-text bg-info text-white" for="inputGroupSelect01">Sub Total Gs/.</label>
-                            </div>
-                            <input id="txtsubtotal" readonly type="text" class="form-control" value="0">
-                        </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="input-group input-group-sm mb-2">
-                            <div class="input-group-prepend">
-                                <label class="input-group-text bg-info text-white" for="inputGroupSelect01">Total Gs/.</label>
-                            </div>
-                            <input id="txttotal" readonly type="text" class="form-control" value="0">
-                        </div>
-                    </div>
-
-                    <div class="col-sm-6">
-                        <div class="row">
-                            <div class="col-sm-4">
-                                <div class="input-group input-group-sm mb-2">
-                                    <div class="input-group-prepend">
-                                        <label class="input-group-text bg-info text-white" for="inputGroupSelect01">Monto Pago Gs/.</label>
-                                    </div>
-                                    <input id="txtmontopago" type="text" class="form-control" autocomplete="off">
-                                </div>
-                            </div>
-                            <div class="col-sm-4">
-                                <button id="btncalcular" type="button" class="btn btn-sm btn-success btn-block"><i class="fas fa-dollar-sign"></i>  Calcular</button>
-                            </div>
-                            <div class="col-sm-4">
-                                <div class="input-group input-group-sm mb-2">
-                                    <div class="input-group-prepend">
-                                        <label class="input-group-text bg-info text-white" for="inputGroupSelect01">Cambio Gs/.</label>
-                                    </div>
-                                    <input id="txtcambio" readonly type="text" class="form-control">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
         </div>

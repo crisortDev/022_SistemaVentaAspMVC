@@ -124,7 +124,17 @@
         $.MisUrls.urls({ _ControlarStockProducto: '@Url.Action("ControlarStock", "Venta")' });
         $.MisUrls.urls({ _RegistrarVenta: '@Url.Action("Guardar", "Venta")' });
         $.MisUrls.urls({ _DocumentoVenta: '@Url.Action("Documento", "Venta")' });
+
         $.MisUrls.urls({ _ObtenerVentas: '@Url.Action("Obtener", "Venta")' });
+
+        $.MisUrls.urls({
+            _ObtenerHistorialPreciosVenta: '@Url.Action("ObtenerHistorial", "PreciosVenta")',
+            _BuscarProductoPorCodigo: '@Url.Action("BuscarProductoPorCodigo", "Producto")',
+            _GuardarPrecioVenta: '@Url.Action("Guardar", "PreciosVenta")',
+            _EliminarPrecioVenta: '@Url.Action("Eliminar", "PreciosVenta")'});
+
+
+
 
         //CONTROLADOR REPORTE
         $.MisUrls.urls({ _ObtenerReporteProducto :'@Url.Action("ObtenerProducto", "Reporte")' });

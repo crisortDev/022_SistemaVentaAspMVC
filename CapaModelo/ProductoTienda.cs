@@ -15,10 +15,12 @@ namespace CapaModelo
         public int StockMinimo { get; set; }
         public int StockMaximo { get; set; }
         public decimal PrecioIvaIncluido { get; set; }
+        public decimal PrecioVentaIvaIncluido { get; set; }
+        public decimal PrecioCompraIvaIncluido { get; set; }
         public decimal PrecioUnidadCompra { get; set; }
         public decimal PrecioUnidadVenta { get; set; }
         public decimal PrecioVenta { get; set; }
-
+        public decimal PorcentajeIva { get; set; }
         public bool Iniciado { get; set; }
     }
 }

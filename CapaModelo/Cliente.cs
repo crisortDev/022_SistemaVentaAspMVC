@@ -10,15 +10,16 @@ namespace CapaModelo
     {
         public int IdCliente { get; set; }
         public string TipoDocumento { get; set; }
+        public string NumeroDocumento { get; set; }
         public string Nombre { get; set; }
         public string Direccion { get; set; }
-        public string NumeroDocumento { get; set; }
         public string Telefono { get; set; }
-        public bool Activo { get; set; }
         public string Ciudad { get; set; }
         public string Barrio { get; set; }
         public string Calle { get; set; }
         public string NumeroCasa { get; set; }
         public string Referencia { get; set; }
+        public bool Activo { get; set; }
+        public string Geolocalizacion { get; set; }
     }
 }

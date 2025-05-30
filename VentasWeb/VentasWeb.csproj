@@ -2005,6 +2005,7 @@
     <Content Include="Scripts\Views\ConsultarCompraCaja.js" />
     <Content Include="Scripts\Views\Compra_Consultar.js" />
     <Content Include="Scripts\Views\Compra_Crear.js" />
+    <Content Include="Scripts\Views\Precio_Venta.js" />
     <Content Include="Scripts\Views\Producto_Asignar.js" />
     <Content Include="Scripts\Views\Producto_Crear.js" />
     <Content Include="Scripts\Views\Home_Index.js" />
@@ -2062,6 +2063,7 @@
     <Content Include="Views\Venta\Documento.cshtml" />
     <Content Include="Views\Cliente\Crear.cshtml" />
     <Content Include="Views\ConsultarCajaCompra\ConsultarCajaCompra.cshtml" />
+    <Content Include="Views\Producto\ConsultarPrecioVenta.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

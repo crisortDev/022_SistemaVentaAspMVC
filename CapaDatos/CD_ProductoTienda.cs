@@ -63,11 +63,16 @@ namespace CapaDatos
                                 Nombre = dr["NombreTienda"].ToString(),
                                 Direccion = dr["DireccionTienda"].ToString(),
                             },
-                            PrecioUnidadCompra = Convert.ToDecimal(dr["PrecioUnidadCompra"].ToString(), new CultureInfo("es-PE")),
-                            PrecioVenta = Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PE")),
-                            PrecioIvaIncluido = Convert.ToDecimal(dr["PrecioIvaIncluido"].ToString(), new CultureInfo("es-PE")),
+                            PrecioUnidadCompra = Convert.ToInt32(
+                            Convert.ToDecimal(dr["PrecioUnidadCompra"].ToString(), new CultureInfo("es-PY"))),
+                            PrecioVenta = Math.Truncate(Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PY"))),
+                            //PrecioIvaIncluido = Math.Truncate(Convert.ToDecimal(dr["PrecioIvaIncluido"].ToString(), new CultureInfo("es-PY"))),
+                            PrecioCompraIvaIncluido = Math.Truncate(Convert.ToDecimal(dr["PrecioCompraIvaIncluido"].ToString(), new CultureInfo("es-PY"))),
+                            PrecioVentaIvaIncluido = Math.Truncate(Convert.ToDecimal(dr["PrecioVentaIvaIncluido"].ToString(), new CultureInfo("es-PY"))),
                             Stock = Convert.ToInt32(dr["Stock"].ToString()),
+                            PorcentajeIva = Convert.ToInt32(dr["Porcentaje"].ToString()),
                             Iniciado = Convert.ToBoolean(dr["Iniciado"].ToString()),
+                            
                             //PrecioUnidadVenta = Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PE")),
                         });
                     }

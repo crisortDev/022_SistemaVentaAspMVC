@@ -257,8 +257,9 @@ $("#btnAgregar").on("click", function () {
         return;
     }
 
-    var importetotal = precio * cantidad;  // Importe total sin IVA
-    var importetotaliva = precioiva * cantidad;  // Importe total con IVA
+    var importetotal = Math.round(precio * cantidad);       // Sin decimales, entero
+    var importetotaliva = Math.round(precioiva * cantidad); // Sin decimales, entero
+
 
     var filaHtml = '<tr>' +
         '<td><button class="btn btn-danger btn-sm eliminar-producto"><i class="fa fa-trash"></i></button></td>' +
@@ -270,6 +271,7 @@ $("#btnAgregar").on("click", function () {
         '<td class="importetotal" data-importetotal="' + importetotal + '">' + formatoGuaranies(importetotal) + '</td>' +
         '<td class="importetotaliva" data-importetotaliva="' + importetotaliva + '">' + formatoGuaranies(importetotaliva) + '</td>' +
         '</tr>';
+
 
 
 
@@ -285,6 +287,7 @@ $("#btnAgregar").on("click", function () {
     $("#txtproductocantidad").val("");
 
     calcularPrecios();
+    actualizarTotalesTabla();
 });
 
 
@@ -299,24 +302,19 @@ $('#tbVenta tbody').on('click', 'button[class="btn btn-danger btn-sm"]', functio
     $(this).parents("tr").remove();
 
     calcularPrecios();
+    actualizarTotalesTabla();  // <== Añadir esta línea
 })
 
 $('#btnTerminarGuardarVenta').on('click', function () {
 
-    //VALIDACIONES DE CLIENTE
+    // VALIDACIONES DE CLIENTE
     if ($("#txtclientedocumento").val().trim() == "" || $("#txtclientenombres").val().trim() == "") {
         swal("Mensaje", "Complete los datos del cliente", "warning");
         return;
     }
-    //VALIDACIONES DE PRODUCTOS
+    // VALIDACIONES DE PRODUCTOS
     if ($('#tbVenta tbody tr').length == 0) {
-        swal("Mensaje", "Debe registrar minimo un producto en la venta", "warning");
-        return;
-    }
-
-    //VALIDACIONES DE MONTO PAGO
-    if ($("#txtmontopago").val().trim() == "") {
-        swal("Mensaje", "Ingrese el monto de pago", "warning");
+        swal("Mensaje", "Debe registrar mínimo un producto en la venta", "warning");
         return;
     }
 
@@ -329,16 +327,15 @@ $('#btnTerminarGuardarVenta').on('click', function () {
     var DETALLE_VENTA = "";
     var DATOS_VENTA = "";
 
-    calcularCambio();
-
+    // Recorremos la tabla para armar los datos
     $('#tbVenta > tbody > tr').each(function (index, tr) {
         var fila = tr;
 
         var productocantidad = parseInt($(fila).find("td.productocantidad").text());
         var idproducto = $(fila).find("td.producto").data("idproducto");
-        var productoprecio = parseFloat($(fila).find("td.productoprecio").text());
-        var importetotal = parseFloat($(fila).find("td.importetotal").text());
-        var importetotaliva = parseFloat($(fila).find("td.importetotaliva").text());
+        var importetotal = parseInt($(fila).find("td.importetotal").attr("data-importetotal"));
+        var importetotaliva = parseInt($(fila).find("td.importetotaliva").attr("data-importetotaliva"));
+        var productoprecio = parseInt($(fila).find("td.productoprecio").attr("data-precio"));
 
         $totalproductos += productocantidad;
         $totalimportes += importetotal;
@@ -353,9 +350,6 @@ $('#btnTerminarGuardarVenta').on('click', function () {
             "</DATOS>";
     });
 
-
-
-
     VENTA = "<VENTA>" +
         "<IdTienda>" + $("#txtIdTienda").val() + "</IdTienda>" +
         "<IdUsuario>" + $("#txtIdUsuario").val() + "</IdUsuario>" +
@@ -364,9 +358,9 @@ $('#btnTerminarGuardarVenta').on('click', function () {
         "<CantidadProducto>" + $('#tbVenta tbody tr').length + "</CantidadProducto>" +
         "<CantidadTotal>" + $totalproductos + "</CantidadTotal>" +
         "<TotalCosto>" + $totalimportes + "</TotalCosto>" +
-        "<ImporteRecibido>" + $("#txtmontopago").val() + "</ImporteRecibido>" +
-        "<ImporteCambio>" + $("#txtcambio").val() + "</ImporteCambio>" +
-        "</VENTA >";
+        "<ImporteRecibido>" + $totalimportes.toFixed(2) + "</ImporteRecibido>" +
+        "<ImporteCambio>0</ImporteCambio>" +
+        "</VENTA>";
 
     DETALLE_CLIENTE = "<DETALLE_CLIENTE><DATOS>" +
         "<TipoDocumento>" + $("#cboclientetipodocumento").val() + "</TipoDocumento>" +
@@ -380,7 +374,6 @@ $('#btnTerminarGuardarVenta').on('click', function () {
 
     DETALLE = "<DETALLE>" + VENTA + DETALLE_CLIENTE + DETALLE_VENTA + "</DETALLE>"
 
-
     var request = { xml: DETALLE };
 
     jQuery.ajax({
@@ -389,62 +382,45 @@ $('#btnTerminarGuardarVenta').on('click', function () {
         data: JSON.stringify(request),
         dataType: "json",
         contentType: "application/json; charset=utf-8",
+        beforeSend: function () {
+            $(".card-venta").LoadingOverlay("show");
+        },
         success: function (data) {
-
             $(".card-venta").LoadingOverlay("hide");
 
             if (data.estado) {
-                //DOCUMENTO
-                $("#cboventatipodocumento").val("Boleta");
+                swal("¡Éxito!", "La venta se registró correctamente.", "success");
 
-                //CLIENTE
-                $("#cboclientetipodocumento").val("DNI");
+                // Limpiar campos cliente
                 $("#txtclientedocumento").val("");
                 $("#txtclientenombres").val("");
                 $("#txtclientedireccion").val("");
                 $("#txtclientetelefono").val("");
 
+                // Limpiar tabla productos
+                $("#tbVenta tbody").empty();
 
-                //PRODUCTO
-                $("#txtIdProducto").val("0");
-                $("#txtproductocodigo").val("");
-                $("#txtproductonombre").val("");
-                $("#txtproductodescripcion").val("");
-                $("#txtproductostock").val("");
-                $("#txtproductoprecio").val("");
-                $("#txtproductocantidad").val("0");
-
-                //PRECIOS
-                $("#txtsubtotal").val("0");
-                $("#txtigv").val("0");
-                $("#txttotal").val("0");
-                $("#txtmontopago").val("");
-                $("#txtcambio").val("");
-
-
-                $("#tbVenta tbody").html("");
-
-           
-                var url = $.MisUrls.url._DocumentoVenta + "?IdVenta=" + data.valor;
-                window.open(url);
-
-
-            } else {
-                swal("Mensaje", "No se pudo registrar la venta", "warning")
+                // Resetear totales
+                $('#total-cantidad').text(0);
+                $('#total-preciounidad').text("0");
+                $('#total-precioiva').text("0");
+                $('#total-importesiniva').text("0");
+                $('#total-importeconiva').text("0");
+            }
+            else {
+                swal("Error", "No se pudo registrar la venta. Intente nuevamente.", "error");
             }
         },
         error: function (error) {
-            console.log(error)
+            console.log(error);
             $(".card-venta").LoadingOverlay("hide");
-        },
-        beforeSend: function () {
-            $(".card-venta").LoadingOverlay("show");
+            swal("Error", "Ocurrió un problema al registrar la venta.", "error");
         }
     });
 
-   
+});
 
-})
+
 
 function calcularCambio() {
     var montopago = $("#txtmontopago").val().trim() == "" ? 0 : parseFloat($("#txtmontopago").val().trim());
@@ -547,3 +523,34 @@ function formatoGuaranies(valor) {
         maximumFractionDigits: 0
     }).format(valor);
 }
+
+function actualizarTotalesTabla() {
+    var totalCantidad = 0;
+    var totalPrecioUnidad = 0;
+    var totalPrecioIva = 0;
+    var totalImporteSinIva = 0;
+    var totalImporteConIva = 0;
+
+    $('#tbVenta > tbody > tr').each(function () {
+        var fila = $(this);
+
+        var cantidad = parseInt(fila.find('td.productocantidad').text()) || 0;
+        var precioUnidad = parseFloat(fila.find('td.productoprecio').data('precio')) || 0;
+        var precioIva = parseFloat(fila.find('td.productoprecioiva').data('precioiva')) || 0;
+        var importeSinIva = parseFloat(fila.find('td.importetotal').data('importetotal')) || 0;
+        var importeConIva = parseFloat(fila.find('td.importetotaliva').data('importetotaliva')) || 0;
+
+        totalCantidad += cantidad;
+        totalPrecioUnidad += precioUnidad * cantidad;
+        totalPrecioIva += precioIva * cantidad;
+        totalImporteSinIva += importeSinIva;
+        totalImporteConIva += importeConIva;
+    });
+
+    $('#total-cantidad').text(totalCantidad);
+    $('#total-preciounidad').text(formatoGuaranies(totalPrecioUnidad));
+    $('#total-precioiva').text(formatoGuaranies(totalPrecioIva));
+    $('#total-importesiniva').text(formatoGuaranies(totalImporteSinIva));
+    $('#total-importeconiva').text(formatoGuaranies(totalImporteConIva));
+}
+

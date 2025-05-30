@@ -1,9 +1,11 @@
 ﻿var tabladata;
+var mapForm = null;
+var markerForm = null;
 
 $(document).ready(function () {
     activarMenu("Clientes");
 
-    // Validación del formulario
+    // Validación del formulario con jQuery Validate
     $("#form").validate({
         rules: {
             numerodocumento: "required",
@@ -25,7 +27,8 @@ $(document).ready(function () {
         ajax: {
             url: $.MisUrls.url._ObtenerClientes,
             type: "GET",
-            datatype: "json"
+            dataType: "json",
+            dataSrc: "data" // Muy importante, porque el JSON viene con estructura { data: [...] }
         },
         columns: [
             { data: "TipoDocumento" },
@@ -38,6 +41,15 @@ $(document).ready(function () {
             { data: "Calle" },
             { data: "NumeroCasa" },
             { data: "Referencia" },
+            {
+                data: "Geolocalizacion",
+                render: function (data) {
+                    if (data && data.trim() !== "") {
+                        return `<button class="btn btn-info btn-sm" onclick="abrirMapaDesdeDataTable('${data}')">Ver Ubicación</button>`;
+                    }
+                    return "Sin ubicación";
+                }
+            },
             {
                 data: "Activo",
                 render: function (data) {
@@ -60,15 +72,16 @@ $(document).ready(function () {
         language: {
             url: $.MisUrls.url.Url_datatable_spanish
         },
-        // Eliminar responsive para evitar el control +
-        // responsive: true,  <-- QUITAR
-
-        scrollX: true,        // Habilitar scroll horizontal
-        scrollY: "400px",     // Opcional scroll vertical
+        scrollX: true,
+        scrollY: "400px",
         scrollCollapse: true,
-        paging: true,
+        paging: true
     });
 
+    // Cuando se abre el modal, inicializa el mapa si existe la geolocalización
+    $('#FormModal').on('shown.bs.modal', function () {
+        abrirMapa();
+    });
 });
 
 function abrirPopUpForm(json) {
@@ -87,10 +100,18 @@ function abrirPopUpForm(json) {
         $("#txtNumeroCasa").val(json.NumeroCasa);
         $("#txtReferencia").val(json.Referencia);
         $("#cboEstado").val(json.Activo ? 1 : 0);
+        $("#txtGeolocalizacion").val(json.Geolocalizacion || "");
     } else {
         $("#form")[0].reset();
         $("#cboEstado").val(1);
+        $("#txtGeolocalizacion").val("");
+        $("#txtBarrio").val("");
+        $("#txtCalle").val("");
+        $("#txtReferencia").val("");
+        $("#txtCiudad").val("");
+        $("#txtNumeroCasa").val("");
     }
+
     $('#FormModal').modal('show');
 }
 
@@ -99,7 +120,7 @@ function Guardar() {
 
     var request = {
         objeto: {
-            IdCliente: $("#txtid").val(),
+            IdCliente: parseInt($("#txtid").val()),
             TipoDocumento: $("#cboclientetipodocumento").val(),
             NumeroDocumento: $("#txtNumeroDocumento").val(),
             Nombre: $("#txtNombres").val(),
@@ -110,10 +131,10 @@ function Guardar() {
             Calle: $("#txtCalle").val(),
             NumeroCasa: $("#txtNumeroCasa").val(),
             Referencia: $("#txtReferencia").val(),
-            Activo: $("#cboEstado").val() == "1"
+            Activo: $("#cboEstado").val() == "1",
+            Geolocalizacion: $("#txtGeolocalizacion").val()
         }
     };
-
 
     $.ajax({
         url: $.MisUrls.url._GuardarCliente,
@@ -125,13 +146,12 @@ function Guardar() {
             if (data.resultado) {
                 tabladata.ajax.reload();
                 $('#FormModal').modal('hide');
+                swal("Éxito", "Los cambios se guardaron correctamente.", "success");
             } else {
                 swal("Mensaje", "No se pudo guardar los cambios", "warning");
             }
-        },
-        error: function (err) {
-            console.log("ERROR:", err);
         }
+
     });
 }
 
@@ -141,24 +161,93 @@ function eliminar(id) {
         text: "¿Desea eliminar el cliente seleccionado?",
         type: "warning",
         showCancelButton: true,
-        confirmButtonText: "Si",
-        confirmButtonColor: "#DD6B55",
-        cancelButtonText: "No"
-    }, function () {
-        $.ajax({
-            url: $.MisUrls.url._EliminarCliente + "?id=" + id,
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                if (data.resultado) {
-                    tabladata.ajax.reload();
-                } else {
-                    swal("Mensaje", "No se pudo eliminar el cliente", "warning");
+        confirmButtonText: "Sí",
+        cancelButtonText: "No",
+        closeOnConfirm: false
+    }, function (isConfirm) {
+        if (isConfirm) {
+            $.ajax({
+                url: $.MisUrls.url._EliminarCliente + "?id=" + id,
+                type: "GET",
+                dataType: "json",
+                success: function (data) {
+                    if (data.resultado) {
+                        tabladata.ajax.reload();
+                        swal("Eliminado!", "El cliente ha sido eliminado.", "success");
+                    } else {
+                        swal("Error", "No se pudo eliminar el cliente.", "error");
+                    }
+                },
+                error: function (err) {
+                    console.log("ERROR:", err);
+                    swal("Error", "Ocurrió un error en el servidor.", "error");
                 }
-            },
-            error: function (err) {
-                console.log("ERROR:", err);
-            }
-        });
+            });
+        }
     });
+}
+
+
+function abrirMapa() {
+    $("#mapForm").show();
+
+    if (mapForm !== null) {
+        mapForm.remove();
+    }
+
+    let geoStr = $("#txtGeolocalizacion").val();
+    let lat = -25.2637;   // Asunción default lat
+    let lng = -57.5759;   // Asunción default lng
+
+    if (geoStr && geoStr.includes(",")) {
+        const parts = geoStr.split(",");
+        const latTmp = parseFloat(parts[0]);
+        const lngTmp = parseFloat(parts[1]);
+        if (!isNaN(latTmp) && !isNaN(lngTmp)) {
+            lat = latTmp;
+            lng = lngTmp;
+        }
+    }
+
+    mapForm = L.map('mapForm').setView([lat, lng], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18
+    }).addTo(mapForm);
+
+    markerForm = L.marker([lat, lng], { draggable: true }).addTo(mapForm);
+
+    markerForm.on('moveend', function (e) {
+        const pos = e.target.getLatLng();
+        $("#txtGeolocalizacion").val(`${pos.lat},${pos.lng}`);
+    });
+
+    mapForm.on('click', function (e) {
+        markerForm.setLatLng(e.latlng);
+        $("#txtGeolocalizacion").val(`${e.latlng.lat},${e.latlng.lng}`);
+    });
+
+    setTimeout(() => {
+        mapForm.invalidateSize();
+    }, 300);
+}
+
+
+function abrirMapaDesdeDataTable(coordenadas) {
+    if (!coordenadas || !coordenadas.includes(',')) {
+        alert("Coordenadas no disponibles o inválidas.");
+        return;
+    }
+
+    const coords = coordenadas.trim().split(',').map(parseFloat);
+
+    if (isNaN(coords[0]) || isNaN(coords[1])) {
+        alert("Coordenadas no válidas.");
+        return;
+    }
+
+    const lat = coords[0];
+    const lng = coords[1];
+
+    window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`, '_blank');
 }
