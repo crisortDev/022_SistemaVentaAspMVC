@@ -1,161 +1,166 @@
-﻿
-var tabladata;
+﻿var tabladata;
+
 $(document).ready(function () {
     activarMenu("Mantenedor");
 
-
-    ////validamos el formulario
+    // ================== VALIDACIONES ==================
     $("#form").validate({
         rules: {
-            Descripcion: "required"
+            Descripcion: {
+                required: true,
+                minlength: 2,
+                maxlength: 50
+            },
+            Activo: {
+                required: true
+            }
         },
         messages: {
-            Descripcion: "(*)"
+            Descripcion: {
+                required: "Ingrese la descripción",
+                minlength: "Mínimo 2 caracteres",
+                maxlength: "Máximo 50 caracteres"
+            },
+            Activo: {
+                required: "Seleccione un estado"
+            }
         },
-        errorElement: 'span'
+        errorElement: 'span',
+        errorPlacement: function (error, element) {
+            error.addClass("text-danger ml-2");
+            error.insertAfter(element);
+        }
     });
 
+    // ================== DATATABLE ==================
     tabladata = $('#tbdata').DataTable({
         "ajax": {
-            "url": $.MisUrls.url._ObtenerRoles,
+            "url": $.MisUrls.url._ObtenerRoles + "?v=" + new Date().getTime(), // Anti-cache
             "type": "GET",
             "datatype": "json"
         },
         "columns": [
             { "data": "Descripcion" },
             {
-                "data": "Activo", "render": function (data) {
-                    if (data) {
-                        return '<span class="badge badge-success">Activo</span>'
-                    } else {
-                        return '<span class="badge badge-danger">No Activo</span>'
-                    }
+                "data": "Activo",
+                "render": function (data) {
+                    return data ? '<span class="badge badge-success">Activo</span>' :
+                        '<span class="badge badge-danger">No Activo</span>';
                 }
             },
             {
-                "data": "IdRol", "render": function (data, type, row, meta) {
-                    return "<button class='btn btn-primary btn-sm' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>" +
-                        "<button class='btn btn-danger btn-sm ml-2' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>"
+                "data": "IdRol",
+                "render": function (data, type, row) {
+                    var btnEditar = "<button class='btn btn-primary btn-sm' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>";
+                    var btnDesactivar = "<button class='btn btn-warning btn-sm ml-2' type='button' onclick='desactivar(" + data + ")'><i class='fas fa-ban'></i></button>";
+                    return btnEditar + btnDesactivar;
                 },
                 "orderable": false,
                 "searchable": false,
                 "width": "90px"
             }
-
         ],
         "language": {
             "url": $.MisUrls.url.Url_datatable_spanish
         },
         responsive: true
     });
+});
 
-
-})
-
-
+// ================== FUNCIONES ==================
 function abrirPopUpForm(json) {
-
     $("#txtid").val(0);
 
     if (json != null) {
-
         $("#txtid").val(json.IdRol);
-
         $("#txtDescripcion").val(json.Descripcion);
-
-        var valor = 0;
-        valor = json.Activo == true ? 1 : 0
-        $("#cboEstado").val(valor);
-
+        $("#cboEstado").val(json.Activo ? 1 : 0);
     } else {
         $("#txtDescripcion").val("");
         $("#cboEstado").val(1);
     }
 
     $('#FormModal').modal('show');
-
 }
 
-
 function Guardar() {
-
     if ($("#form").valid()) {
-
         var request = {
             objeto: {
                 IdRol: $("#txtid").val(),
                 Descripcion: $("#txtDescripcion").val(),
-                Activo: parseInt($("#cboEstado").val()) == 1 ? true : false
+                Activo: $("#cboEstado").val() == "1"
             }
-        }
+        };
 
-        jQuery.ajax({
+        $.ajax({
             url: $.MisUrls.url._GuardarRol,
             type: "POST",
             data: JSON.stringify(request),
             dataType: "json",
             contentType: "application/json; charset=utf-8",
             success: function (data) {
-
                 if (data.resultado) {
-                    tabladata.ajax.reload();
+                    tabladata.ajax.reload(null, false);
                     $('#FormModal').modal('hide');
+                    swal("Éxito", "Rol guardado correctamente", "success");
                 } else {
-
-                    swal("Mensaje", "No se pudo guardar los cambios", "warning")
+                    swal("Atención", data.mensaje || "No se pudo guardar el rol", "warning");
                 }
             },
-            error: function (error) {
-                console.log(error)
-            },
-            beforeSend: function () {
-
-            },
+            error: function (error) { console.log(error); }
         });
-
     }
-
 }
 
-
-function eliminar($id) {
-
-
+function desactivar(id) {
     swal({
         title: "Mensaje",
-        text: "¿Desea eliminar el rol seleccionado?",
+        text: "¿Desea desactivar el rol seleccionado?",
         type: "warning",
         showCancelButton: true,
-
-        confirmButtonText: "Si",
+        confirmButtonText: "Sí",
         confirmButtonColor: "#DD6B55",
-
         cancelButtonText: "No",
-
         closeOnConfirm: true
-    },
-
-        function () {
-            jQuery.ajax({
-                url: $.MisUrls.url._EliminarRol + "?id=" + $id,
-                type: "GET",
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (data) {
-
-                    if (data.resultado) {
-                        tabladata.ajax.reload();
-                    } else {
-                        swal("Mensaje", "No se pudo eliminar el rol", "warning")
-                    }
-                },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
-            });
+    }, function () {
+        $.ajax({
+            url: $.MisUrls.url._DesactivarRol + "?id=" + id,
+            type: "POST",
+            dataType: "json",
+            contentType: "application/json; charset=utf-8",
+            success: function (data) {
+                if (data.resultado) {
+                    tabladata.ajax.reload(null, false);
+                    swal("Éxito", data.mensaje || "Rol desactivado correctamente", "success");
+                } else {
+                    swal("Atención", data.mensaje || "No se pudo desactivar el rol", "warning");
+                }
+            },
+            error: function (error) { console.log(error); }
         });
+    });
+}
 
+// ================== ACTIVAR MENU ==================
+function activarMenu(menuactivo) {
+    var ul = $("ul.navbar-nav");
+    ul.find("li.nav-item").each(function (i, li) {
+        var a;
+        if ($(li).find("div.dropdown-menu").length != 0) {
+            var div = $($(li).find("div.dropdown-menu"));
+            div.find("a.dropdown-item").each(function (x, tagA) {
+                if ($(tagA).attr("name") == menuactivo) {
+                    $(li).addClass("active");
+                    return false;
+                }
+            });
+        } else {
+            a = $(li).find("a.nav-link");
+            if ($(a).attr("name") == menuactivo) {
+                $(li).addClass("active");
+                return false;
+            }
+        }
+    });
 }

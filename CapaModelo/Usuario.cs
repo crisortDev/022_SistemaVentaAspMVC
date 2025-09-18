@@ -21,6 +21,7 @@ namespace CapaModelo
         public List<Menu> oListaMenu { get; set; }
         public bool Activo { get; set; }
         public DateTime FechaRegistro { get; set; }
-
+        public int IdEmpleado { get; set; }
+        public string CI { get; set; } // Cédula única
     }
 }

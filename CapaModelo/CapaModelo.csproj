@@ -45,8 +45,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ResultadoSP.cs" />
     <Compile Include="Categoria.cs" />
     <Compile Include="Cliente.cs" />
+    <Compile Include="Empleado.cs" />
     <Compile Include="PrecioVenta.cs" />
     <Compile Include="HistorialPrecioCompra.cs" />
     <Compile Include="Compra.cs" />

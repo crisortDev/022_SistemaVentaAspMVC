@@ -1,8 +1,4 @@
 ﻿using CapaModelo;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
@@ -14,7 +10,8 @@ namespace VentasWeb.Controllers
         {
             if (Session["Usuario"] != null)
                 SesionUsuario = (Usuario)Session["Usuario"];
-            else {
+            else
+            {
                 SesionUsuario = new Usuario();
             }
             try
@@ -23,11 +20,12 @@ namespace VentasWeb.Controllers
                 ViewBag.RolUsuario = SesionUsuario.oRol.Descripcion;
 
             }
-            catch {
+            catch
+            {
 
             }
 
-           
+
             return View();
         }
 
@@ -36,6 +34,26 @@ namespace VentasWeb.Controllers
             Session["Usuario"] = null;
             return RedirectToAction("Index", "Login");
         }
+        public ActionResult AccesoDenegado()
+        {
+            // Si quieres mostrar el mismo layout y navbar que Index
+            return View();
+        }
 
+        public ActionResult ObtenerMenu()
+        {
+            if (Session["Usuario"] != null)
+            {
+                var usuario = (Usuario)Session["Usuario"];
+                return PartialView("_Menu", usuario.oListaMenu);
+            }
+            return new EmptyResult();
+        }
+
+        public ActionResult RecargarMenu()
+        {
+            // Usar la versión que no requiere HtmlHelper
+            return Content(Helpers.Helpers.ActionLinkAllowString());
+        }
     }
 }

@@ -125,35 +125,50 @@ namespace CapaDatos
 
         }
 
-        public bool EliminarRol(int IdRol)
+        public (bool resultado, string mensaje) DesactivarRol(int IdRol)
         {
-            bool respuesta = true;
+            bool resultado = false;
+            string mensaje = "";
+
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
                 {
-                    SqlCommand cmd = new SqlCommand("usp_EliminarRol", oConexion);
-                    cmd.Parameters.AddWithValue("IdRol", IdRol);
-                    cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
-                    cmd.CommandType = CommandType.StoredProcedure;
-
                     oConexion.Open();
 
-                    cmd.ExecuteNonQuery();
+                    // Verificar si el rol está asignado a algún usuario activo
+                    string checkSql = "SELECT COUNT(1) FROM USUARIO WHERE IdRol = @IdRol";
+                    SqlCommand cmdCheck = new SqlCommand(checkSql, oConexion);
+                    cmdCheck.Parameters.AddWithValue("@IdRol", IdRol);
+                    int count = Convert.ToInt32(cmdCheck.ExecuteScalar());
 
-                    respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
+                    if (count > 0)
+                    {
+                        resultado = false;
+                        mensaje = "El rol está asignado a usuarios activos y no se puede desactivar.";
+                    }
+                    else
+                    {
+                        // Actualizar el rol a inactivo
+                        string sql = "UPDATE ROL SET Activo = 0 WHERE IdRol = @IdRol";
+                        SqlCommand cmd = new SqlCommand(sql, oConexion);
+                        cmd.Parameters.AddWithValue("@IdRol", IdRol);
+                        int filas = cmd.ExecuteNonQuery();
 
+                        resultado = filas > 0;
+                        mensaje = resultado ? "El rol fue desactivado correctamente." : "No se pudo desactivar el rol.";
+                    }
                 }
                 catch (Exception ex)
                 {
-                    respuesta = false;
+                    resultado = false;
+                    mensaje = "Ocurrió un error al desactivar el rol: " + ex.Message;
                 }
-
             }
 
-            return respuesta;
-
+            return (resultado, mensaje);
         }
+
 
     }
 }

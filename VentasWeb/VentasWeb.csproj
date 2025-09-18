@@ -137,6 +137,7 @@
     <Compile Include="Controllers\TiendaController.cs" />
     <Compile Include="Controllers\UsuarioController.cs" />
     <Compile Include="Controllers\VentaController.cs" />
+    <Compile Include="Filters\AuthorizeRol.cs" />
     <Compile Include="Filters\VerificarSession.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
@@ -2002,6 +2003,8 @@
     <Content Include="Scripts\umd\popper-utils.min.js" />
     <Content Include="Scripts\umd\popper.js" />
     <Content Include="Scripts\umd\popper.min.js" />
+    <Content Include="Scripts\Views\Index_login.js" />
+    <Content Include="Scripts\Views\Usuario_Contraseña.js" />
     <Content Include="Scripts\Views\ConsultarCompraCaja.js" />
     <Content Include="Scripts\Views\Compra_Consultar.js" />
     <Content Include="Scripts\Views\Compra_Crear.js" />
@@ -2064,6 +2067,9 @@
     <Content Include="Views\Cliente\Crear.cshtml" />
     <Content Include="Views\ConsultarCajaCompra\ConsultarCajaCompra.cshtml" />
     <Content Include="Views\Producto\ConsultarPrecioVenta.cshtml" />
+    <Content Include="Views\Home\AccesoDenegado.cshtml" />
+    <Content Include="Views\Shared\_Menu.cshtml" />
+    <Content Include="Views\Usuario\CambioContraseña.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

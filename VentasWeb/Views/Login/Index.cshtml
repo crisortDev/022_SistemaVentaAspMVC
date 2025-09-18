@@ -1,5 +1,4 @@
-﻿
-@{
+﻿@{
     Layout = null;
 }
 <!DOCTYPE html>
@@ -7,7 +6,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
-    <title>Index</title>
+    <title>Login</title>
     @Styles.Render("~/Content/css")
 </head>
 <body class="bg-info">
@@ -22,17 +21,37 @@
                                     <div class="card-body">
                                         <div class="text-center mb-4 mt-3">
                                             <a href="#">
-                                                <span><img src="@Url.Content("~/Imagenes/tienda.png")" alt="" height="100"></span>
+                                                <span>
+                                                    <img src="@Url.Content("~/Imagenes/tienda.png")" alt="Logo" height="100">
+                                                </span>
                                             </a>
                                         </div>
+
+                                        <!-- Campo oculto para pasar error al JS -->
+                                        @if (ViewBag.Error != null)
+                                        {
+                                            <input type="hidden" id="errorMessage" value="@ViewBag.Error" />
+                                        }
+
                                         <form action="@Url.Content("~/Login/Index")" method="post" class="p-2">
                                             <div class="form-group">
-                                                <label for="emailaddress">Correo</label>
-                                                <input class="form-control" type="email" name="correo" required="" autocomplete="off" value="admin@gmail.com">
+                                                <label for="correo">Correo</label>
+                                                <input class="form-control"
+                                                       type="email"
+                                                       id="correo"
+                                                       name="correo"
+                                                       required
+                                                       autocomplete="off"
+                                                       value="admin@gmail.com" />
                                             </div>
                                             <div class="form-group">
-                                                <label for="password">Contraseña</label>
-                                                <input class="form-control" type="password" required="" name="clave" autocomplete="off" value="admin@gmail.com">
+                                                <label for="clave">Contraseña</label>
+                                                <input class="form-control"
+                                                       type="password"
+                                                       id="clave"
+                                                       name="clave"
+                                                       required
+                                                       autocomplete="off" />
                                             </div>
 
                                             <div class="mb-3 text-center">
@@ -41,20 +60,21 @@
                                         </form>
                                     </div>
                                 </div>
-                                @*<div class="row mt-4">
-                                    <div class="col-sm-12 text-center">
-                                        <p class="text-white mb-0">Todos los derechos reservados &copy;<a href="https://ouo.io/RK1tRH" target="_blank" class="text-white ml-1"><b>Open Source - CLICK HERE</b></a></p>
-                                    </div>
-                                </div>*@
-
                             </div>
                         </div>
-                    </div> 
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
     @Scripts.Render("~/bundles/jquery")
     @Scripts.Render("~/bundles/bootstrap")
+
+    <!-- Librería SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- JS propio -->
+    <script src="@Url.Content("~/Scripts/Views/Index_login.js")"></script>
 </body>
 </html>

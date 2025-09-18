@@ -31,12 +31,13 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item">
-                    <a class="nav-link" name="Home" href="@Url.Action("Index", "Home")"><i class="fas fa-home"></i> Inicio</a>
+                    <a class="nav-link" name="Home" href="@Url.Action("Index", "Home")">
+                        <i class="fas fa-home"></i> Inicio
+                    </a>
                 </li>
+
+                @* Aquí llamamos al helper o al partial que genera <li> *@
                 @Html.ActionLinkAllow()
-                @*<li class="nav-item">
-                        <a class="nav-link" href="https://ouo.io/VRgLgZ" target="_blank"><i class="fas fa-hands-helping"></i> Click y ayuda al Canal</a>
-                    </li>*@
             </ul>
             <ul class="nav navbar-nav ml-auto">
 
@@ -71,7 +72,9 @@
         //CONTROLADOR ROL
         $.MisUrls.urls({ _ObtenerRoles: '@Url.Action("Obtener", "Rol")' });
         $.MisUrls.urls({ _GuardarRol: '@Url.Action("Guardar", "Rol")' });
-        $.MisUrls.urls({ _EliminarRol: '@Url.Action("Eliminar", "Rol")' });
+    $.MisUrls.urls({ _EliminarRol: '@Url.Action("Eliminar", "Rol")' });
+        $.MisUrls.urls({ _DesactivarRol: '@Url.Action("Desactivar", "Rol")' });
+
 
         //CONTROLADOR PERMISOS
         $.MisUrls.urls({ _ObtenerPermisos: '@Url.Action("Obtener", "Permisos")' });
@@ -98,7 +101,7 @@
 
          //CONTROLADOR PRODUCTO
         $.MisUrls.urls({ _ObtenerProductos: '@Url.Action("Obtener", "Producto")' });
-        $.MisUrls.urls({ _ObtenerProductosPorTienda: '@Url.Action("ObtenerPorTienda", "Producto")' });
+        $.MisUrls.urls({ _ObtenerProductosPorTienda: '@Url.Action("ObtenerProductosPorTienda", "Producto")' });
         $.MisUrls.urls({ _GuardarProducto: '@Url.Action("Guardar", "Producto")' });
         $.MisUrls.urls({ _EliminarProducto: '@Url.Action("Eliminar", "Producto")' });
         $.MisUrls.urls({ _ObtenerAsignaciones: '@Url.Action("ObtenerAsignaciones", "Producto")' });
@@ -156,7 +159,8 @@
         //lenguaje español datatable
         $.MisUrls.urls({ Url_datatable_spanish: '@Url.Content("~/content/plugins/datatables/js/datatable_spanish.json")' });
 
-
+        // CONTROLADOR USUARIO - Cambio de contraseña
+        $.MisUrls.urls({ _CambiarClave: '@Url.Action("CambioContraseña", "Usuario")' });
 
 </script>
     <script>

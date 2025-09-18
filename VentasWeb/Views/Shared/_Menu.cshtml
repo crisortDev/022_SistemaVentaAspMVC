@@ -1,0 +1,25 @@
+﻿@model List<CapaModelo.Menu>
+
+@if (Model != null)
+{
+    foreach (var item in Model)
+    {
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                <i class="@item.Icono"></i> @item.Nombre
+            </a>
+
+            <div class="dropdown-menu drop-menu">
+                @foreach (var subitem in item.oSubMenu ?? new List<CapaModelo.SubMenu>())
+                {
+                    if (subitem.Activo)
+                    {
+                        <a class="dropdown-item" name="@item.Nombre" href="/@subitem.Controlador/@subitem.Vista">
+                            <i class="@subitem.Icono"></i> @subitem.Nombre
+                        </a>
+                    }
+                }
+            </div>
+        </li>
+    }
+}

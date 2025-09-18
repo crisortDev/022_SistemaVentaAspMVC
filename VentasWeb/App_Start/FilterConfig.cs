@@ -9,6 +9,7 @@ namespace VentasWeb
         {
             filters.Add(new HandleErrorAttribute());
             filters.Add(new VerificarSession());
+            // 🔒 Filtro global para validar permisos automáticamente
         }
     }
 }

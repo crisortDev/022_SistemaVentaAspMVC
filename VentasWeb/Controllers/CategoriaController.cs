@@ -1,13 +1,12 @@
 ﻿using CapaDatos;
 using CapaModelo;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 using System.Web.Mvc;
+using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
+    [AuthorizeRol("Categoria", "*")] // '*' significa todas las vistas/acciones del controlador
     public class CategoriaController : Controller
     {
         // GET: Categoria
