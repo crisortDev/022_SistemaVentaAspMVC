@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
@@ -13,7 +14,7 @@ using System.Xml.Linq;
 
 namespace CapaDatos
 {
-    
+
     public class CD_Usuario
     {
         public static CD_Usuario _instancia = null;
@@ -27,7 +28,7 @@ namespace CapaDatos
         {
             get
             {
-                if(_instancia == null)
+                if (_instancia == null)
                 {
                     _instancia = new CD_Usuario();
                 }
@@ -198,7 +199,7 @@ namespace CapaDatos
                         rptListaUsuario.Add(new Usuario()
                         {
                             IdUsuario = Convert.ToInt32(dr["IdUsuario"].ToString()),
-                            CI = dr["CI"].ToString(),        // <--- agregar esta línea
+                            CI = dr["Documento"].ToString(),        // <--- agregar esta línea
                             Nombres = dr["Nombres"].ToString(),
                             Apellidos = dr["Apellidos"].ToString(),
                             Correo = dr["Correo"].ToString(),
@@ -375,6 +376,195 @@ namespace CapaDatos
                 return sb.ToString();
             }
         }
+        public ResultadoRegistroUsuario RegistrarUsuario(string documento, string correo, int idRol, int idTienda, string clave)
+        {
+            ResultadoRegistroUsuario resultado = new ResultadoRegistroUsuario();
+
+            try
+            {
+                using (SqlConnection oconexion = new SqlConnection(ConfigurationManager.ConnectionStrings["cadena"].ToString()))
+                {
+                    using (SqlCommand cmd = new SqlCommand("SP_RegistrarUsuario", oconexion))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+
+                        cmd.Parameters.AddWithValue("@Documento", documento);
+                        cmd.Parameters.AddWithValue("@Correo", correo);
+                        cmd.Parameters.AddWithValue("@IdRol", idRol);
+                        cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+
+                        if (string.IsNullOrEmpty(clave))
+                            cmd.Parameters.AddWithValue("@Clave", DBNull.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@Clave", clave);
+
+                        oconexion.Open();
+
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            if (dr.Read())
+                            {
+                                resultado.TipoMensaje = dr["TipoMensaje"].ToString();
+                                resultado.Mensaje = dr["Mensaje"].ToString();
+
+                                if (resultado.TipoMensaje == "OK")
+                                {
+                                    resultado.IdUsuario = Convert.ToInt32(dr["IdUsuario"]);
+                                    resultado.OTP = dr["OTP"].ToString();
+                                    resultado.Expira = Convert.ToDateTime(dr["Expira"]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                resultado.TipoMensaje = "ERROR";
+                resultado.Mensaje = "Excepción: " + ex.Message;
+            }
+
+            return resultado;
+        }
+        // Verifica si un empleado ya tiene un usuario creado
+        public bool TieneUsuario(int idEmpleado)
+        {
+            bool existe = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand(
+                    "SELECT 1 FROM Usuario WHERE IdEmpleado = @IdEmpleado", oConexion);
+                cmd.Parameters.AddWithValue("@IdEmpleado", idEmpleado);
+
+                oConexion.Open();
+                existe = cmd.ExecuteScalar() != null;
+            }
+            return existe;
+        }
+        // Registra un usuario temporal para confirmación con OTP
+        public int RegistrarUsuarioTemporal(Usuario usuario, out string otp)
+        {
+            int idUsuarioGenerado = 0;
+            otp = GenerarOTP(); // Método para generar código OTP, ej: 6 dígitos
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand(@"
+            INSERT INTO Usuario (IdEmpleado, Nombres, Apellidos, CI, Correo, Clave, Activo, FechaRegistro, OTP)
+            VALUES (@IdEmpleado, @Nombres, @Apellidos, @CI, @Correo, @Clave, 0, GETDATE(), @OTP);
+            SELECT SCOPE_IDENTITY();", oConexion);
+
+                cmd.Parameters.AddWithValue("@IdEmpleado", usuario.IdEmpleado);
+                cmd.Parameters.AddWithValue("@Nombres", usuario.Nombres);
+                cmd.Parameters.AddWithValue("@Apellidos", usuario.Apellidos);
+                cmd.Parameters.AddWithValue("@CI", usuario.CI);
+                cmd.Parameters.AddWithValue("@Correo", usuario.Correo);
+                cmd.Parameters.AddWithValue("@Clave", GetSHA256(usuario.Clave)); // Encriptamos la clave
+                cmd.Parameters.AddWithValue("@OTP", otp);
+
+                oConexion.Open();
+                object result = cmd.ExecuteScalar();
+                if (result != null)
+                    idUsuarioGenerado = Convert.ToInt32(result);
+            }
+
+            return idUsuarioGenerado;
+        }
+
+        // Método para generar OTP de 6 dígitos
+        private string GenerarOTP()
+        {
+            Random rnd = new Random();
+            return rnd.Next(100000, 999999).ToString();
+        }
+        public int RegistrarUsuarioPendiente(Usuario usuario, out string otp)
+        {
+            int idUsuario = 0;
+            otp = new Random().Next(100000, 999999).ToString(); // OTP 6 dígitos
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                string query = @"
+            INSERT INTO Usuario (IdEmpleado, Correo, NombreUsuario, Estado, OTP, FechaExpiracionOTP)
+            VALUES (@IdEmpleado, @Correo, @NombreUsuario, 'Pendiente', @OTP, DATEADD(MINUTE, 15, GETDATE()));
+            SELECT SCOPE_IDENTITY();";
+
+                SqlCommand cmd = new SqlCommand(query, oConexion);
+                cmd.Parameters.AddWithValue("@IdEmpleado", usuario.IdEmpleado);
+                cmd.Parameters.AddWithValue("@Correo", usuario.Correo);
+                cmd.Parameters.AddWithValue("@NombreUsuario", usuario.NombreUsuario);
+                cmd.Parameters.AddWithValue("@OTP", otp);
+
+                oConexion.Open();
+                object result = cmd.ExecuteScalar();
+                if (result != null)
+                    idUsuario = Convert.ToInt32(result);
+            }
+
+            return idUsuario;
+        }
+        public bool ValidarOTP(string correo, string otp)
+        {
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                string query = @"
+            SELECT COUNT(1) 
+            FROM Usuario 
+            WHERE Correo=@Correo AND OTP=@OTP AND Estado='Pendiente' AND FechaExpiracionOTP > GETDATE()";
+
+                SqlCommand cmd = new SqlCommand(query, oConexion);
+                cmd.Parameters.AddWithValue("@Correo", correo);
+                cmd.Parameters.AddWithValue("@OTP", otp);
+
+                oConexion.Open();
+                int count = Convert.ToInt32(cmd.ExecuteScalar());
+                return count > 0;
+            }
+        }
+
+        public bool CrearContraseña(string correo, string otp, string nuevaClave)
+        {
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                string query = @"
+            UPDATE Usuario
+            SET Clave=@Clave, Estado='Activo', OTP=NULL, FechaExpiracionOTP=NULL
+            WHERE Correo=@Correo AND OTP=@OTP AND Estado='Pendiente' AND FechaExpiracionOTP > GETDATE()";
+
+                SqlCommand cmd = new SqlCommand(query, oConexion);
+                cmd.Parameters.AddWithValue("@Clave", GetSHA256(nuevaClave));
+                cmd.Parameters.AddWithValue("@Correo", correo);
+                cmd.Parameters.AddWithValue("@OTP", otp);
+
+                oConexion.Open();
+                return cmd.ExecuteNonQuery() > 0;
+            }
+        }
+        // Validar si un empleado ya tiene usuario
+        // Validar si un empleado ya tiene usuario
+        public bool TieneUsuarioPorEmpleado(int idPersona)
+        {
+            bool existe = false;
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                string query = @"
+            SELECT 1
+            FROM Usuario u
+            INNER JOIN Empleado e ON u.IdEmpleado = e.IdEmpleado
+            WHERE e.IdPersona = @idPersona";
+
+                SqlCommand cmd = new SqlCommand(query, oConexion);
+                cmd.Parameters.AddWithValue("@idPersona", idPersona);
+
+                oConexion.Open();
+                existe = cmd.ExecuteScalar() != null;
+            }
+
+            return existe;
+        }
+
+        // Método que valida si un empleado ya tiene usuario asignado
 
     }
 }

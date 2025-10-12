@@ -12,7 +12,6 @@ namespace CapaModelo
         public string Nombres { get; set; }
         public string Apellidos { get; set; }
         public string Correo { get; set; }
-        public string NombreUsuario { get; set; }
         public string Clave { get; set; }
         public int IdTienda { get; set; }
         public Tienda oTienda { get; set; }
@@ -23,5 +22,9 @@ namespace CapaModelo
         public DateTime FechaRegistro { get; set; }
         public int IdEmpleado { get; set; }
         public string CI { get; set; } // Cédula única
+        public DateTime ExpiraOTP { get; set; }   // Fecha de expiración del OTP
+        public string Estado { get; set; } // Pendiente, Activo, Inactivo
+        public string OTP { get; set; } // OTP temporal
+        public string NombreUsuario { get; set; } // Usaremos documento
     }
 }

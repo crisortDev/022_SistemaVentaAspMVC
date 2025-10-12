@@ -1,0 +1,160 @@
+﻿@{
+    ViewBag.Title = "Empleados";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Mantenedor</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Empleados</li>
+    </ol>
+</nav>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                Lista de Empleados
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-2">
+                        <button type="button" id="btnAgregarEmpleado" class="btn btn-sm btn-success">
+                            <i class="fa fa-plus" aria-hidden="true"></i> Agregar Nuevo
+                        </button>
+                    </div>
+                </div>
+                <hr />
+                <div class="row mt-3">
+                    <div class="col-sm-12">
+                        <table id="tbEmpleados" class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Documento</th>
+                                    <th>Nombres</th>
+                                    <th>Apellidos</th>
+                                    <th>Tienda</th>
+                                    <th>Fecha Ingreso</th>
+                                    <th>Correo</th>
+                                    <th>Teléfono</th>
+                                    <th>Activo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Empleado -->
+<div class="modal fade" id="FormEmpleado" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Empleado</h5>
+                <span id="lblEstado" class="ml-3"></span>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formEmpleado">
+
+                    <!-- CI y Buscar -->
+                    <div id="divBuscarPersona">
+                        <div class="form-group row">
+                            <label for="txtCI" class="col-sm-3 col-form-label">CI (*)</label>
+                            <div class="col-sm-7">
+                                <input type="text" class="form-control form-control-sm" id="txtCI" name="CI">
+                            </div>
+                            <div class="col-sm-2">
+                                <button type="button" id="btnBuscarPersona" class="btn btn-sm btn-info">
+                                    <i class="fa fa-search"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input id="txtIdPersona" name="IdPersona" type="hidden" value="0" />
+                    <input id="txtIdEmpleado" name="IdEmpleado" type="hidden" value="0" />
+
+                    <div class="form-group row">
+                        <label for="txtDocumento" class="col-sm-3 col-form-label">Documento</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm" id="txtDocumento" name="Documento" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Datos Empleado -->
+                    <div class="form-group row">
+                        <label for="txtNombres" class="col-sm-3 col-form-label">Nombres (*)</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm model" id="txtNombres" name="Nombres">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="txtApellidos" class="col-sm-3 col-form-label">Apellidos (*)</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm model" id="txtApellidos" name="Apellidos">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="txtTelefono" class="col-sm-3 col-form-label">Teléfono</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm model" id="txtTelefono" name="Telefono">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="txtCorreo" class="col-sm-3 col-form-label">Correo</label>
+                        <div class="col-sm-9">
+                            <input type="email" class="form-control form-control-sm model" id="txtCorreo" name="Correo">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="cboTienda" class="col-sm-3 col-form-label">Tienda (*)</label>
+                        <div class="col-sm-9">
+                            <select id="cboTienda" name="IdTienda" class="form-control form-control-sm">
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="txtFechaIngreso" class="col-sm-3 col-form-label">Fecha Ingreso</label>
+                        <div class="col-sm-9">
+                            <input type="date" class="form-control form-control-sm model" id="txtFechaIngreso" name="FechaIngreso">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="ddlEstadoEmpleado" class="col-sm-3 col-form-label">Estado</label>
+                        <div class="col-sm-9">
+                            <select id="ddlEstadoEmpleado" name="Activo" class="form-control form-control-sm">
+                                <option value="1" selected>Activo</option>
+                                <option value="0">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Cerrar</button>
+                <button type="button" id="btnGuardarEmpleado" class="btn btn-sm btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="@Url.Content("~/Scripts/Views/Empleado_Crear.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

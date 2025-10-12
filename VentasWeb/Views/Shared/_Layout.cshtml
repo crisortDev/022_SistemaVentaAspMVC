@@ -1,204 +1,240 @@
 ﻿@using VentasWeb.Helpers
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Expires" content="0">
-    <meta http-equiv="Last-Modified" content="0">
-    <meta http-equiv="Cache-Control" content="no-cache, mustrevalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <title>Tienda COMPU SPACE</title>
-    @Styles.Render("~/Content/css")
-    @Scripts.Render("~/bundles/modernizr")
-    @Styles.Render("~/Content/PluginsCSS")
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO -->
+    <meta name="description" content="Sistema de gestión - Tienda Compu Space" />
+    <meta name="keywords" content="ventas, compras, tienda, compu space, sistema" />
+    <meta name="author" content="Compu Space" />
+
+    <!-- Cache -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <title>@ViewBag.Title - Tienda COMPU SPACE</title>
+
+    @{
+        // Genera un número de versión dinámico para evitar cacheo del navegador
+        var version = DateTime.Now.Ticks.ToString();
+    }
+
+    @Styles.RenderFormat("<link href=\"{0}?v=" + version + "\" rel=\"stylesheet\"/>", "~/Content/css")
+    @Styles.RenderFormat("<link href=\"{0}?v=" + version + "\" rel=\"stylesheet\"/>", "~/Content/PluginsCSS")
+    @Scripts.RenderFormat("<script src=\"{0}?v=" + version + "\"></script>", "~/bundles/modernizr")
+
 
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" crossorigin="" />
+
     @RenderSection("estilos", required: false)
 </head>
 <body>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- NAVBAR -->
     <nav class="navbar navbar-icon-top navbar-expand-lg navbar-dark bg-info" style="font-weight:bold">
-        <a class="navbar-brand" href="#">
-            <img src="@Url.Content("~/Imagenes/tiendalogo.png")" width="110" height="45" alt="logo">
+        <a class="navbar-brand" href="@Url.Action("Index", "Home")">
+            <img src="@Url.Content("~/Imagenes/tiendalogo.png")" width="110" height="45" alt="Logo Tienda Compu Space" />
         </a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Alternar navegación">
             <span class="navbar-toggler-icon"></span>
         </button>
+
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <!-- Menú izquierdo -->
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item">
                     <a class="nav-link" name="Home" href="@Url.Action("Index", "Home")">
                         <i class="fas fa-home"></i> Inicio
                     </a>
                 </li>
-
-                @* Aquí llamamos al helper o al partial que genera <li> *@
-                @Html.ActionLinkAllow()
+                @Html.ActionLinkAllow() <!-- Menús dinámicos -->
             </ul>
-            <ul class="nav navbar-nav ml-auto">
 
+            <!-- Menú derecho -->
+            <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
                     <a href="@Url.Action("Salir", "Home")" class="nav-link">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>
-                            <strong>Salir</strong>
-                        </span>
+                        <i class="fas fa-sign-out-alt"></i> <strong>Salir</strong>
                     </a>
                 </li>
             </ul>
         </div>
     </nav>
 
+    <!-- CUERPO -->
     <div class="container-fluid mt-4">
         @RenderBody()
         <hr />
-        <footer>
-            <p>&copy; @DateTime.Now.Year - Mi aplicación ASP.NET</p>
+        <footer class="text-center text-muted small">
+            <p>&copy; @DateTime.Now.Year - Tienda Compu Space</p>
         </footer>
     </div>
 
-    @Scripts.Render("~/bundles/jquery")
-    @Scripts.Render("~/bundles/bootstrap")
-    @Scripts.Render("~/Content/PluginsJS")
+    <!-- SCRIPTS -->
+    @{
+        var cacheVersion = DateTime.Now.Ticks.ToString();
+    }
 
-<script type="text/javascript">
-
-        $.extend({ MisUrls: { url: {}, urls: function (a) { $.extend($.MisUrls.url, a); } } });
-
-        //CONTROLADOR ROL
-        $.MisUrls.urls({ _ObtenerRoles: '@Url.Action("Obtener", "Rol")' });
-        $.MisUrls.urls({ _GuardarRol: '@Url.Action("Guardar", "Rol")' });
-    $.MisUrls.urls({ _EliminarRol: '@Url.Action("Eliminar", "Rol")' });
-        $.MisUrls.urls({ _DesactivarRol: '@Url.Action("Desactivar", "Rol")' });
+    @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/bundles/jquery")
+    @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/bundles/bootstrap")
+    @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/Content/PluginsJS")
 
 
-        //CONTROLADOR PERMISOS
-        $.MisUrls.urls({ _ObtenerPermisos: '@Url.Action("Obtener", "Permisos")' });
-        $.MisUrls.urls({ _GuardarPermisos: '@Url.Action("Guardar", "Permisos")' });
 
 
-        //CONTROLADOR USUARIO
-        $.MisUrls.urls({ _ObtenerUsuarios: '@Url.Action("Obtener", "Usuario")' });
-        $.MisUrls.urls({ _GuardarUsuario: '@Url.Action("Guardar", "Usuario")' });
-        $.MisUrls.urls({ _EliminarUsuario: '@Url.Action("Eliminar", "Usuario")' });
+    <!-- Configuración de URLs centralizadas -->
+    <script type="text/javascript">
+        $.extend({
+            MisUrls: {
+                url: {},
+                urls: function (a) { $.extend($.MisUrls.url, a); }
+            }
+        });
 
-        //CONTROLADOR PROVEEDOR
-        $.MisUrls.urls({ _ObtenerProveedores: '@Url.Action("Obtener", "Proveedor")' });
-        $.MisUrls.urls({ _GuardarProveedor: '@Url.Action("Guardar", "Proveedor")' });
-        $.MisUrls.urls({ _EliminarProveedor: '@Url.Action("Eliminar", "Proveedor")' });
-        $.MisUrls.urls({ _ObtenerHistorialPrecio: '@Url.Action("ObtenerHistorialPrecio", "Historial")' });
+        // ---- ROL ----
+        $.MisUrls.urls({
+            _ObtenerRoles: '@Url.Action("Obtener", "Rol")',
+            _GuardarRol: '@Url.Action("Guardar", "Rol")',
+            _EliminarRol: '@Url.Action("Eliminar", "Rol")',
+            _DesactivarRol: '@Url.Action("Desactivar", "Rol")'
+        });
+
+        // ---- PERMISOS ----
+        $.MisUrls.urls({
+            _ObtenerPermisos: '@Url.Action("Obtener", "Permisos")',
+            _GuardarPermisos: '@Url.Action("Guardar", "Permisos")'
+        });
+
+        // ---- USUARIO ----
+$.MisUrls.urls({
+    _ObtenerUsuarios: '@Url.Action("Obtener", "Usuario")',
+    _GuardarUsuario: '@Url.Action("Guardar", "Usuario")',
+    _EliminarUsuario: '@Url.Action("Eliminar", "Usuario")',
+    _CrearUsuarioPendiente: '@Url.Action("CrearPendiente", "Usuario")',
+    _CambiarClave: '@Url.Action("CambioContraseña", "Usuario")'
+});
+
+// ---- EMPLEADO ----
+$.MisUrls.urls({
+    _EsEmpleado: '@Url.Action("EsEmpleado", "Empleado")',
+    _BuscarEmpleadoPorCI: '@Url.Action("BuscarEmpleadoPorCI", "Empleado")',
+    _BuscarPorCI: '@Url.Action("BuscarPorCI", "Empleado")',
+    _ObtenerTiendasActivas: '@Url.Action("ObtenerTiendasActivas", "Empleado")' // NUEVO
+});
 
 
-        //CONTROLADOR CATEGORIA
-        $.MisUrls.urls({ _ObtenerCategorias: '@Url.Action("Obtener", "Categoria")' });
-        $.MisUrls.urls({ _GuardarCategoria: '@Url.Action("Guardar", "Categoria")' });
-        $.MisUrls.urls({ _EliminarCategoria: '@Url.Action("Eliminar", "Categoria")' });
 
+        // ---- PROVEEDOR ----
+        $.MisUrls.urls({
+            _ObtenerProveedores: '@Url.Action("Obtener", "Proveedor")',
+            _GuardarProveedor: '@Url.Action("Guardar", "Proveedor")',
+            _EliminarProveedor: '@Url.Action("Eliminar", "Proveedor")',
+            _ObtenerHistorialPrecio: '@Url.Action("ObtenerHistorialPrecio", "Historial")'
+        });
 
-         //CONTROLADOR PRODUCTO
-        $.MisUrls.urls({ _ObtenerProductos: '@Url.Action("Obtener", "Producto")' });
-        $.MisUrls.urls({ _ObtenerProductosPorTienda: '@Url.Action("ObtenerProductosPorTienda", "Producto")' });
-        $.MisUrls.urls({ _GuardarProducto: '@Url.Action("Guardar", "Producto")' });
-        $.MisUrls.urls({ _EliminarProducto: '@Url.Action("Eliminar", "Producto")' });
-        $.MisUrls.urls({ _ObtenerAsignaciones: '@Url.Action("ObtenerAsignaciones", "Producto")' });
-        $.MisUrls.urls({ _RegistrarProductoTienda: '@Url.Action("RegistrarProductoTienda", "Producto")' });
-        $.MisUrls.urls({ _ModificarProductoTienda: '@Url.Action("ModificarProductoTienda", "Producto")' });
-        $.MisUrls.urls({ _EliminarProductoTienda: '@Url.Action("EliminarProductoTienda", "Producto")' });
+        // ---- CATEGORIA ----
+        $.MisUrls.urls({
+            _ObtenerCategorias: '@Url.Action("Obtener", "Categoria")',
+            _GuardarCategoria: '@Url.Action("Guardar", "Categoria")',
+            _EliminarCategoria: '@Url.Action("Eliminar", "Categoria")'
+        });
 
+        // ---- PRODUCTO ----
+        $.MisUrls.urls({
+            _ObtenerProductos: '@Url.Action("Obtener", "Producto")',
+            _ObtenerProductosPorTienda: '@Url.Action("ObtenerProductosPorTienda", "Producto")',
+            _GuardarProducto: '@Url.Action("Guardar", "Producto")',
+            _EliminarProducto: '@Url.Action("Eliminar", "Producto")',
+            _ObtenerAsignaciones: '@Url.Action("ObtenerAsignaciones", "Producto")',
+            _RegistrarProductoTienda: '@Url.Action("RegistrarProductoTienda", "Producto")',
+            _ModificarProductoTienda: '@Url.Action("ModificarProductoTienda", "Producto")',
+            _EliminarProductoTienda: '@Url.Action("EliminarProductoTienda", "Producto")',
+            _BuscarProductoPorCodigo: '@Url.Action("BuscarProductoPorCodigo", "Producto")'
+        });
 
-        //CONTROLADOR TIENDA
-        $.MisUrls.urls({ _ObtenerTiendas: '@Url.Action("Obtener", "Tienda")' });
-         $.MisUrls.urls({ _GuardarTienda: '@Url.Action("Guardar", "Tienda")' });
-        $.MisUrls.urls({ _EliminarTienda: '@Url.Action("Eliminar", "Tienda")' });
+        // ---- TIENDA ----
+        $.MisUrls.urls({
+            _ObtenerTiendas: '@Url.Action("Obtener", "Tienda")',
+            _GuardarTienda: '@Url.Action("Guardar", "Tienda")',
+            _EliminarTienda: '@Url.Action("Eliminar", "Tienda")'
+        });
 
-        //CONTROLADOR COMPRA
-        $.MisUrls.urls({ _ObtenerCompras: '@Url.Action("Obtener", "Compra")' });
-        $.MisUrls.urls({ _GuardarCompra: '@Url.Action("Guardar", "Compra")' });
-        $.MisUrls.urls({ _DocumentoCompra: '@Url.Action("Documento", "Compra")' });
+        // ---- COMPRA ----
+        $.MisUrls.urls({
+            _ObtenerCompras: '@Url.Action("Obtener", "Compra")',
+            _GuardarCompra: '@Url.Action("Guardar", "Compra")',
+            _DocumentoCompra: '@Url.Action("Documento", "Compra")'
+        });
 
+        // ---- VENTA ----
+        $.MisUrls.urls({
+            _ObtenerUsuario: '@Url.Action("ObtenerUsuario", "Venta")',
+            _ObtenerProductoStockPorTienda: '@Url.Action("ObtenerProductoPorTienda", "Venta")',
+            _ControlarStockProducto: '@Url.Action("ControlarStock", "Venta")',
+            _RegistrarVenta: '@Url.Action("Guardar", "Venta")',
+            _DocumentoVenta: '@Url.Action("Documento", "Venta")',
+            _ObtenerVentas: '@Url.Action("Obtener", "Venta")'
+        });
 
-        //CONTROLADOR VENTA
-        $.MisUrls.urls({ _ObtenerUsuario: '@Url.Action("ObtenerUsuario", "Venta")' });
-        $.MisUrls.urls({ _ObtenerProductoStockPorTienda: '@Url.Action("ObtenerProductoPorTienda", "Venta")' });
-        $.MisUrls.urls({ _ControlarStockProducto: '@Url.Action("ControlarStock", "Venta")' });
-        $.MisUrls.urls({ _RegistrarVenta: '@Url.Action("Guardar", "Venta")' });
-        $.MisUrls.urls({ _DocumentoVenta: '@Url.Action("Documento", "Venta")' });
-
-        $.MisUrls.urls({ _ObtenerVentas: '@Url.Action("Obtener", "Venta")' });
-
+        // ---- PRECIOS VENTA ----
         $.MisUrls.urls({
             _ObtenerHistorialPreciosVenta: '@Url.Action("ObtenerHistorial", "PreciosVenta")',
-            _BuscarProductoPorCodigo: '@Url.Action("BuscarProductoPorCodigo", "Producto")',
             _GuardarPrecioVenta: '@Url.Action("Guardar", "PreciosVenta")',
-            _EliminarPrecioVenta: '@Url.Action("Eliminar", "PreciosVenta")'});
+            _EliminarPrecioVenta: '@Url.Action("Eliminar", "PreciosVenta")'
+        });
 
+        // ---- REPORTE ----
+        $.MisUrls.urls({
+            _ObtenerReporteProducto: '@Url.Action("ObtenerProducto", "Reporte")',
+            _ObtenerReporteVenta: '@Url.Action("ObtenerVenta", "Reporte")'
+        });
 
+        // ---- CLIENTE ----
+        $.MisUrls.urls({
+            _ObtenerClientes: '@Url.Action("Obtener", "Cliente")',
+            _GuardarCliente: '@Url.Action("Guardar", "Cliente")',
+            _EliminarCliente: '@Url.Action("Eliminar", "Cliente")'
+        });
 
+        // ---- MOVIMIENTOS CAJA ----
+        $.MisUrls.urls({
+            _BuscarMovimientosCaja: '@Url.Action("BuscarCompras", "ConsultarCajaCompra")',
+            _PagarMovimiento: '@Url.Action("Pagar", "ConsultarCajaCompra")',
+            _CancelarMovimiento: '@Url.Action("Cancelar", "ConsultarCajaCompra")'
+        });
 
-        //CONTROLADOR REPORTE
-        $.MisUrls.urls({ _ObtenerReporteProducto :'@Url.Action("ObtenerProducto", "Reporte")' });
-        $.MisUrls.urls({ _ObtenerReporteVenta :'@Url.Action("ObtenerVenta", "Reporte")' });
-
-
-        //CONTROLADOR CLIENTE
-        $.MisUrls.urls({ _ObtenerClientes: '@Url.Action("Obtener", "Cliente")' });
-        $.MisUrls.urls({ _GuardarCliente: '@Url.Action("Guardar", "Cliente")' });
-        $.MisUrls.urls({ _EliminarCliente: '@Url.Action("Eliminar", "Cliente")' });
-
-        // CONTROLADOR MOVIMIENTOS - CAJA
-        $.MisUrls.urls({ _BuscarMovimientosCaja: '@Url.Action("BuscarCompras", "ConsultarCajaCompra")' });
-        $.MisUrls.urls({ _PagarMovimiento: '@Url.Action("Pagar", "ConsultarCajaCompra")' });
-        $.MisUrls.urls({ _CancelarMovimiento: '@Url.Action("Cancelar", "ConsultarCajaCompra")' });
-
-
-
-        //lenguaje español datatable
-        $.MisUrls.urls({ Url_datatable_spanish: '@Url.Content("~/content/plugins/datatables/js/datatable_spanish.json")' });
-
-        // CONTROLADOR USUARIO - Cambio de contraseña
-        $.MisUrls.urls({ _CambiarClave: '@Url.Action("CambioContraseña", "Usuario")' });
-
-</script>
-    <script>
-
-        function activarMenu(menuactivo) {
-
-            var ul = $("ul.navbar-nav");
-            ul.find("li.nav-item").each(function (i, li) {
-
-                var a;
-
-                if ($(li).find("div.dropdown-menu").length != 0) {
-
-                    var div = $($(li).find("div.dropdown-menu"))
-
-                    div.find("a.dropdown-item").each(function (x, tagA) {
-                        if ($(tagA).attr("name") == menuactivo) {
-
-                            $(li).addClass("active");
-                            return false;
-                        }
-                    })
-                } else {
-
-                    a = $(li).find("a.nav-link");
-
-                    if ($(a).attr("name") == menuactivo) {
-                        $(li).addClass("active");
-                        return false;
-                    }
-                }
-            });
-        }
+        // ---- DATATABLES ----
+        $.MisUrls.urls({
+            Url_datatable_spanish: '@Url.Content("~/content/plugins/datatables/js/datatable_spanish.json")'
+        });
 
     </script>
 
+    <script>
+        function activarMenu(menuactivo) {
+            $("ul.navbar-nav li.nav-item").each(function () {
+                var li = $(this);
+                var dropdown = li.find("div.dropdown-menu");
+                if (dropdown.length) {
+                    dropdown.find("a.dropdown-item").each(function () {
+                        if ($(this).attr("name") == menuactivo) li.addClass("active");
+                    });
+                } else {
+                    var a = li.find("a.nav-link");
+                    if (a.attr("name") == menuactivo) li.addClass("active");
+                }
+            });
+        }
+    </script>
+
     @RenderSection("scripts", required: false)
-
-
 </body>
 </html>
