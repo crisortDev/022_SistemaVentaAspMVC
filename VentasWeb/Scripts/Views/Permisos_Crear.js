@@ -1,5 +1,4 @@
-﻿var tabladata;
-var idRolUsuarioActual = 0;
+﻿var idRolUsuarioActual = 0;
 var usuarioActualEsAdmin = false;
 
 $(document).ready(function () {
@@ -8,10 +7,27 @@ $(document).ready(function () {
     // Capturar IdRol del usuario actual desde el hidden
     idRolUsuarioActual = parseInt($("#hdIdRolUsuario").val(), 10) || 0;
     usuarioActualEsAdmin = idRolUsuarioActual === 1; // 1 = ADMINISTRADOR
-
     console.log("IdRol usuario actual:", idRolUsuarioActual, "Es admin?", usuarioActualEsAdmin);
 
+    // Cargar roles
     cargarRoles();
+
+    // Evento cambio de rol
+    $(document).on('change', '#cboRol', function () {
+        var idRol = parseInt($(this).val(), 10) || 0;
+        if (idRol > 0) {
+            cargarPermisos(idRol);
+        } else {
+            $("#tblPermisos tbody").html(`<tr><td colspan="2" class="text-center text-muted">Seleccione un rol para ver sus permisos</td></tr>`);
+        }
+    });
+
+    // Evento cambio de checkbox de permisos
+    $(document).on('change', '.chkPermiso', function () {
+        var idPermiso = $(this).data("idpermiso");
+        var activo = $(this).is(':checked');
+        actualizarPermiso(idPermiso, activo, this);
+    });
 });
 
 // ==========================
@@ -20,150 +36,119 @@ $(document).ready(function () {
 function cargarRoles() {
     $.ajax({
         url: $.MisUrls.url._ObtenerRoles,
-        type: "GET",
-        dataType: "json",
-        contentType: "application/json; charset=utf-8",
+        type: 'GET',
         success: function (data) {
-            var $cbo = $("#cboRol");
-            $cbo.empty();
-            $("<option>").attr({ "value": 0 }).text("-- Seleccione --").appendTo($cbo);
-
-            if (data?.data) {
-                $.each(data.data, function (i, item) {
-                    if (item.Activo) {
-                        $("<option>").attr({ "value": item.IdRol }).text(item.Descripcion).appendTo($cbo);
-                    }
-                });
+            const $cboRol = $("#cboRol");
+            if (data.data && data.data.length > 0) {
+                $cboRol.empty().append('<option value="">Seleccione un Rol</option>');
+                data.data.forEach(rol => $cboRol.append(`<option value="${rol.IdRol}">${rol.Descripcion}</option>`));
+            } else {
+                $cboRol.html('<option value="">No hay roles disponibles</option>');
             }
         },
-        error: function (err) {
-            console.error("Error al cargar roles:", err);
-        }
+        error: function () { alert("Error al cargar los roles."); }
     });
 }
 
 // ==========================
-// Buscar permisos por rol
+// Cargar permisos por rol
 // ==========================
-function buscar() {
-    var rolSeleccionadoId = parseInt($("#cboRol").val(), 10) || 0;
-
-    if (rolSeleccionadoId === 0) {
-        swal("Mensaje", "Seleccione un rol", "warning");
-        return;
-    }
-
-    // Validación: usuario no admin no puede modificar permisos de admin
-    if (!usuarioActualEsAdmin && rolSeleccionadoId === 1) {
+function cargarPermisos(idRol) {
+    // Validación: usuario no admin no puede ver permisos de admin
+    if (!usuarioActualEsAdmin && idRol === 1) {
         swal("Mensaje", "No puede modificar permisos de administradores", "warning");
+        $("#tblPermisos tbody").html(`<tr><td colspan="2" class="text-center text-muted">No puede ver permisos de administradores</td></tr>`);
         return;
     }
 
     $.ajax({
-        url: $.MisUrls.url._ObtenerPermisos + "?id=" + rolSeleccionadoId,
-        type: "GET",
-        dataType: "json",
-        contentType: "application/json; charset=utf-8",
-        beforeSend: function () {
-            $(".card-load").LoadingOverlay("show");
-        },
+        url: '/Permiso/ListarPermisosPorRol',
+        type: 'GET',
+        data: { idRol: idRol },
         success: function (data) {
-            $(".card-load").LoadingOverlay("hide");
-            $("#tbpermiso tbody").empty();
+            const permisos = data.data || [];
+            let html = "";
 
-            if (!data) return;
+            if (permisos.length === 0) {
+                html = `<tr><td colspan="2" class="text-center text-muted">Este rol no tiene permisos asignados.</td></tr>`;
+            } else {
+                permisos.forEach(p => {
+                    html += `<tr>
+                        <td>${p.NombreSubMenu}</td>
+                        <td class="text-center">
+                            <input type="checkbox" class="chkPermiso" 
+                                   data-idpermiso="${p.IdPermiso}" 
+                                   ${p.Activo ? 'checked' : ''}>
+                        </td>
+                    </tr>`;
+                });
+            }
 
-            const permisosCriticos = [1, 2, 3]; // ids de permisos críticos
-
-            $.each(data, function (i, row) {
-                var $checkbox = $("<input>").attr({ type: "checkbox" })
-                    .data("IdPermiso", row.IdPermisos)
-                    .prop("checked", row.Activo);
-
-                // Bloquear permisos críticos de admin
-                if (rolSeleccionadoId === 1 && permisosCriticos.includes(row.IdPermisos)) {
-                    $checkbox.prop("checked", true).prop("disabled", true);
-                }
-
-                // Bloquear todo si usuario no admin y rol admin
-                if (!usuarioActualEsAdmin && rolSeleccionadoId === 1) {
-                    $checkbox.prop("disabled", true);
-                }
-
-                $("<tr>").append(
-                    $("<td>").text(i + 1),
-                    $("<td>").append($checkbox),
-                    $("<td>").text(row.Menu),
-                    $("<td>").text(row.SubMenu)
-                ).appendTo("#tbpermiso tbody");
-            });
+            $("#tblPermisos tbody").html(html);
         },
-        error: function (err) {
-            console.error("Error al obtener permisos:", err);
+        error: function () {
+            alert("Error al cargar permisos del rol seleccionado.");
         }
     });
 }
 
 // ==========================
-// Guardar cambios de permisos
+// Actualizar permiso individual
+// ==========================
+function actualizarPermiso(idPermiso, activo, checkbox) {
+    $.ajax({
+        url: '/Permiso/ActualizarEstadoPermiso',
+        type: 'POST',
+        data: { idPermiso: idPermiso, activo: activo },
+        success: function (data) {
+            if (data.resultado) {
+                console.log("Permiso actualizado correctamente.");
+            } else {
+                alert("No se pudo actualizar el permiso.");
+                $(checkbox).prop('checked', !activo); // revertir checkbox
+            }
+        },
+        error: function () {
+            alert("Error al actualizar el permiso.");
+            $(checkbox).prop('checked', !activo); // revertir checkbox
+        }
+    });
+}
+
+// ==========================
+// Guardar todos los permisos (si necesitás XML o POST masivo)
 // ==========================
 function Guardar() {
-    var rolSeleccionadoId = parseInt($("#cboRol").val(), 10) || 0;
-
-    if (rolSeleccionadoId === 0) {
+    const idRol = parseInt($("#cboRol").val(), 10) || 0;
+    if (idRol === 0) {
         swal("Mensaje", "Seleccione un rol", "warning");
         return;
     }
 
-    if ($("#tbpermiso tbody tr").length === 0) {
-        swal("Mensaje", "No hay datos", "warning");
-        return;
-    }
-
-    // Validación: usuario no admin no puede guardar permisos de admin
-    if (!usuarioActualEsAdmin && rolSeleccionadoId === 1) {
-        swal("Mensaje", "No puede modificar permisos de administradores", "warning");
-        return;
-    }
-
-    var permisosArray = $('input[type="checkbox"]').map(function () {
+    const permisosArray = $(".chkPermiso").map(function () {
         return `<PERMISO>
-                    <IdPermisos>${$(this).data("IdPermiso")}</IdPermisos>
-                    <Activo>${$(this).prop("checked") ? 1 : 0}</Activo>
+                    <IdPermiso>${$(this).data("idpermiso")}</IdPermiso>
+                    <Activo>${$(this).is(':checked') ? 1 : 0}</Activo>
                 </PERMISO>`;
     }).get();
 
-    var xml = `<DETALLE>${permisosArray.join("")}</DETALLE>`;
+    const xml = `<DETALLE>${permisosArray.join("")}</DETALLE>`;
 
     $.ajax({
         url: $.MisUrls.url._GuardarPermisos,
-        type: "POST",
+        type: 'POST',
         data: JSON.stringify({ xml: xml }),
-        dataType: "json",
-        contentType: "application/json; charset=utf-8",
-        beforeSend: function () {
-            $(".card-load").LoadingOverlay("show");
-        },
+        contentType: 'application/json; charset=utf-8',
         success: function (data) {
-            $(".card-load").LoadingOverlay("hide");
-
             if (data.resultado) {
-                $("#cboRol").val(0);
-                $("#tbpermiso tbody").empty();
-                location.reload();
+                swal("Éxito", "Permisos guardados correctamente", "success");
+                cargarPermisos(idRol); // recargar tabla
             } else {
-                swal("Mensaje", data.mensaje || "No se pudo guardar los cambios", "warning");
+                swal("Error", data.mensaje || "No se pudo guardar", "warning");
             }
         },
         error: function (err) {
             console.error("Error al guardar permisos:", err);
         }
     });
-}
-
-// ==========================
-// Recargar menú lateral
-// ==========================
-function recargarMenu() {
-    $("#menuLateral").load("/Home/RecargarMenu");
 }

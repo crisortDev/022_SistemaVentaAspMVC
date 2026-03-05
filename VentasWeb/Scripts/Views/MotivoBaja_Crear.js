@@ -8,7 +8,7 @@ $(document).ready(function () {
         responsive: true,
         autoWidth: false,
         ajax: {
-            url: $.MisUrls.url._ObtenerCategorias,
+            url: '/MotivoBaja/Obtener',
             type: 'GET',
             datatype: 'json'
         },
@@ -26,7 +26,7 @@ $(document).ready(function () {
                 }
             },
             {
-                data: 'IdCategoria',
+                data: 'IdMotivoBaja',
                 orderable: false,
                 searchable: false,
                 width: '100px',
@@ -42,7 +42,7 @@ $(document).ready(function () {
         ]
     });
 
-    // ── Forzar mayúsculas en descripción ──────────────────
+    // ── Forzar mayúsculas ─────────────────────────────────
     $('#txtDescripcion').on('input', function () {
         var pos = this.selectionStart;
         $(this).val($(this).val().toUpperCase());
@@ -55,22 +55,18 @@ function abrirPopUpForm(json) {
     limpiarErrores();
 
     if (json != null) {
-        // Editar
-        $("#tituloModal").html('<i class="fa fa-edit mr-1"></i> Editar Categoría');
-        $("#txtid").val(json.IdCategoria);
+        $("#tituloModal").html('<i class="fas fa-edit mr-1"></i> Editar Motivo de Baja');
+        $("#txtid").val(json.IdMotivoBaja);
         $("#txtDescripcion").val(json.Descripcion);
         $("#cboEstado").val(json.Activo ? 1 : 0);
     } else {
-        // Nuevo
-        $("#tituloModal").html('<i class="fa fa-tag mr-1"></i> Nueva Categoría');
+        $("#tituloModal").html('<i class="fas fa-ban mr-1"></i> Nuevo Motivo de Baja');
         $("#txtid").val(0);
         $("#txtDescripcion").val("");
         $("#cboEstado").val(1);
     }
 
     $('#FormModal').modal('show');
-
-    // Focus en descripción al abrir
     setTimeout(function () { $('#txtDescripcion').focus(); }, 400);
 }
 
@@ -80,7 +76,6 @@ function Guardar() {
 
     var desc = $("#txtDescripcion").val().trim();
 
-    // Validaciones
     if (!desc) {
         marcarError("txtDescripcion", "La descripción es obligatoria.");
         return;
@@ -91,23 +86,23 @@ function Guardar() {
     }
 
     var objeto = {
-        IdCategoria: parseInt($("#txtid").val()),
+        IdMotivoBaja: parseInt($("#txtid").val()),
         Descripcion: desc,
         Activo: $("#cboEstado").val() === "1"
     };
 
     $.ajax({
-        url: $.MisUrls.url._GuardarCategoria,
+        url: '/MotivoBaja/Guardar',
         type: 'POST',
         data: JSON.stringify(objeto),
         contentType: 'application/json; charset=utf-8',
-        success: function (data) {
-            if (data.resultado) {
+        success: function (resp) {
+            if (resp.resultado) {
                 tabladata.ajax.reload();
                 $('#FormModal').modal('hide');
-                Swal.fire('Éxito', 'Categoría guardada correctamente.', 'success');
+                Swal.fire('Éxito', resp.mensaje, 'success');
             } else {
-                Swal.fire('Atención', 'No se pudo guardar los cambios.', 'warning');
+                Swal.fire('Atención', resp.mensaje, 'warning');
             }
         },
         error: function () {
@@ -119,7 +114,7 @@ function Guardar() {
 // ── Eliminar ──────────────────────────────────────────────
 function eliminar(id) {
     Swal.fire({
-        title: '¿Eliminar categoría?',
+        title: '¿Eliminar motivo?',
         text: 'Esta acción no se puede deshacer.',
         icon: 'warning',
         showCancelButton: true,
@@ -129,14 +124,14 @@ function eliminar(id) {
     }).then(function (result) {
         if (result.isConfirmed) {
             $.ajax({
-                url: $.MisUrls.url._EliminarCategoria + '?id=' + id,
+                url: '/MotivoBaja/Eliminar?id=' + id,
                 type: 'GET',
-                success: function (data) {
-                    if (data.resultado) {
+                success: function (resp) {
+                    if (resp.resultado) {
                         tabladata.ajax.reload();
-                        Swal.fire('Eliminado', 'Categoría eliminada correctamente.', 'success');
+                        Swal.fire('Eliminado', resp.mensaje, 'success');
                     } else {
-                        Swal.fire('Atención', 'No se pudo eliminar. La categoría puede estar asignada a un producto.', 'warning');
+                        Swal.fire('Atención', resp.mensaje, 'warning');
                     }
                 },
                 error: function () {
@@ -170,9 +165,8 @@ function activarMenu(menuactivo) {
                 }
             });
         } else {
-            if ($li.find('a.nav-link').attr('name') === menuactivo) {
+            if ($li.find('a.nav-link').attr('name') === menuactivo)
                 $li.addClass('active');
-            }
         }
     });
 }

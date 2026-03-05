@@ -1,245 +1,214 @@
-﻿var tabladata;
+﻿$(document).ready(function () {
 
-$(document).ready(function () {
-    activarMenu("Mantenedor");
+    // ══════════════════════════════════════════════════
+    //  INICIALIZACIÓN
+    // ══════════════════════════════════════════════════
+    cargarRoles();
+    cargarTiendas();
+    iniciarDataTable();
 
-    // ================== VALIDACIONES ==================
-    $("#form").validate({
-        rules: {
-            Nombres: { required: true, minlength: 2, maxlength: 50 },
-            Apellidos: { required: true, minlength: 2, maxlength: 50 },
-            CI: { required: true, minlength: 1, maxlength: 15 },
-            Correo: { required: true, email: true, maxlength: 50 },
-            Clave: {
-                required: function () { return $("#txtid").val() == "0"; },
-                minlength: 6,
-                maxlength: 8
-            }
-        },
-        messages: {
-            Nombres: { required: "Ingrese nombres", minlength: "Mínimo 2 caracteres", maxlength: "Máximo 50 caracteres" },
-            Apellidos: { required: "Ingrese apellidos", minlength: "Mínimo 2 caracteres", maxlength: "Máximo 50 caracteres" },
-            CI: { required: "Ingrese CI", minlength: "Debe tener al menos 1 carácter", maxlength: "Máximo 15 caracteres" },
-            Correo: { required: "Ingrese correo", email: "Formato de correo inválido", maxlength: "Máximo 50 caracteres" },
-            Clave: { required: "Ingrese contraseña", minlength: "Mínimo 6 caracteres", maxlength: "Máximo 8 caracteres" }
-        },
-        errorElement: 'span',
-        errorPlacement: function (error, element) {
-            error.addClass("text-danger ml-2");
-            error.insertAfter(element);
-        }
-    });
-
-    // ================== CARGA DE SELECTS ==================
-    cargarSelect("#cboRol", $.MisUrls.url._ObtenerRoles, "Descripcion", "IdRol");
-    cargarSelect("#cboTienda", $.MisUrls.url._ObtenerTiendas, "Nombre", "IdTienda");
-
-    // ================== BÚSQUEDA EMPLEADO ==================
-    $('#btnBuscarEmpleado').click(function () {
-        var ci = $('#txtCIEmpleado').val().trim();
-        if (ci === '') return;
-
-        $.ajax({
-            url: $.MisUrls.url._BuscarEmpleadoPorCI,
-            type: "GET",
-            data: { ci: ci },
-            dataType: "json",
-            success: function (res) {
-                if (!res.data || res.data.length === 0) {
-                    alert("No se encontraron empleados.");
-                    $('#camposUsuario').hide();
-                    $('#cboEmpleado').empty().append('<option value="">Seleccione un empleado</option>');
-                    return;
-                }
-
-                var empleados = res.data;
-
-                // Limpiar y llenar select con todos los resultados
-                $('#cboEmpleado').empty();
-                empleados.forEach(function (emp) {
-                    $('#cboEmpleado').append('<option value="' + emp.IdEmpleado + '">' + emp.CI + ' - ' + emp.Nombres + ' ' + emp.Apellidos + '</option>');
-                });
-
-                // Seleccionar el primer empleado por defecto
-                var persona = empleados[0];
-                $('#cboEmpleado').val(persona.IdEmpleado);
-
-                // Mostrar campos de usuario
-                $('#camposUsuario').show();
-
-                // Rellenar campos de usuario
-                $('#txtNombres').val(persona.Nombres).prop('required', true);
-                $('#txtApellidos').val(persona.Apellidos).prop('required', true);
-                $('#txtCI').val(persona.CI);
-                $('#txtCorreo').val(persona.Correo || '');
-            },
-            error: function (err) {
-                console.error(err);
-                alert("Error al buscar empleado.");
-            }
+    // ══════════════════════════════════════════════════
+    //  CARGA DE SELECTS
+    //  _ObtenerRoles  → Rol/Obtener  (ya definido en layout)
+    //  _ObtenerTiendasActivas → Empleado/ObtenerTiendasActivas
+    // ══════════════════════════════════════════════════
+    function cargarRoles() {
+        $.get($.MisUrls.url._ObtenerRoles, function (response) {
+            var lista = Array.isArray(response) ? response
+                : (response.data ? response.data : []);
+            var $s = $("#cboRolUsuario");
+            $s.empty().append('<option value="">-- Seleccione Rol --</option>');
+            lista.filter(function (r) { return r.Activo; }).forEach(function (item) {
+                $s.append('<option value="' + item.IdRol + '">' + item.Descripcion + '</option>');
+            });
         });
-    });
-
-
-    // ================== DATATABLE ==================
-    tabladata = $('#tbdata').DataTable({
-        ajax: { url: $.MisUrls.url._ObtenerUsuarios, type: "GET", datatype: "json" },
-        columns: [
-            { data: "oRol", render: data => data.Descripcion },
-            { data: "Nombres" },
-            { data: "Apellidos" },
-            { data: "Correo" },
-            { data: "Activo", render: data => data ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">No Activo</span>' },
-            {
-                data: "IdUsuario", render: (data, type, row) => `
-                    <button class='btn btn-primary btn-sm' onclick='abrirPopUpForm(${JSON.stringify(row)})'><i class='fas fa-pen'></i></button>
-                    <button class='btn btn-danger btn-sm ml-2' onclick='eliminar(${data})'><i class='fa fa-trash'></i></button>
-                `, orderable: false, searchable: false, width: "90px"
-            }
-        ],
-        language: { url: $.MisUrls.url.Url_datatable_spanish },
-        responsive: true
-    });
-});
-
-// ================== FUNCIONES AUXILIARES ==================
-function cargarSelect(selector, url, textField, valueField) {
-    $.ajax({
-        url: url,
-        type: "GET",
-        dataType: "json",
-        success: function (data) {
-            $(selector).html("");
-            if (data.data) {
-                data.data.filter(x => x.Activo).forEach(item => {
-                    $("<option>").val(item[valueField]).text(item[textField]).appendTo(selector);
-                });
-                $(selector).val($(selector + " option:first").val());
-            }
-        },
-        error: function (err) {
-            console.error("Error cargando select: ", err);
-        }
-    });
-}
-
-// ================== ABRIR MODAL ==================
-function abrirPopUpForm(json) {
-    const esEdicion = json != null;
-
-    $("#txtid").val(esEdicion ? json.IdUsuario : 0);
-    $("#empleadoGroup").toggle(!esEdicion);
-    $("#camposUsuario").toggle(esEdicion);
-    $("#claveGroup").toggle(!esEdicion);
-
-    if (esEdicion) {
-        $("#txtNombres").val(json.Nombres);
-        $("#txtApellidos").val(json.Apellidos);
-        $("#txtCI").val(json.CI).prop("readonly", true);
-        $("#txtCorreo").val(json.Correo);
-        $("#txtClave").val("********").prop("disabled", true);
-        $("#cboTienda").val(json.IdTienda);
-        $("#cboRol").val(json.IdRol);
-        $("#cboEstado").val(json.Activo ? 1 : 0);
-
-        if (json.IdEmpleado) {
-            var option = new Option(json.CI + " - " + json.Nombres + " " + json.Apellidos, json.IdEmpleado, true, true);
-            $("#cboEmpleado").append(option).trigger('change');
-        } else {
-            $("#cboEmpleado").val("").trigger('change');
-        }
-    } else {
-        $("#txtNombres, #txtApellidos, #txtCI, #txtCorreo, #txtClave").val("").prop("readonly", false).prop("disabled", false);
-        $("#cboTienda, #cboRol").val(function () { return $(this).find("option:first").val(); });
-        $("#cboEmpleado").empty().append('<option value="">Seleccione un empleado</option>');
-        $("#txtCIEmpleado").val("");
-        $("#cboEstado").val(1);
     }
 
-    $('#FormModal').modal('show');
-}
+    function cargarTiendas(idSeleccionada) {
+        $.get($.MisUrls.url._ObtenerTiendasActivas, function (response) {
+            var lista = Array.isArray(response) ? response
+                : (response.data ? response.data : []);
+            var $s = $("#cboTiendaUsuario");
+            $s.empty().append('<option value="">-- Seleccione Tienda --</option>');
+            lista.forEach(function (item) {
+                $s.append('<option value="' + item.IdTienda + '">' + item.Nombre + '</option>');
+            });
+            if (idSeleccionada) $s.val(idSeleccionada);
+        });
+    }
 
-// ================== GUARDAR ==================
-function Guardar() {
-    if (!$("#form").valid()) return;
-
-    let request = {
-        IdEmpleado: $("#cboEmpleado").val(),
-        Nombres: $("#txtNombres").val(),
-        Apellidos: $("#txtApellidos").val(),
-        CI: $("#txtCI").val(),
-        Correo: $("#txtCorreo").val(),
-        IdTienda: $("#cboTienda").val(),
-        IdRol: $("#cboRol").val()
-    };
-
-    $.ajax({
-        url: $.MisUrls.url._CrearUsuarioPendiente,
-        type: "POST",
-        data: JSON.stringify(request),
-        dataType: "json",
-        contentType: "application/json; charset=utf-8",
-        success: function (res) {
-            if (res.resultado) {
-                swal("Éxito", res.mensaje, "success");
-                $('#FormModal').modal('hide');
-                tabladata.ajax.reload();
-            } else {
-                swal("Error", res.mensaje, "warning");
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error("Status: ", status);
-            console.error("Error: ", error);
-            console.error("ResponseText: ", xhr.responseText);
-            swal("Error", "Error al guardar usuario: " + error, "error");
-        }
-    });
-}
-
-// ================== ELIMINAR ==================
-function eliminar(id) {
-    swal({
-        title: "Mensaje",
-        text: "¿Desea eliminar el usuario seleccionado?",
-        type: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Si",
-        confirmButtonColor: "#DD6B55",
-        cancelButtonText: "No",
-        closeOnConfirm: true
-    }, function () {
-        $.ajax({
-            url: $.MisUrls.url._EliminarUsuario,
-            type: "GET",
-            data: { id: id },
-            dataType: "json",
-            success: data => {
-                if (data.resultado) tabladata.ajax.reload();
-                else swal("Mensaje", "No se pudo eliminar el usuario", "warning");
+    // ══════════════════════════════════════════════════
+    //  DATATABLE  — _ObtenerUsuarios → Usuario/Obtener
+    // ══════════════════════════════════════════════════
+    function iniciarDataTable() {
+        $('#tbUsuarios').DataTable({
+            responsive: true,
+            autoWidth: false,
+            ajax: {
+                url: $.MisUrls.url._ObtenerUsuarios,
+                type: 'GET',
+                datatype: 'json'
             },
-            error: function (err) {
-                console.error("Error eliminando usuario: ", err);
+            columns: [
+                { data: 'Nombres' },
+                { data: 'Apellidos' },
+                { data: 'Correo' },
+                {
+                    data: 'oRol',
+                    render: function (data) {
+                        return (data && data.Descripcion) ? data.Descripcion : '';
+                    }
+                },
+                {
+                    data: 'Activo',
+                    render: function (data) {
+                        return data
+                            ? '<span class="badge badge-success">Activo</span>'
+                            : '<span class="badge badge-danger">Inactivo</span>';
+                    }
+                },
+                {
+                    data: 'IdUsuario',
+                    render: function (data, type, row) {
+                        return row.Activo
+                            ? '<button class="btn btn-sm btn-warning" onclick="CambiarEstado(' + data + ',false)" title="Desactivar"><i class="fa fa-toggle-off"></i></button>'
+                            : '<button class="btn btn-sm btn-success" onclick="CambiarEstado(' + data + ',true)"  title="Activar"><i class="fa fa-check"></i></button>';
+                    },
+                    orderable: false,
+                    searchable: false,
+                    width: "80px"
+                }
+            ],
+            language: { url: $.MisUrls.url.Url_datatable_spanish }
+        });
+    }
+
+    // ══════════════════════════════════════════════════
+    //  ABRIR MODAL
+    // ══════════════════════════════════════════════════
+    $(document).on("click", "#btnAgregarUsuario", function () {
+        resetearFormulario();
+        $("#FormUsuario").modal("show");
+    });
+
+    function resetearFormulario() {
+        $("#txtIdEmpleadoUsuario").val(0);
+        $("#txtDocumentoUsuario, #txtNombresUsuario, #txtApellidosUsuario, #txtCIRUCUsuario, #txtCorreoUsuario").val("");
+        $("#cboRolUsuario").val("");
+        $("#ddlEstadoUsuario").val("1");
+        cargarTiendas();
+        desbloquearCamposProtegidos();
+    }
+
+    // ══════════════════════════════════════════════════
+    //  BUSCAR EMPLEADO — _BuscarEmpleadoPorCI → Usuario/BuscarEmpleadoPorCI
+    // ══════════════════════════════════════════════════
+    $("#btnBuscarEmpleado").click(function () {
+        var ci = $("#txtDocumentoUsuario").val().trim();
+        if (!ci) {
+            Swal.fire("Atención", "Ingrese un CI o RUC para buscar.", "warning");
+            return;
+        }
+
+        $.get($.MisUrls.url._BuscarEmpleadoPorCI, { ci: ci }, function (resp) {
+            if (!resp.existe) {
+                Swal.fire("No encontrado", resp.mensaje || "No se encontró la persona.", "warning");
+                desbloquearCamposProtegidos();
+                return;
+            }
+
+            var d = resp.data;
+            $("#txtIdEmpleadoUsuario").val(d.IdEmpleado || 0);
+            $("#txtNombresUsuario").val(d.Nombres || "");
+            $("#txtApellidosUsuario").val(d.Apellidos || "");
+            $("#txtCIRUCUsuario").val(d.Documento || "");
+            $("#txtCorreoUsuario").val(d.Correo || "");
+
+            if (d.IdTienda && d.IdTienda > 0) cargarTiendas(d.IdTienda);
+
+            bloquearCamposProtegidos();
+
+        }).fail(function () {
+            Swal.fire("Error", "No se pudo conectar con el servidor.", "error");
+        });
+    });
+
+    // ══════════════════════════════════════════════════
+    //  HELPERS
+    // ══════════════════════════════════════════════════
+    function bloquearCamposProtegidos() {
+        $("#txtNombresUsuario, #txtApellidosUsuario, #txtCIRUCUsuario, #txtCorreoUsuario")
+            .prop("readonly", true).addClass("campo-bloqueado");
+    }
+    function desbloquearCamposProtegidos() {
+        $("#txtNombresUsuario, #txtApellidosUsuario, #txtCIRUCUsuario, #txtCorreoUsuario")
+            .prop("readonly", false).removeClass("campo-bloqueado");
+    }
+
+    // ══════════════════════════════════════════════════
+    //  GUARDAR — _CrearUsuarioPendiente → Usuario/CrearUsuarioPendiente
+    // ══════════════════════════════════════════════════
+    $("#btnGuardarUsuario").click(function () {
+        var idEmpleado = parseInt($("#txtIdEmpleadoUsuario").val()) || 0;
+        var correo = $("#txtCorreoUsuario").val().trim();
+        var idRol = $("#cboRolUsuario").val();
+        var idTienda = $("#cboTiendaUsuario").val();
+        var activo = $("#ddlEstadoUsuario").val() === "1";
+
+        if (idEmpleado <= 0) { Swal.fire("Atención", "Busque y seleccione un empleado primero.", "warning"); return; }
+        if (!correo) { Swal.fire("Atención", "El correo es obligatorio.", "warning"); return; }
+        if (!idRol) { Swal.fire("Atención", "Seleccione un rol.", "warning"); return; }
+        if (!idTienda) { Swal.fire("Atención", "Seleccione una tienda.", "warning"); return; }
+
+        $.ajax({
+            url: $.MisUrls.url._CrearUsuarioPendiente,
+            type: 'POST',
+            data: JSON.stringify({
+                IdEmpleado: idEmpleado,
+                Correo: correo,
+                IdRol: parseInt(idRol),
+                IdTienda: parseInt(idTienda),
+                Activo: activo
+            }),
+            contentType: 'application/json; charset=utf-8',
+            success: function (resp) {
+                if (resp.resultado) {
+                    Swal.fire("Éxito", resp.mensaje, "success");
+                    $('#FormUsuario').modal('hide');
+                    $('#tbUsuarios').DataTable().ajax.reload();
+                } else {
+                    Swal.fire("Error", resp.mensaje, "error");
+                }
+            },
+            error: function () {
+                Swal.fire("Error", "No se pudo conectar con el servidor.", "error");
             }
         });
     });
-}
 
-// ================== ACTIVAR MENU ==================
-function activarMenu(menuactivo) {
-    $("ul.navbar-nav li.nav-item").each(function () {
-        const a = $(this).find("a.nav-link");
-        const div = $(this).find("div.dropdown-menu");
+    // ══════════════════════════════════════════════════
+    //  CAMBIAR ESTADO — _CambiarEstadoUsuario → Usuario/CambiarEstadoUsuario
+    // ══════════════════════════════════════════════════
+    window.CambiarEstado = function (id, activar) {
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: '¿Desea ' + (activar ? 'activar' : 'desactivar') + ' este usuario?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí',
+            cancelButtonText: 'No'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                $.post($.MisUrls.url._CambiarEstadoUsuario, { id: id, activo: activar ? "true" : "false" }, function (resp) {
+                    if (resp.resultado) {
+                        Swal.fire("Éxito", "Usuario actualizado correctamente.", "success");
+                        $('#tbUsuarios').DataTable().ajax.reload();
+                    } else {
+                        Swal.fire("Error", resp.mensaje || "No se pudo actualizar.", "error");
+                    }
+                });
+            }
+        });
+    };
 
-        if (div.length) {
-            div.find("a.dropdown-item").each(function () {
-                if ($(this).attr("name") === menuactivo) {
-                    $(this).closest("li.nav-item").addClass("active");
-                    return false;
-                }
-            });
-        } else if (a.attr("name") === menuactivo) {
-            $(this).addClass("active");
-        }
-    });
-}
+});

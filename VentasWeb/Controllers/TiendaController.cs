@@ -21,7 +21,7 @@ namespace VentasWeb.Controllers
             List<Tienda> lista = CD_Tienda.Instancia.ObtenerTiendas();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
-    
+
         [HttpPost]
         public JsonResult Guardar(Tienda objeto)
         {
@@ -42,9 +42,17 @@ namespace VentasWeb.Controllers
         }
 
         [HttpGet]
+        public JsonResult ObtenerTiendasActivas()
+        {
+            List<Tienda> lista = CD_Tienda.Instancia.ObtenerTiendas()
+                                  .Where(t => t.Activo).ToList();
+            return Json(lista, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpGet]
         public JsonResult Eliminar(int id = 0)
         {
-            bool respuesta = CD_Tienda.Instancia.EliminarTienda (id);
+            bool respuesta = CD_Tienda.Instancia.EliminarTienda(id);
 
             return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
         }

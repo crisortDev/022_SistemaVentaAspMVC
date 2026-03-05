@@ -1,337 +1,266 @@
 ﻿using CapaDatos;
 using CapaModelo;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+using System.Configuration;
+using System.Net;
+using System.Net.Mail;
+using System.Security.Cryptography;
+using System.Text;
 using System.Web.Mvc;
-using System.Web.Services.Description;
-using VentasWeb.Filters;
-using VentasWeb.Utilidades;
 
 namespace VentasWeb.Controllers
 {
-    [AuthorizeRol("Usuario", "*")]
     public class UsuarioController : Controller
     {
-        // GET: Usuario
-        public ActionResult Crear()
+        // ── Constantes leídas desde Web.config ───────────────────
+        private static readonly string GmailCorreo = ConfigurationManager.AppSettings["GmailCorreo"];
+        private static readonly string GmailPassword = ConfigurationManager.AppSettings["GmailPassword"];
+        private static readonly string NombreSistema = ConfigurationManager.AppSettings["NombreSistema"] ?? "Sistema de Ventas";
+
+        // GET: Usuario/Crear
+        public ActionResult Crear() => View();
+
+        // ── GET: DataTable ────────────────────────────────────────
+        // Clave: _ObtenerUsuarios → Usuario/Obtener
+        public ActionResult Obtener()
         {
-            return View();
-        }
-
-        public JsonResult Obtener()
-        {
-            List<Usuario> oListaUsuario = CD_Usuario.Instancia.ObtenerUsuarios();
-            return Json(new { data = oListaUsuario }, JsonRequestBehavior.AllowGet);
-        }
-
-        [HttpPost]
-        public JsonResult Guardar(Usuario objeto)
-        {
-            bool respuesta = false;
-            ResultadoSP resultadoFinal;
-
-            // 1. Verificar si existe el empleado por CI
-            Empleado emp = CD_Empleado.Instancia.BuscarEmpleadosPorCI(objeto.CI).FirstOrDefault();
-
-            if (emp == null)
-            {
-                // 2. Si no existe, registrar empleado
-                emp = new Empleado()
-                {
-                    Documento = objeto.CI,
-                    Nombres = objeto.Nombres,
-                    Apellidos = objeto.Apellidos,
-                    IdTienda = objeto.IdTienda,
-                    Activo = objeto.Activo
-                };
-
-                int idGenerado = CD_Empleado.Instancia.RegistrarDesdeApp(emp);
-
-                if (idGenerado <= 0)
-                {
-                    return Json(new { resultado = false, mensaje = "Error al registrar el empleado" }, JsonRequestBehavior.AllowGet);
-                }
-
-                objeto.IdEmpleado = idGenerado; // asignamos ID generado
-            }
-            else
-            {
-                objeto.IdEmpleado = emp.IdEmpleado; // usar el que ya existe
-            }
-
-            // 3. Registrar o modificar usuario asociado
-            if (objeto.IdUsuario == 0)
-            {
-                objeto.Clave = Encriptar.GetSHA256(objeto.Clave);
-                resultadoFinal = CD_Usuario.Instancia.RegistrarUsuario(objeto);
-
-                return Json(new
-                {
-                    resultado = resultadoFinal.Resultado,
-                    codigo = resultadoFinal.Codigo,
-                    mensaje = resultadoFinal.Mensaje
-                }, JsonRequestBehavior.AllowGet);
-            }
-            else
-            {
-                respuesta = CD_Usuario.Instancia.ModificarUsuario(objeto);
-            }
-
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
-        }
-
-
-        [HttpGet]
-        public JsonResult Eliminar(int id = 0)
-        {
-            bool respuesta = CD_Usuario.Instancia.EliminarUsuario(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
-        }
-
-        [HttpPost]
-        public JsonResult CambiarClave(int idUsuario, string nuevaClave)
-        {
-            bool resultado = CD_Usuario.Instancia.CambiarClave(idUsuario, nuevaClave);
-            return Json(new { resultado = resultado }, JsonRequestBehavior.AllowGet);
-        }
-
-        public ActionResult CambioContraseña()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        public JsonResult CambioContraseña(string claveActual, string claveNueva)
-        {
-            bool resultado = false;
-            string mensaje = "";
-
-            Usuario usuarioSesion = (Usuario)Session["Usuario"];
-            if (usuarioSesion == null)
-            {
-                mensaje = "Sesión expirada. Por favor ingrese nuevamente.";
-                return Json(new { resultado, mensaje });
-            }
-
-            Usuario usuario = CD_Usuario.Instancia.ObtenerDetalleUsuario(usuarioSesion.IdUsuario);
-            if (usuario == null)
-            {
-                mensaje = "Usuario no encontrado.";
-                return Json(new { resultado, mensaje });
-            }
-
-            string claveActualEncriptada = Encriptar.GetSHA256(claveActual);
-            if (usuario.Clave != claveActualEncriptada)
-            {
-                mensaje = "La contraseña actual es incorrecta.";
-                return Json(new { resultado, mensaje });
-            }
-
-            resultado = CD_Usuario.Instancia.CambiarClave(usuario.IdUsuario, claveNueva);
-            mensaje = resultado ? "Contraseña actualizada correctamente." : "Error al actualizar la contraseña.";
-
-            return Json(new { resultado, mensaje });
-        }
-
-        // 🚀 NUEVO: endpoint directo para registrar empleados desde la app
-        [HttpPost]
-        public JsonResult GuardarEmpleado(Empleado emp)
-        {
-            bool resultado = false;
-            string mensaje = "";
-
-            try
-            {
-                if (emp.IdEmpleado == 0)
-                {
-                    int idGenerado = CD_Empleado.Instancia.RegistrarDesdeApp(emp);
-                    resultado = idGenerado > 0;
-                    mensaje = resultado ? "Empleado registrado correctamente." : "Error al registrar empleado.";
-                }
-                else
-                {
-                    resultado = CD_Empleado.Instancia.ModificarDesdeApp(emp);
-                    mensaje = resultado ? "Empleado actualizado correctamente." : "Error al actualizar empleado.";
-                }
-            }
-            catch (Exception ex)
-            {
-                mensaje = "Excepción: " + ex.Message;
-            }
-
-            return Json(new { resultado, mensaje }, JsonRequestBehavior.AllowGet);
-        }
-        [HttpGet]
-        public JsonResult BuscarEmpleadoPorCI(string ci)
-        {
-            var lista = CD_Empleado.Instancia.BuscarEmpleadosPorCI(ci)
-                         .Select(e => new { e.IdEmpleado, e.Documento, e.Nombres, e.Apellidos })
-                         .ToList();
+            var lista = CD_Usuario.Instancia.ObtenerUsuarios();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
-
         }
-        [HttpPost]
-        public JsonResult GuardarUsuario(string documento, string correo, int idRol, int idTienda, string clave)
-        {
-            var resultado = CD_Usuario.Instancia.RegistrarUsuario(documento, correo, idRol, idTienda, clave);
 
-            return Json(new
-            {
-                tipo = resultado.TipoMensaje,
-                mensaje = resultado.Mensaje,
-                idUsuario = resultado.IdUsuario,
-                otp = resultado.OTP,
-                expira = resultado.Expira
-            }, JsonRequestBehavior.AllowGet);
-        }
+        // ── GET: Buscar empleado por CI/RUC ───────────────────────
+        // Clave: _BuscarEmpleadoPorCI → Usuario/BuscarEmpleadoPorCI
         [HttpGet]
-        public JsonResult ObtenerUsuarios()
+        public ActionResult BuscarEmpleadoPorCI(string ci)
         {
+            if (string.IsNullOrEmpty(ci))
+                return Json(new { existe = false, mensaje = "Ingrese un CI." }, JsonRequestBehavior.AllowGet);
+
             try
             {
-                // Simulación de obtención de usuarios desde base de datos
-                var lista = new List<object>
-            {
-                new { IdUsuario = 1, Nombres = "Juan", Apellidos = "Pérez", CI = "123456", Correo = "juan@mail.com", IdRol = 1, IdTienda = 1, Activo = true, oRol = new { Descripcion = "Admin" } },
-                new { IdUsuario = 2, Nombres = "Ana", Apellidos = "Gómez", CI = "789012", Correo = "ana@mail.com", IdRol = 2, IdTienda = 1, Activo = false, oRol = new { Descripcion = "Usuario" } }
-            };
+                var persona = CD_Persona.Instancia.ObtenerPersonas()
+                    .Find(p => p.Documento == ci);
 
-                return Json(new { resultado = true, data = lista }, JsonRequestBehavior.AllowGet);
-            }
-            catch
-            {
-                return Json(new { resultado = false, data = new List<object>() }, JsonRequestBehavior.AllowGet);
-            }
-        }
-        [HttpPost]
-        public JsonResult CrearUsuario(int idEmpleado, string correo, int idRol, int idTienda)
-        {
-            try
-            {
-                // 1. Verificar que el empleado exista
-                var empleado = CD_Empleado.Instancia.ObtenerEmpleadoPorId(idEmpleado);
-                if (empleado == null)
-                    return Json(new { resultado = false, mensaje = "Empleado no encontrado." }, JsonRequestBehavior.AllowGet);
+                if (persona == null)
+                    return Json(new { existe = false, mensaje = "No se encontró la persona." }, JsonRequestBehavior.AllowGet);
 
-                // 2. Verificar si ya tiene usuario
-                bool yaTieneUsuario = CD_Usuario.Instancia.TieneUsuario(idEmpleado);
+                bool yaTieneUsuario = CD_Usuario.Instancia.TieneUsuarioPorEmpleado(persona.IdPersona);
                 if (yaTieneUsuario)
-                    return Json(new { resultado = false, mensaje = "El empleado ya tiene un usuario registrado." }, JsonRequestBehavior.AllowGet);
+                    return Json(new { existe = false, mensaje = "Este empleado ya tiene un usuario asignado." }, JsonRequestBehavior.AllowGet);
 
-                // 3. Generar clave temporal y OTP
-                string claveTemporal = GenerarClaveTemporal(); // Ej: función que genera 6-8 caracteres
-                string otp = GenerarOTP(); // Ej: función que genera código de 6 dígitos
-                DateTime expira = DateTime.Now.AddMinutes(10); // OTP válido por 10 minutos
+                bool esEmpleado = CD_Empleado.Instancia.EsEmpleado(persona.IdPersona);
+                int idEmpleado = esEmpleado
+                    ? CD_Empleado.Instancia.ObtenerIdEmpleadoPorPersona(persona.IdPersona)
+                    : 0;
 
-                // 4. Registrar usuario temporal
-                var usuario = new Usuario()
+                int idTienda = 0;
+                if (idEmpleado > 0)
                 {
-                    IdEmpleado = idEmpleado,
-                    Correo = correo,
-                    IdRol = idRol,
-                    IdTienda = idTienda,
-                    Clave = Encriptar.GetSHA256(claveTemporal),
-                    Activo = false, // Se activa cuando confirma OTP
-                    OTP = otp,
-                    ExpiraOTP = expira
-                };
-
-                int idUsuario = CD_Usuario.Instancia.RegistrarUsuarioTemporal(usuario, out otp);
-
-                // 5. Enviar OTP por correo
-                string mensaje;
-                bool enviado = EmailHelper.EnviarOTP(usuario.Correo, otp);
+                    var emp = CD_Empleado.Instancia.ObtenerEmpleadoPorId(idEmpleado);
+                    idTienda = emp != null ? emp.IdTienda : 0;
+                }
 
                 return Json(new
                 {
-                    resultado = true,
-                    mensaje = "Usuario registrado correctamente. Se envió OTP al correo.",
-                    idUsuario = idUsuario,
-                    otp = otp,
-                    claveTemporal = claveTemporal,
-                    expira = expira
+                    existe = true,
+                    esEmpleado = esEmpleado,
+                    data = new
+                    {
+                        IdEmpleado = idEmpleado,
+                        Nombres = persona.Nombres,
+                        Apellidos = persona.Apellidos,
+                        Documento = persona.Documento,
+                        Correo = persona.Correo,
+                        Telefono = persona.Telefono,
+                        IdTienda = idTienda
+                    }
                 }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
-                return Json(new { resultado = false, mensaje = ex.Message }, JsonRequestBehavior.AllowGet);
+                return Json(new { existe = false, mensaje = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
 
-        // Funciones de utilidad (puedes implementarlas en algún Helper)
-        private string GenerarClaveTemporal()
-        {
-            // Ejemplo: 8 caracteres alfanuméricos
-            var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            var random = new Random();
-            return new string(Enumerable.Repeat(chars, 8)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
-        }
-
-        private string GenerarOTP()
-        {
-            var random = new Random();
-            return random.Next(100000, 999999).ToString(); // 6 dígitos
-        }
+        // ── POST: Crear usuario + enviar contraseña temporal ──────
+        // Clave: _CrearUsuarioPendiente → Usuario/CrearUsuarioPendiente
         [HttpPost]
-        public JsonResult CrearUsuarioPendiente(string ciEmpleado, int idRol, int idTienda)
+        public ActionResult CrearUsuarioPendiente(Usuario model)
         {
-            // 1. Buscar persona
-            var persona = CD_Persona.Instancia.ObtenerPersonas()
-                             .FirstOrDefault(p => p.Documento == ciEmpleado && p.TipoDocumento == "CI");
+            if (model == null)
+                return Json(new { resultado = false, mensaje = "Datos inválidos." });
 
-            if (persona == null)
-                return Json(new { resultado = false, mensaje = "No existe persona física con ese CI." });
-
-            int idEmpleado;
-
-            // 2. Validar si ya es empleado
-            bool esEmpleado = CD_Empleado.Instancia.EsEmpleado(persona.IdPersona);
-            if (!esEmpleado)
+            try
             {
-                // Registrar empleado
-                Empleado emp = new Empleado
+                if (model.IdEmpleado <= 0)
+                    return Json(new { resultado = false, mensaje = "Debe asociar un empleado." });
+                if (string.IsNullOrEmpty(model.Correo))
+                    return Json(new { resultado = false, mensaje = "El correo es obligatorio." });
+                if (model.IdRol <= 0)
+                    return Json(new { resultado = false, mensaje = "Debe seleccionar un rol." });
+                if (model.IdTienda <= 0)
+                    return Json(new { resultado = false, mensaje = "Debe seleccionar una tienda." });
+
+                // Completar datos desde el empleado
+                var empleado = CD_Empleado.Instancia.ObtenerEmpleadoPorId(model.IdEmpleado);
+                if (empleado == null)
+                    return Json(new { resultado = false, mensaje = "No se encontró el empleado." });
+
+                model.Nombres = empleado.Nombres;
+                model.Apellidos = empleado.Apellidos;
+
+                // ── Generar contraseña temporal legible (8 chars) ─
+                string claveTemp = GenerarClaveTemporal();
+                string claveTempHash = GetSHA256(claveTemp);
+
+                // La Clave que va al SP es el hash (lo que queda en BD como clave de login)
+                model.Clave = claveTempHash;
+
+                // Registrar en BD
+                var res = CD_Usuario.Instancia.RegistrarUsuario(model);
+                if (!res.Resultado)
+                    return Json(new { resultado = false, mensaje = res.Mensaje });
+
+                // Guardar hash temporal y expiración (24 hs) en Usuario
+                var usuarioCreado = new Usuario
                 {
-                    Documento = persona.Documento,
-                    Nombres = persona.Nombres,
-                    Apellidos = persona.Apellidos,
-                    IdTienda = idTienda,
-                    Activo = true
+                    IdUsuario = res.Codigo, // SP devuelve el IdUsuario en Codigo=1 cuando es OK
+                    PasswordTemporalHash = claveTempHash,
+                    PasswordTemporalExpira = DateTime.Now.AddHours(24),
+                    RequiereCambioPassword = true,
+                    IntentosFallidos = 0,
+                    FechaUltimoLogin = DateTime.MinValue
                 };
-                emp.IdEmpleado = CD_Empleado.Instancia.RegistrarDesdeApp(emp);
-                idEmpleado = emp.IdEmpleado;
-            }
-            else
-            {
-                // Obtener el empleado existente
-                idEmpleado = CD_Empleado.Instancia.ObtenerIdEmpleadoPorPersona(persona.IdPersona);
-            }
+                CD_Usuario.Instancia.ActualizarUsuario(usuarioCreado);
 
-            // 3. Validar si ya tiene usuario
-            bool yaTieneUsuario = CD_Usuario.Instancia.TieneUsuario(idEmpleado);
-            if (yaTieneUsuario)
-                return Json(new { resultado = false, mensaje = "El empleado ya tiene usuario." });
+                // ── Enviar correo con la contraseña temporal ──────
+                string asunto = $"Bienvenido a {NombreSistema} — Tus credenciales de acceso";
+                string html = ConstruirCorreoBienvenida(model.Nombres, model.Correo, claveTemp);
+                EnviarCorreo(model.Correo, asunto, html);
 
-            // 4. Crear usuario pendiente
-            Usuario usuario = new Usuario
+                return Json(new { resultado = true, mensaje = "Usuario creado correctamente. Se envió la contraseña temporal al correo registrado." });
+            }
+            catch (Exception ex)
             {
-                IdEmpleado = idEmpleado,
-                Correo = persona.Correo,
-                NombreUsuario = persona.Documento,
-                IdRol = idRol,
-                IdTienda = idTienda
+                return Json(new { resultado = false, mensaje = "Ocurrió un error: " + ex.Message });
+            }
+        }
+
+        // ── POST: Activar / Desactivar usuario ────────────────────
+        // Clave: _CambiarEstadoUsuario → Usuario/CambiarEstadoUsuario
+        [HttpPost]
+        public ActionResult CambiarEstadoUsuario(int id, bool activo)
+        {
+            try
+            {
+                if (id <= 0)
+                    return Json(new { resultado = false, mensaje = "Id de usuario inválido." });
+
+                bool exito = CD_Usuario.Instancia.CambiarEstadoUsuario(id, activo);
+                return Json(new
+                {
+                    resultado = exito,
+                    mensaje = exito
+                        ? (activo ? "Usuario activado correctamente." : "Usuario desactivado correctamente.")
+                        : "No se pudo cambiar el estado del usuario."
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = "Ocurrió un error: " + ex.Message });
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════
+        //  HELPERS PRIVADOS
+        // ══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Genera una contraseña temporal legible de 8 caracteres.
+        /// Esta es la que el usuario recibe por correo y usa para su primer login.
+        /// </summary>
+        private string GenerarClaveTemporal(int length = 8)
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                var data = new byte[length];
+                rng.GetBytes(data);
+                var sb = new StringBuilder(length);
+                foreach (byte b in data)
+                    sb.Append(chars[b % chars.Length]);
+                return sb.ToString();
+            }
+        }
+
+        private string GetSHA256(string input)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(input);
+                byte[] hash = sha.ComputeHash(bytes);
+                var sb = new StringBuilder();
+                foreach (byte b in hash)
+                    sb.Append(b.ToString("x2"));
+                return sb.ToString();
+            }
+        }
+
+        private void EnviarCorreo(string destinatario, string asunto, string htmlBody)
+        {
+            var fromAddress = new MailAddress(GmailCorreo, NombreSistema);
+            var toAddress = new MailAddress(destinatario);
+
+            var smtp = new SmtpClient
+            {
+                Host = "smtp.gmail.com",
+                Port = 587,
+                EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(GmailCorreo, GmailPassword)
             };
 
-            string otp;
-            int idUsuario = CD_Usuario.Instancia.RegistrarUsuarioPendiente(usuario, out otp);
-
-            // 5. Enviar OTP por correo
-            EmailHelper.EnviarOTP(usuario.Correo, otp);
-
-            return Json(new { resultado = true, mensaje = "Usuario pendiente creado. OTP enviado al correo." });
+            using (var message = new MailMessage(fromAddress, toAddress)
+            {
+                Subject = asunto,
+                Body = htmlBody,
+                IsBodyHtml = true
+            })
+            {
+                smtp.Send(message);
+            }
         }
 
+        private string ConstruirCorreoBienvenida(string nombres, string correo, string claveTemp)
+        {
+            return $@"
+            <div style='font-family:Arial,sans-serif;max-width:500px;margin:auto;border:1px solid #dee2e6;border-radius:8px;overflow:hidden'>
+                <div style='background:#17a2b8;padding:20px;text-align:center'>
+                    <h2 style='color:#fff;margin:0'>{NombreSistema}</h2>
+                </div>
+                <div style='padding:30px'>
+                    <p>Hola <strong>{nombres}</strong>,</p>
+                    <p>Tu cuenta ha sido creada exitosamente. Estas son tus credenciales de acceso:</p>
+                    <table style='width:100%;border-collapse:collapse;margin:20px 0'>
+                        <tr>
+                            <td style='padding:8px;background:#f8f9fa;font-weight:bold;width:40%'>Usuario (correo)</td>
+                            <td style='padding:8px;border-bottom:1px solid #dee2e6'>{correo}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding:8px;background:#f8f9fa;font-weight:bold'>Contraseña temporal</td>
+                            <td style='padding:8px;font-size:20px;font-weight:bold;letter-spacing:3px;color:#17a2b8'>{claveTemp}</td>
+                        </tr>
+                    </table>
+                    <div style='background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:12px;margin-top:10px'>
+                        <strong>⚠ Importante:</strong> Esta contraseña expira en <strong>24 horas</strong>.
+                        Al ingresar por primera vez se te pedirá que la cambies.
+                    </div>
+                </div>
+                <div style='background:#f8f9fa;padding:15px;text-align:center;font-size:12px;color:#6c757d'>
+                    Este es un correo automático, por favor no respondas.
+                </div>
+            </div>";
+        }
     }
 }

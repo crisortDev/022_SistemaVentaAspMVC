@@ -195,7 +195,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                var lista = CD_Tienda.Instancia.ObtenerTiendasActivas(); // Tu capa de datos de Tienda
+                var lista = CD_Tienda.Instancia.ObtenerTiendasActivas();
                 return Json(lista, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)

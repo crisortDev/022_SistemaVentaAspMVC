@@ -44,7 +44,7 @@ namespace CapaDatos
                     lista.Add(new Empleado()
                     {
                         IdEmpleado = Convert.ToInt32(dr["IdEmpleado"]),
-                        Documento = dr["Documento"].ToString(), // ahora toma Documento como CI
+                        Documento = dr["CI"].ToString(),
                         Nombres = dr["Nombres"].ToString(),
                         Apellidos = dr["Apellidos"].ToString(),
                         IdTienda = Convert.ToInt32(dr["IdTienda"]),
@@ -272,18 +272,48 @@ namespace CapaDatos
         public bool CambiarEstadoEmpleado(int idEmpleado, bool activo)
         {
             bool resultado = false;
+
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                SqlCommand cmd = new SqlCommand(
-                    "UPDATE Empleado SET Activo=@Activo WHERE IdEmpleado=@IdEmpleado", oConexion);
-                cmd.Parameters.AddWithValue("@Activo", activo);
-                cmd.Parameters.AddWithValue("@IdEmpleado", idEmpleado);
-
                 oConexion.Open();
-                resultado = cmd.ExecuteNonQuery() > 0;
+
+                SqlTransaction transaction = oConexion.BeginTransaction();
+
+                try
+                {
+                    // 1️⃣ Actualiza el estado del empleado
+                    SqlCommand cmdEmpleado = new SqlCommand(
+                        "UPDATE Empleado SET Activo = @Activo WHERE IdEmpleado = @IdEmpleado",
+                        oConexion, transaction
+                    );
+                    cmdEmpleado.Parameters.AddWithValue("@Activo", activo);
+                    cmdEmpleado.Parameters.AddWithValue("@IdEmpleado", idEmpleado);
+                    cmdEmpleado.ExecuteNonQuery();
+
+                    // 2️⃣ Actualiza el estado del usuario vinculado a ese empleado
+                    SqlCommand cmdUsuario = new SqlCommand(
+                        "UPDATE Usuario SET Activo = @Activo, FechaBaja = CASE WHEN @Activo = 0 THEN GETDATE() ELSE NULL END WHERE IdEmpleado = @IdEmpleado",
+                        oConexion, transaction
+                    );
+                    cmdUsuario.Parameters.AddWithValue("@Activo", activo);
+                    cmdUsuario.Parameters.AddWithValue("@IdEmpleado", idEmpleado);
+                    cmdUsuario.ExecuteNonQuery();
+
+                    // 3️⃣ Confirma la transacción
+                    transaction.Commit();
+                    resultado = true;
+                }
+                catch (Exception)
+                {
+                    // Si algo falla, revierte los cambios
+                    transaction.Rollback();
+                    throw;
+                }
             }
+
             return resultado;
         }
+
 
         // ===============================
         // Registrar o actualizar empleado (como un único método)

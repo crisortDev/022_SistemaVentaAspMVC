@@ -63,8 +63,7 @@ namespace CapaDatos
                 }
                 catch (Exception ex)
                 {
-                    rptListaUsuario = null;
-                    return rptListaUsuario;
+                    return new List<Tienda>();
                 }
             }
         }
@@ -169,5 +168,36 @@ namespace CapaDatos
             return respuesta;
 
         }
+
+        public List<Tienda> ObtenerTiendasActivas()
+        {
+            List<Tienda> lista = new List<Tienda>();
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand("usp_ObtenerTiendasActivas", oConexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+                try
+                {
+                    oConexion.Open();
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    while (dr.Read())
+                    {
+                        lista.Add(new Tienda()
+                        {
+                            IdTienda = Convert.ToInt32(dr["IdTienda"]),
+                            Nombre = dr["Nombre"].ToString(),
+                            RUC = dr["RUC"].ToString(),
+                            Direccion = dr["Direccion"].ToString(),
+                            Telefono = dr["Telefono"].ToString(),
+                            Activo = Convert.ToBoolean(dr["Activo"])
+                        });
+                    }
+                    dr.Close();
+                }
+                catch { lista = new List<Tienda>(); }
+            }
+            return lista;
+        }
+
     }
 }

@@ -3,9 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CapaDatos
 {
@@ -168,7 +165,58 @@ namespace CapaDatos
 
             return (resultado, mensaje);
         }
+        public bool RegistrarRolConPermisos(RolPermiso modelo)
+        {
+            bool resultado = false;
 
+            using (SqlConnection cn = new SqlConnection(Conexion.CN))
+            {
+                cn.Open();
+                SqlTransaction tx = cn.BeginTransaction();
 
+                try
+                {
+                    // 1️⃣ Insertar ROL y obtener ID
+                    string sqlRol = @"
+                INSERT INTO ROL (Descripcion, Activo, FechaRegistro)
+                VALUES (@Descripcion, 1, GETDATE());
+                SELECT SCOPE_IDENTITY();
+            ";
+
+                    SqlCommand cmdRol = new SqlCommand(sqlRol, cn, tx);
+                    cmdRol.Parameters.AddWithValue("@Descripcion", modelo.Descripcion);
+
+                    int idRol = Convert.ToInt32(cmdRol.ExecuteScalar());
+
+                    if (idRol <= 0)
+                        throw new Exception("No se pudo crear el rol");
+
+                    // 2️⃣ Insertar permisos
+                    foreach (int idSubMenu in modelo.Permisos)
+                    {
+                        string sqlPermiso = @"
+                    INSERT INTO PERMISOS (IdRol, IdSubMenu, Activo, FechaRegistro)
+                    VALUES (@IdRol, @IdSubMenu, 1, GETDATE())
+                ";
+
+                        SqlCommand cmdPermiso = new SqlCommand(sqlPermiso, cn, tx);
+                        cmdPermiso.Parameters.AddWithValue("@IdRol", idRol);
+                        cmdPermiso.Parameters.AddWithValue("@IdSubMenu", idSubMenu);
+
+                        cmdPermiso.ExecuteNonQuery();
+                    }
+
+                    tx.Commit();
+                    resultado = true;
+                }
+                catch (Exception)
+                {
+                    tx.Rollback();
+                    resultado = false;
+                }
+            }
+
+            return resultado;
+        }
     }
 }

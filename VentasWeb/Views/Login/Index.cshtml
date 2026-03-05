@@ -2,103 +2,708 @@
     Layout = null;
 }
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login</title>
+    <title>Acceso al Sistema</title>
     @Styles.Render("~/Content/css")
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --ink: #0d0d0d;
+            --paper: #f5f2ec;
+            --accent: #c8522a;
+            --accent-dark: #9c3d1e;
+            --muted: #8a8278;
+            --border: #d8d3ca;
+            --field-bg: #eeebe4;
+            --success: #2e7d5e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            background: linear-gradient(135deg, #6c5ce7, #00b894);
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--paper);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .login-card {
-            border-radius: 1rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            background-color: #fff;
             overflow: hidden;
-            transition: transform 0.3s ease;
+            position: relative;
         }
 
-            .login-card:hover {
-                transform: translateY(-5px);
+            /* Fondo con patrón geométrico */
+            body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background-image: repeating-linear-gradient( 45deg, transparent, transparent 40px, rgba(200,82,42,0.04) 40px, rgba(200,82,42,0.04) 41px ), repeating-linear-gradient( -45deg, transparent, transparent 40px, rgba(200,82,42,0.04) 40px, rgba(200,82,42,0.04) 41px );
+                pointer-events: none;
             }
 
-            .login-card img {
-                width: 120px;
-                margin-bottom: 1rem;
-            }
-
-        .form-control:focus {
-            border-color: #6c5ce7;
-            box-shadow: 0 0 8px rgba(108, 92, 231, 0.4);
+        /* Blob decorativo */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.12;
+            pointer-events: none;
         }
 
-        .btn-login {
-            background: #6c5ce7;
-            border: none;
-            transition: background 0.3s ease;
+        .blob-1 {
+            width: 500px;
+            height: 500px;
+            background: var(--accent);
+            top: -150px;
+            right: -100px;
+            animation: drift 12s ease-in-out infinite alternate;
         }
 
-            .btn-login:hover {
-                background: #341f97;
+        .blob-2 {
+            width: 350px;
+            height: 350px;
+            background: #4a6fa5;
+            bottom: -100px;
+            left: -80px;
+            animation: drift 15s ease-in-out infinite alternate-reverse;
+        }
+
+        @@keyframes drift {
+            from {
+                transform: translate(0, 0) scale(1);
             }
 
-        .login-footer {
+            to {
+                transform: translate(30px, 20px) scale(1.05);
+            }
+        }
+
+        /* Card principal */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 460px;
+            padding: 1rem;
+        }
+
+        .card-shell {
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 8px 8px 0px var(--ink);
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @@keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header de la card */
+        .card-header-custom {
+            background: var(--ink);
+            padding: 28px 36px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .card-header-custom::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: var(--accent);
+            }
+
+        .brand-line {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .brand-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #fff;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .card-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1.6rem;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .card-subtitle {
+            color: var(--muted);
             font-size: 0.85rem;
-            color: #636e72;
-            text-align: center;
-            margin-top: 1rem;
+            font-weight: 300;
+        }
+
+        /* Cuerpo del formulario */
+        .card-body-custom {
+            padding: 32px 36px 28px;
+        }
+
+        /* Campos */
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        .field-label {
+            font-family: 'Syne', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .field-wrap {
+            position: relative;
+        }
+
+            .field-wrap .field-icon {
+                position: absolute;
+                left: 14px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--muted);
+                font-size: 15px;
+                pointer-events: none;
+            }
+
+        .field-control {
+            width: 100%;
+            background: var(--field-bg);
+            border: 1.5px solid var(--border);
+            border-radius: 3px;
+            padding: 12px 14px 12px 42px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            color: var(--ink);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+            .field-control:focus {
+                border-color: var(--accent);
+                background: #fff;
+                box-shadow: 3px 3px 0 var(--accent);
+            }
+
+            .field-control.is-valid {
+                border-color: var(--success);
+            }
+
+            .field-control.is-invalid {
+                border-color: #c0392b;
+            }
+
+        /* Toggle password */
+        .toggle-pass {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+            .toggle-pass:hover {
+                color: var(--ink);
+            }
+
+        /* Password strength */
+        .strength-bar {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .strength-seg {
+            flex: 1;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+
+            .strength-seg.active-1 {
+                background: #c0392b;
+            }
+
+            .strength-seg.active-2 {
+                background: #e67e22;
+            }
+
+            .strength-seg.active-3 {
+                background: #f1c40f;
+            }
+
+            .strength-seg.active-4 {
+                background: var(--success);
+            }
+
+        .strength-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Match indicator */
+        .match-hint {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            height: 16px;
+        }
+
+        .match-ok {
+            color: var(--success);
+        }
+
+        .match-err {
+            color: #c0392b;
+        }
+
+        /* Requirements list */
+        .req-list {
+            list-style: none;
+            margin-top: 10px;
+            padding: 0;
+        }
+
+            .req-list li {
+                font-size: 0.78rem;
+                color: var(--muted);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 4px;
+                transition: color 0.2s;
+            }
+
+                .req-list li .dot {
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    background: var(--border);
+                    flex-shrink: 0;
+                    transition: background 0.2s;
+                }
+
+                .req-list li.met {
+                    color: var(--success);
+                }
+
+                    .req-list li.met .dot {
+                        background: var(--success);
+                    }
+
+        /* Botón principal */
+        .btn-main {
+            width: 100%;
+            background: var(--ink);
+            color: #fff;
+            border: 2px solid var(--ink);
+            border-radius: 3px;
+            padding: 13px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+            .btn-main:hover {
+                background: var(--accent);
+                border-color: var(--accent);
+                transform: translateY(-2px);
+                box-shadow: 4px 4px 0 var(--ink);
+            }
+
+            .btn-main:active {
+                transform: translateY(0);
+                box-shadow: none;
+            }
+
+            .btn-main:disabled {
+                background: var(--border);
+                border-color: var(--border);
+                color: var(--muted);
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
+            }
+
+            /* Spinner inline */
+            .btn-main .spinner {
+                display: none;
+                width: 16px;
+                height: 16px;
+                border: 2px solid rgba(255,255,255,0.3);
+                border-top-color: #fff;
+                border-radius: 50%;
+                animation: spin 0.6s linear infinite;
+                vertical-align: middle;
+                margin-right: 6px;
+            }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-main.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn-main.loading .btn-text {
+            opacity: 0.7;
+        }
+
+        /* Alerta de error inline */
+        .alert-inline {
+            display: none;
+            background: #fef0ee;
+            border: 1.5px solid #e8a090;
+            border-left: 4px solid var(--accent);
+            border-radius: 3px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: var(--accent-dark);
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Alerta de éxito */
+        .alert-success-inline {
+            display: none;
+            background: #edf7f2;
+            border: 1.5px solid #8dc9b0;
+            border-left: 4px solid var(--success);
+            border-radius: 3px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: var(--success);
+            margin-bottom: 16px;
+        }
+
+        /* Badge "Primer acceso" */
+        .first-login-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff8e6;
+            border: 1.5px solid #f0c060;
+            color: #8a6000;
+            border-radius: 3px;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        /* Footer */
+        .card-footer-custom {
+            padding: 16px 36px 20px;
+            border-top: 1.5px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-link {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+            .footer-link:hover {
+                color: var(--accent);
+            }
+
+            .footer-link span {
+                font-weight: 600;
+                color: var(--accent);
+            }
+
+        /* Step indicator */
+        .steps {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+
+            .step-dot.active {
+                background: var(--accent);
+                width: 24px;
+                border-radius: 4px;
+            }
+
+            .step-dot.done {
+                background: var(--success);
+            }
+
+        /* Transiciones de panel */
+        .panel {
+            display: none;
+        }
+
+            .panel.active {
+                display: block;
+                animation: panelIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+            }
+
+        @@keyframes panelIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Divider */
+        .divider {
+            height: 1.5px;
+            background: var(--border);
+            margin: 20px 0;
+            position: relative;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-4">
-                <div class="card login-card p-4">
-                    <div class="text-center">
-                        <img src="@Url.Content("~/Imagenes/tienda.png")" alt="Logo">
-                        <h3 class="mb-3 text-primary">Bienvenido</h3>
-                        <p class="text-muted mb-4">Inicia sesión para continuar</p>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="login-wrapper">
+        <div class="card-shell">
+
+            <!-- HEADER -->
+            <div class="card-header-custom">
+                <div class="brand-line">
+                    <div class="brand-icon">🏪</div>
+                    <span class="brand-name">VentasWeb</span>
+                </div>
+                <h1 class="card-title" id="panelTitle">Iniciar sesión</h1>
+                <p class="card-subtitle" id="panelSubtitle">Ingresa tus credenciales para continuar</p>
+            </div>
+
+            <!-- BODY -->
+            <div class="card-body-custom">
+
+                <!-- ===== PANEL LOGIN ===== -->
+                <div class="panel active" id="panelLogin">
+
+                    <div class="alert-inline" id="loginError">
+                        ⚠️ <span id="loginErrorMsg">Usuario o contraseña incorrecta</span>
                     </div>
 
-                    @if (ViewBag.Error != null)
-                    {
-                        <input type="hidden" id="errorMessage" value="@ViewBag.Error" />
-                    }
+                    <form id="formLogin" action="@Url.Content("~/Login/Index")" method="post" novalidate>
 
-                    <form action="@Url.Content("~/Login/Index")" method="post">
-                        <div class="mb-3">
-                            <label for="correo" class="form-label">Correo</label>
-                            <input type="email" class="form-control" id="correo" name="correo" required autocomplete="off" value="admin@gmail.com">
+                        <div class="field-group">
+                            <label class="field-label" for="correo">Correo electrónico</label>
+                            <div class="field-wrap">
+                                <span class="field-icon">✉</span>
+                                <input type="email" class="field-control" id="correo" name="correo"
+                                       placeholder="usuario@empresa.com"
+                                       value="admin@gmail.com" required autocomplete="email">
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="clave" class="form-label">Contraseña</label>
-                            <input type="password" class="form-control" id="clave" name="clave" required autocomplete="off">
+                        <div class="field-group">
+                            <label class="field-label" for="clave">Contraseña</label>
+                            <div class="field-wrap">
+                                <span class="field-icon">🔒</span>
+                                <input type="password" class="field-control" id="clave" name="clave"
+                                       placeholder="Tu contraseña" required autocomplete="current-password">
+                                <button type="button" class="toggle-pass" onclick="toggleVis('clave', this)" title="Mostrar/ocultar">👁</button>
+                            </div>
                         </div>
 
-                        <div class="d-grid mb-3">
-                            <button class="btn btn-login btn-lg" type="submit">Ingresar</button>
+                        <button type="submit" class="btn-main" id="btnLogin">
+                            <span class="spinner"></span>
+                            <span class="btn-text">Ingresar →</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ===== PANEL CAMBIO DE CONTRASEÑA (primer acceso) ===== -->
+                <div class="panel" id="panelCambio">
+
+                    <div class="first-login-badge">
+                        🔑 Primer acceso detectado — debes crear tu contraseña personal
+                    </div>
+
+                    <div class="steps">
+                        <div class="step-dot done"></div>
+                        <div class="step-dot active"></div>
+                        <div class="step-dot"></div>
+                    </div>
+
+                    <div class="alert-inline" id="cambioError"></div>
+                    <div class="alert-success-inline" id="cambioOk"></div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="nuevaClave">Nueva contraseña</label>
+                        <div class="field-wrap">
+                            <span class="field-icon">🔑</span>
+                            <input type="password" class="field-control" id="nuevaClave"
+                                   placeholder="Mínimo 8 caracteres" autocomplete="new-password"
+                                   oninput="evalStrength(this.value)">
+                            <button type="button" class="toggle-pass" onclick="toggleVis('nuevaClave', this)" title="Mostrar">👁</button>
                         </div>
+                        <!-- Barra de fortaleza -->
+                        <div class="strength-bar">
+                            <div class="strength-seg" id="seg1"></div>
+                            <div class="strength-seg" id="seg2"></div>
+                            <div class="strength-seg" id="seg3"></div>
+                            <div class="strength-seg" id="seg4"></div>
+                        </div>
+                        <div class="strength-label" id="strengthLabel">Ingresa una contraseña</div>
+                        <!-- Requisitos -->
+                        <ul class="req-list" id="reqList">
+                            <li id="reqLen"><span class="dot"></span>Mínimo 8 caracteres</li>
+                            <li id="reqUpper"><span class="dot"></span>Al menos una mayúscula</li>
+                            <li id="reqNum"><span class="dot"></span>Al menos un número</li>
+                            <li id="reqSpecial"><span class="dot"></span>Al menos un carácter especial</li>
+                        </ul>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="confirmarClave">Confirmar contraseña</label>
+                        <div class="field-wrap">
+                            <span class="field-icon">🔒</span>
+                            <input type="password" class="field-control" id="confirmarClave"
+                                   placeholder="Repite tu nueva contraseña" autocomplete="new-password"
+                                   oninput="checkMatch()">
+                            <button type="button" class="toggle-pass" onclick="toggleVis('confirmarClave', this)" title="Mostrar">👁</button>
+                        </div>
+                        <div class="match-hint" id="matchHint"></div>
+                    </div>
+
+                    <button type="button" class="btn-main" id="btnGuardar" onclick="guardarClave()" disabled>
+                        <span class="spinner"></span>
+                        <span class="btn-text">Guardar contraseña →</span>
+                    </button>
+                </div>
+
+                <!-- ===== PANEL OLVIDE PASSWORD ===== -->
+                <div class="panel" id="panelOlvide">
+
+                    <div class="first-login-badge" style="background:#e8f4fd;border-color:#90c8f0;color:#1a5c8a">
+                        📧 Ingresá tu correo y te enviamos una contraseña temporal
+                    </div>
+
+                    <div class="alert-inline" id="olvideError"></div>
+                    <div class="alert-success-inline" id="olvideOk"></div>
+
+                    <form id="formOlvide" novalidate>
+                        <div class="field-group">
+                            <label class="field-label" for="correoReset">Correo electrónico</label>
+                            <div class="field-wrap">
+                                <span class="field-icon">✉</span>
+                                <input type="email" class="field-control" id="correoReset"
+                                       placeholder="tu@correo.com" required autocomplete="email">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-main" id="btnEnviarReset">
+                            <span class="spinner"></span>
+                            <span class="btn-text">Enviar contraseña temporal →</span>
+                        </button>
                     </form>
 
-                    <div class="login-footer">
-                        ¿No tienes cuenta? <a href="#">Regístrate aquí</a>
-                    </div>
+                    <button type="button" id="btnVolverLogin"
+                            style="width:100%;margin-top:12px;background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;padding:8px">
+                        ← Volver al inicio de sesión
+                    </button>
                 </div>
+
+            </div><!-- /card-body -->
+            <!-- FOOTER -->
+            <div class="card-footer-custom" style="justify-content:center">
+                <a href="#" class="footer-link" id="linkOlvide">¿Olvidaste tu contraseña?</a>
             </div>
-        </div>
+
+        </div><!-- /card-shell -->
     </div>
 
     @Scripts.Render("~/bundles/jquery")
     @Scripts.Render("~/bundles/bootstrap")
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="@Url.Content("~/Scripts/Views/Index_login.js")"></script>
 </body>

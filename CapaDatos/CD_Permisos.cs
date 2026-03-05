@@ -92,5 +92,118 @@ namespace CapaDatos
             }
             return respuesta;
         }
+        public List<Permisos> ListarPermisosPorRol(int idRol)
+        {
+            List<Permisos> lista = new List<Permisos>();
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    StringBuilder query = new StringBuilder();
+                    query.AppendLine("SELECT p.IdPermiso, p.IdRol, p.IdSubMenu, s.Descripcion AS NombreSubMenu, p.Activo");
+                    query.AppendLine("FROM PERMISOS p");
+                    query.AppendLine("INNER JOIN SUBMENU s ON s.IdSubMenu = p.IdSubMenu");
+                    query.AppendLine("WHERE p.IdRol = @idRol");
+
+                    SqlCommand cmd = new SqlCommand(query.ToString(), oConexion);
+                    cmd.Parameters.AddWithValue("@idRol", idRol);
+
+                    oConexion.Open();
+
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new Permisos()
+                            {
+                                IdPermisos = Convert.ToInt32(dr["IdPermiso"]),
+                                //IdRol = Convert.ToInt32(dr["IdRol"]),
+                                //IdSubMenu = Convert.ToInt32(dr["IdSubMenu"]),
+                                //NombreSubMenu = dr["NombreSubMenu"].ToString(),
+                                Activo = Convert.ToBoolean(dr["Activo"])
+                            });
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    lista = new List<Permisos>();
+                }
+            }
+
+            return lista;
+        }
+        public List<Permisos> ListPermisosPorRol(int idRol)
+        {
+            List<Permisos> lista = new List<Permisos>();
+
+            using (SqlConnection cn = new SqlConnection(Conexion.CN))
+            {
+                string sql = @"
+            SELECT  
+                p.IdPermisos AS IdPermiso,
+                s.Nombre AS NombreSubMenu,
+                p.Activo
+            FROM PERMISOS p
+            INNER JOIN SUBMENU s ON s.IdSubMenu = p.IdSubMenu
+            WHERE p.IdRol = @IdRol
+            ORDER BY s.Nombre";
+
+                SqlCommand cmd = new SqlCommand(sql, cn);
+                cmd.Parameters.AddWithValue("@IdRol", idRol);
+
+                try
+                {
+                    cn.Open();
+                    SqlDataReader dr = cmd.ExecuteReader();
+
+                    while (dr.Read())
+                    {
+                        lista.Add(new Permisos()
+                        {
+                            IdPermisos = Convert.ToInt32(dr["IdPermiso"]),
+                            SubMenu = dr["NombreSubMenu"].ToString(),
+                            Activo = Convert.ToBoolean(dr["Activo"])
+                        });
+                    }
+
+                    dr.Close();
+                }
+                catch (Exception ex)
+                {
+                    lista = null;
+                }
+            }
+
+            return lista;
+        }
+        public List<object> ListarTodosLosPermisos()
+        {
+            List<object> lista = new List<object>();
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                string sql = @"SELECT s.IdSubMenu, m.Nombre AS NombreMenu, s.Nombre AS NombreSubMenu
+                       FROM SubMenu s
+                       INNER JOIN Menu m ON s.IdMenu = m.IdMenu
+                       WHERE s.Activo = 1
+                       ORDER BY m.Nombre, s.Nombre";
+                SqlCommand cmd = new SqlCommand(sql, oConexion);
+                oConexion.Open();
+                SqlDataReader dr = cmd.ExecuteReader();
+                while (dr.Read())
+                {
+                    lista.Add(new
+                    {
+                        IdSubMenu = Convert.ToInt32(dr["IdSubMenu"]),
+                        NombreMenu = dr["NombreMenu"].ToString(),
+                        NombreSubMenu = dr["NombreSubMenu"].ToString()
+                    });
+                }
+                dr.Close();
+            }
+            return lista;
+        }
+
     }
 }

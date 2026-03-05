@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "Crear Usuario";
+    ViewBag.Title = "Usuarios";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -10,163 +10,222 @@
     </ol>
 </nav>
 
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+<style>
+    /* Campos bloqueados tras búsqueda — visualmente distintos pero legibles */
+    .campo-bloqueado {
+        background-color: #f8f9fa !important;
+        color: #495057 !important;
+        border-color: #ced4da !important;
+        cursor: not-allowed;
+    }
+</style>
+
 <div class="row">
     <div class="col-sm-12">
-        <div class="card">
+        <div class="card border-info">
             <div class="card-header bg-info text-white">
                 Lista de Usuarios
             </div>
             <div class="card-body">
-                <div class="row mb-2">
-                    <div class="col-sm-4">
-                        <button type="button" class="btn btn-sm btn-success" onclick="abrirPopUpForm(null)">
+                <div class="row">
+                    <div class="col-sm-2">
+                        <button type="button" id="btnAgregarUsuario" class="btn btn-sm btn-success">
                             <i class="fa fa-plus" aria-hidden="true"></i> Agregar Nuevo
                         </button>
                     </div>
                 </div>
-
-                <table id="tbdata" class="table table-striped table-bordered nowrap compact" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Rol</th>
-                            <th>Nombres</th>
-                            <th>Apellidos</th>
-                            <th>Correo</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <hr />
+                <div class="row mt-3">
+                    <div class="col-sm-12">
+                        <table id="tbUsuarios" class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Nombres</th>
+                                    <th>Apellidos</th>
+                                    <th>Correo</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
-<!-- Modal -->
-<div class="modal fade" id="FormModal" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  MODAL — Crear Usuario                              -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="modal fade" id="FormUsuario" tabindex="-1" role="dialog"
+     data-backdrop="static" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
+
             <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="modalTitle">Usuario</h5>
+                <h5 class="modal-title">Nuevo Usuario</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
-                <div class="alert alert-info mb-2">
-                    Nota: Al crear un usuario, debes asociarlo a un empleado existente.
+
+                <!-- Nota informativa -->
+                <div class="alert alert-info py-2 mb-3">
+                    <small>
+                        <i class="fa fa-info-circle"></i>
+                        Al crear un usuario, debes asociarlo a un empleado existente.
+                    </small>
                 </div>
 
-                <form id="form">
-                    <input id="txtid" type="hidden" value="0" />
+                <form id="formUsuario" autocomplete="off">
 
-                    <!-- Empleado (Solo para creación) -->
-                    <div class="form-group row" id="empleadoGroup">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">Empleado *</label>
+                    <!-- ID oculto del empleado seleccionado -->
+                    <input type="hidden" id="txtIdEmpleadoUsuario" value="0" />
+
+                    <!-- ── Buscar Empleado ─────────────────────── -->
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">
+                            Empleado <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-sm-6">
+                            <input type="text"
+                                   class="form-control form-control-sm"
+                                   id="txtDocumentoUsuario"
+                                   placeholder="Ingrese CI o RUC" />
+                        </div>
+                        <div class="col-sm-3">
+                            <button type="button" id="btnBuscarEmpleado"
+                                    class="btn btn-sm btn-info btn-block">
+                                <i class="fa fa-search"></i> Buscar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ── Nombres — readonly tras búsqueda ───── -->
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">
+                            Nombres <span class="text-danger">*</span>
+                        </label>
                         <div class="col-sm-9">
-                            <div class="input-group">
-                                <input type="text" id="txtCIEmpleado" class="form-control form-control-sm" placeholder="Ingrese CI o RUC">
-                                <div class="input-group-append">
-                                    <button type="button" id="btnBuscarEmpleado" class="btn btn-primary btn-sm">Buscar</button>
-                                </div>
-                            </div>
-                            <select id="cboEmpleado" class="form-control form-control-sm mt-2" name="IdEmpleado" required>
-                                <option value="">Seleccione un empleado</option>
+                            <input type="text"
+                                   class="form-control form-control-sm"
+                                   id="txtNombresUsuario"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <!-- ── Apellidos — readonly tras búsqueda ─── -->
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">
+                            Apellidos <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-sm-9">
+                            <input type="text"
+                                   class="form-control form-control-sm"
+                                   id="txtApellidosUsuario"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <!-- ── CI / RUC — readonly, se rellena al buscar ── -->
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">
+                            CI / RUC <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-sm-9">
+                            <input type="text"
+                                   class="form-control form-control-sm"
+                                   id="txtCIRUCUsuario"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <!-- ── Correo — readonly, viene de Persona ── -->
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">
+                            Correo <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-sm-9">
+                            <input type="email"
+                                   class="form-control form-control-sm"
+                                   id="txtCorreoUsuario"
+                                   readonly />
+                            <small class="text-muted">
+                                <i class="fa fa-lock"></i>
+                                Correo registrado en Persona — será utilizado para el inicio de sesión
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- ── Tienda ─────────────────────────────── -->
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">
+                            Tienda <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-sm-9">
+                            <select id="cboTiendaUsuario"
+                                    class="form-control form-control-sm">
+                                <option value="">-- Seleccione Tienda --</option>
                             </select>
-                            <small class="text-muted">Busque por CI o RUC para cargar el empleado</small>
                         </div>
                     </div>
 
-                    <!-- Campos del usuario -->
-                    <div id="camposUsuario" style="display: none;">
-                        <!-- Persona física -->
-                        <div class="form-group row" id="fisicaGroup">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">Nombres *</label>
-                            <div class="col-sm-9">
-                                <input type="text" class="form-control form-control-sm" id="txtNombres" name="Nombres" maxlength="50">
-                            </div>
-                        </div>
-                        <div class="form-group row" id="fisicaApellidosGroup">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">Apellidos *</label>
-                            <div class="col-sm-9">
-                                <input type="text" class="form-control form-control-sm" id="txtApellidos" name="Apellidos" maxlength="50">
-                            </div>
-                        </div>
-
-                        <!-- Persona jurídica -->
-                        <div class="form-group row" id="razonSocialGroup" style="display:none;">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">Razón Social *</label>
-                            <div class="col-sm-9">
-                                <input type="text" class="form-control form-control-sm" id="txtRazonSocial" name="RazonSocial" maxlength="100">
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">CI / RUC *</label>
-                            <div class="col-sm-9">
-                                <input type="text" class="form-control form-control-sm" id="txtCI" name="CI" maxlength="15">
-                            </div>
-                        </div>
-
-                        <!-- Clave opcional, solo para edición -->
-                        <div class="form-group row" id="claveGroup" style="display:none;">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">Contraseña *</label>
-                            <div class="col-sm-9">
-                                <input type="password" class="form-control form-control-sm" id="txtClave" name="Clave" maxlength="8">
-                                <small class="text-muted">Será definida por el usuario tras confirmar OTP</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Correo, Tienda, Rol, Estado -->
+                    <!-- ── Rol ───────────────────────────────── -->
                     <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">Correo *</label>
+                        <label class="col-sm-3 col-form-label">
+                            Rol <span class="text-danger">*</span>
+                        </label>
                         <div class="col-sm-9">
-                            <input type="email" class="form-control form-control-sm" id="txtCorreo" name="Correo" maxlength="50">
-                        </div>
-                    </div>
-
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">Tienda *</label>
-                        <div class="col-sm-9">
-                            <select class="form-control form-control-sm" id="cboTienda" name="IdTienda" required>
-                                <option value="">Seleccione una tienda</option>
+                            <select id="cboRolUsuario"
+                                    class="form-control form-control-sm">
+                                <option value="">-- Seleccione Rol --</option>
                             </select>
                         </div>
                     </div>
 
+                    <!-- ── Estado — selector con default Activo ─ -->
                     <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">Rol *</label>
+                        <label class="col-sm-3 col-form-label">Estado</label>
                         <div class="col-sm-9">
-                            <select class="form-control form-control-sm" id="cboRol" name="IdRol" required>
-                                <option value="">Seleccione un rol</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">Estado</label>
-                        <div class="col-sm-9">
-                            <select class="form-control form-control-sm" id="cboEstado" name="Activo">
-                                <option value="1">Activo</option>
+                            <select id="ddlEstadoUsuario"
+                                    class="form-control form-control-sm">
+                                <option value="1" selected>Activo</option>
                                 <option value="0">Inactivo</option>
                             </select>
                         </div>
                     </div>
+
+                    <!-- NOTA: El campo Contraseña fue eliminado.
+                         La contraseña es definida por el usuario al confirmar el OTP
+                         enviado a su correo tras la creación de la cuenta. -->
+
                 </form>
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-sm btn-primary" onclick="Guardar()">Guardar</button>
+                <button type="button" class="btn btn-sm btn-danger"
+                        data-dismiss="modal">
+                    Cerrar
+                </button>
+                <button type="button" id="btnGuardarUsuario"
+                        class="btn btn-sm btn-primary">
+                    Guardar
+                </button>
             </div>
+
         </div>
     </div>
 </div>
 
-
-@section scripts{
-    <script src="@Url.Content("~/Scripts/jquery.validate.min.js")"></script>
-    <script src="@Url.Content("~/Scripts/jquery.validate.unobtrusive.min.js")"></script>
-    <script src="@Url.Content("~/Scripts/Views/Usuario_Crear.js")?v=@DateTime.Now.Ticks" type="text/javascript"></script>
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Esto ya está bien — DateTime.Now.Ticks cambia en cada request -->
+    <script src="@Url.Content("~/Scripts/Views/Usuario_Crear.js?v=" + DateTime.Now.Ticks)"></script>
 }

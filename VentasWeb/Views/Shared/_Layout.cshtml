@@ -103,9 +103,13 @@
         $.MisUrls.urls({
             _ObtenerRoles: '@Url.Action("Obtener", "Rol")',
             _GuardarRol: '@Url.Action("Guardar", "Rol")',
-            _EliminarRol: '@Url.Action("Eliminar", "Rol")',
-            _DesactivarRol: '@Url.Action("Desactivar", "Rol")'
+            _DesactivarRol: '@Url.Action("Desactivar", "Rol")',
+            _ListPermisosPorRol: '@Url.Action("ListPermisosPorRol", "Rol")',
+            _GuardarRolConPermisos: '@Url.Action("GuardarRolConPermisos", "Rol")', // NUEVO
+            _ListPermisosDisponibles: '@Url.Action("ListPermisosDisponibles", "Rol")' // NUEVO
         });
+
+
 
         // ---- PERMISOS ----
         $.MisUrls.urls({
@@ -118,14 +122,15 @@ $.MisUrls.urls({
     _ObtenerUsuarios: '@Url.Action("Obtener", "Usuario")',
     _GuardarUsuario: '@Url.Action("Guardar", "Usuario")',
     _EliminarUsuario: '@Url.Action("Eliminar", "Usuario")',
-    _CrearUsuarioPendiente: '@Url.Action("CrearPendiente", "Usuario")',
+        _CambiarEstadoUsuario: '@Url.Action("CambiarEstadoUsuario", "Usuario")', // nueva acción
+    _CrearUsuarioPendiente: '@Url.Action("CrearUsuarioPendiente", "Usuario")',
     _CambiarClave: '@Url.Action("CambioContraseña", "Usuario")'
 });
 
 // ---- EMPLEADO ----
 $.MisUrls.urls({
     _EsEmpleado: '@Url.Action("EsEmpleado", "Empleado")',
-    _BuscarEmpleadoPorCI: '@Url.Action("BuscarEmpleadoPorCI", "Empleado")',
+    _BuscarEmpleadoPorCI: '@Url.Action("BuscarEmpleadoPorCI", "Usuario")',
     _BuscarPorCI: '@Url.Action("BuscarPorCI", "Empleado")',
     _ObtenerTiendasActivas: '@Url.Action("ObtenerTiendasActivas", "Empleado")' // NUEVO
 });

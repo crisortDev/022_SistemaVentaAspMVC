@@ -1,35 +1,28 @@
 ﻿$(document).ready(function () {
-    const tabla = $('#tbdata').DataTable({
-        createdRow: function (row, data, dataIndex) {
-            $('td', row).addClass('text-wrap');
-            $('td:last-child', row).removeClass('text-wrap').addClass('no-wrap');
-        },
 
-
+    // ── DataTable ─────────────────────────────────────────
+    var tabla = $('#tbdata').DataTable({
         responsive: true,
         autoWidth: false,
         ajax: { url: '/Persona/Obtener', type: 'GET', datatype: 'json' },
-        order: [[12, 'desc']],
-        createdRow: function (row, data, dataIndex) {
-            // Aplica estilo de envolvimiento a todas las celdas
-            $('td', row).css('white-space', 'normal');
-            // Evita envolvimiento en columna de acciones
-            $('td:last-child', row).css('white-space', 'nowrap');
-        },
+        order: [[10, 'desc']],
+        language: { url: $.MisUrls.url.Url_datatable_spanish },
         columns: [
-            { data: 'Nombres' },
-            { data: 'Apellidos' },
-            { data: 'RazonSocial' },
-            { data: 'Correo' },
-            { data: 'Telefono' },
-            { data: 'Calle1' },
-            { data: 'Calle2' },
-            { data: 'Ciudad' },
-            { data: 'Barrio' },
-            { data: 'TipoDocumento' },
-            { data: 'Documento' },
+            { data: 'Nombres', defaultContent: '' },
+            { data: 'Apellidos', defaultContent: '' },
+            { data: 'RazonSocial', defaultContent: '' },
+            { data: 'TipoDocumento', defaultContent: '', width: '80px' },
+            { data: 'Documento', defaultContent: '' },
+            { data: 'Correo', defaultContent: '' },
+            { data: 'Telefono', defaultContent: '' },
+            // Dirección — ocultas por defecto, visibles en detalle responsive
+            { data: 'Calle1', defaultContent: '', responsivePriority: 10 },
+            { data: 'Calle2', defaultContent: '', responsivePriority: 10 },
+            { data: 'Ciudad', defaultContent: '', responsivePriority: 10 },
+            { data: 'Barrio', defaultContent: '', responsivePriority: 10 },
             {
                 data: 'Activo',
+                width: '70px',
                 render: function (data) {
                     return data
                         ? '<span class="badge badge-success">Activo</span>'
@@ -38,147 +31,268 @@
             },
             {
                 data: 'IdPersona',
-                render: function (data, type, row) {
-                    let botones = `<button class="btn btn-sm btn-primary" onclick="abrirPopUpForm(${data})">
-                        <i class="fa fa-edit"></i></button> `;
-
-                    if (row.Activo) {
-                        botones += `<button class="btn btn-sm btn-warning" onclick="CambiarEstado(${data}, false)">
-                            <i class="fa fa-toggle-off"></i></button>`;
-                    } else {
-                        botones += `<button class="btn btn-sm btn-success" onclick="CambiarEstado(${data}, true)">
-                            <i class="fa fa-check"></i></button>`;
-                    }
-
-                    return botones;
-                },
                 orderable: false,
                 searchable: false,
-                width: "120px"
-            },
-            { data: 'IdPersona', visible: false }
+                width: '90px',
+                render: function (data, type, row) {
+                    var btns = '<button class="btn btn-xs btn-primary mr-1" onclick="abrirPopUpForm(' + data + ')" title="Editar">' +
+                        '<i class="fa fa-edit"></i></button>';
+                    if (row.Activo) {
+                        btns += '<button class="btn btn-xs btn-warning" onclick="CambiarEstado(' + data + ', false)" title="Desactivar">' +
+                            '<i class="fa fa-toggle-off"></i></button>';
+                    } else {
+                        btns += '<button class="btn btn-xs btn-success" onclick="CambiarEstado(' + data + ', true)" title="Activar">' +
+                            '<i class="fa fa-check"></i></button>';
+                    }
+                    return btns;
+                }
+            }
+        ],
+        columnDefs: [
+            // Prioridades responsive: las más importantes se muestran primero
+            { responsivePriority: 1, targets: [0, 3, 4, 12] },   // Nombre, TipoDoc, Doc, Acciones
+            { responsivePriority: 2, targets: [1, 2, 5] },        // Apellidos, RazonSocial, Correo
+            { responsivePriority: 3, targets: [6] },               // Teléfono
+            { responsivePriority: 10, targets: [7, 8, 9, 10] }    // Dirección (colapsa primero
         ]
     });
 
+    // ── Botón agregar ─────────────────────────────────────
     $("#btnAgregarNueva").click(function () {
         abrirPopUpForm(null);
     });
 
+    // ── Botón guardar ─────────────────────────────────────
     $("#btnGuardarPersona").click(function () {
         GuardarPersona();
     });
 
+    // ── Cambio tipo persona ───────────────────────────────
     $("input[name='tipoPersona']").change(function () {
         ajustarCamposPorTipoPersona();
     });
 
-    $("#txtTelefono").val("+595");
+    // ── Teléfono: mantener prefijo +595 ───────────────────
     $("#txtTelefono").on("input", function () {
-        if (!$(this).val().startsWith("+595")) $(this).val("+595");
+        var val = $(this).val();
+        if (!val.startsWith("+595")) {
+            $(this).val("+595" + val.replace(/^\+?5?9?5?/, ''));
+        }
+    }).on("keydown", function (e) {
+        // Impedir borrar el prefijo +595 (4 chars)
+        var pos = this.selectionStart;
+        if ((e.key === "Backspace" || e.key === "Delete") && pos <= 4) {
+            e.preventDefault();
+        }
+    });
+
+    // ── Hint dinámico según tipo documento ─────────────
+    $("#cboTipoDocumento").on("change", function () {
+        var tipo = $(this).val();
+        if (tipo === "CI") {
+            $("#hintDocumento").text("CI: 6-8 dígitos numéricos");
+            $("#txtDocumento").attr("placeholder", "Ej: 1234567");
+        } else {
+            $("#hintDocumento").text("RUC: formato XXXXXXXX-X  (ej: 80012345-1)");
+            $("#txtDocumento").attr("placeholder", "Ej: 80012345-1");
+        }
+        limpiarErrores();
+    });
+
+    // ── Documento: solo números para CI ──────────────────
+    $("#txtDocumento").on("input", function () {
+        var tipo = $("#cboTipoDocumento").val();
+        if (tipo === "CI") {
+            $(this).val($(this).val().replace(/[^0-9]/g, ''));
+        }
     });
 });
 
+// ── Cambiar estado activo/inactivo ────────────────────────
 function CambiarEstado(id, activar) {
-    let mensaje = activar ? "activar" : "desactivar";
-    let afectarHijos = !activar;
-
     Swal.fire({
         title: '¿Está seguro?',
-        text: `Desea ${mensaje} esta persona?`,
+        text: 'Desea ' + (activar ? 'activar' : 'desactivar') + ' esta persona?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí',
         cancelButtonText: 'No'
-    }).then((result) => {
+    }).then(function (result) {
         if (result.isConfirmed) {
             $.ajax({
                 url: '/Persona/CambiarEstado',
                 type: 'POST',
-                data: { id: id, activo: activar, afectarHijos: afectarHijos },
+                data: { id: id, activo: activar, afectarHijos: !activar },
                 success: function (resp) {
                     if (resp.resultado) {
-                        Swal.fire("Éxito", "Persona actualizada correctamente", "success");
+                        Swal.fire("Éxito", resp.mensaje, "success");
                         $('#tbdata').DataTable().ajax.reload();
                     } else {
                         Swal.fire("Error", resp.mensaje || "No se pudo actualizar", "error");
                     }
                 },
                 error: function () {
-                    Swal.fire("Error", "Ocurrió un error", "error");
+                    Swal.fire("Error", "Ocurrió un error de conexión.", "error");
                 }
             });
         }
     });
 }
 
+// ── Abrir modal ───────────────────────────────────────────
 function abrirPopUpForm(idPersona) {
+    limpiarErrores();
     $("#form")[0].reset();
     $("#txtTelefono").val("+595");
 
     if (idPersona == null) {
+        // ── NUEVO ─────────────────────────────────────────
         $("#txtid").val(0);
         $("#ddlEstado").val("1");
-        $("input, select").prop("disabled", false).prop("required", true);
+        $("#FormModal .modal-title").text("Nueva Persona");
+
+        // Documento editable en alta
+        $("#txtDocumento").prop("readonly", false);
+        $("#cboTipoDocumento").prop("disabled", false);
+        $("input[name='tipoPersona']").prop("disabled", false);
+
+        // Marcar física por defecto
+        $("#personaFisica").prop("checked", true);
         ajustarCamposPorTipoPersona();
         $("#FormModal").modal("show");
+
     } else {
+        // ── EDITAR ────────────────────────────────────────
         $.get("/Persona/ObtenerPorId", { id: idPersona }, function (data) {
-            if (data) {
-                $("#txtid").val(data.IdPersona);
-                $("#txtDocumento").val(data.Documento);
-                $("#txtNombres").val(data.Nombres);
-                $("#txtApellidos").val(data.Apellidos);
-                $("#txtCorreo").val(data.Correo);
-                $("#txtTelefono").val(data.Telefono || "+595");
-                $("#txtCallePrincipal").val(data.Calle1);
-                $("#txtCalleSecundaria").val(data.Calle2);
-                $("#txtCiudad").val(data.Ciudad);
-                $("#txtBarrio").val(data.Barrio);
-                $("#cboTipoDocumento").val(data.TipoDocumento);
-                $("#txtRazonSocial").val(data.RazonSocial);
+            if (!data) { Swal.fire("Error", "No se encontró la persona.", "error"); return; }
 
-                $("input[name='tipoPersona'][value='" + (data.TipoDocumento === "RUC" ? "J" : "F") + "']").prop("checked", true);
-                ajustarCamposPorTipoPersona();
+            $("#txtid").val(data.IdPersona);
+            $("#txtDocumento").val(data.Documento);
+            $("#txtNombres").val(data.Nombres);
+            $("#txtApellidos").val(data.Apellidos);
+            $("#txtCorreo").val(data.Correo);
+            $("#txtTelefono").val(data.Telefono || "+595");
+            $("#txtCallePrincipal").val(data.Calle1);
+            $("#txtCalleSecundaria").val(data.Calle2);
+            $("#txtCiudad").val(data.Ciudad);
+            $("#txtBarrio").val(data.Barrio);
+            $("#cboTipoDocumento").val(data.TipoDocumento);
+            $("#txtRazonSocial").val(data.RazonSocial);
+            $("#ddlEstado").val(data.Activo ? "1" : "0");
 
-                $("#FormModal").modal("show");
-            }
+            // Documento e tipo NO se pueden cambiar en edición
+            $("#txtDocumento").prop("readonly", true);
+            $("#cboTipoDocumento").prop("disabled", true);
+            $("input[name='tipoPersona']").prop("disabled", true);
+
+            var tipoRadio = (data.TipoDocumento === "RUC") ? "J" : "F";
+            $("input[name='tipoPersona'][value='" + tipoRadio + "']").prop("checked", true);
+            ajustarCamposPorTipoPersona();
+
+            $("#FormModal .modal-title").text("Editar Persona");
+            $("#FormModal").modal("show");
         });
     }
 }
 
+// ── Ajustar campos según tipo de persona ──────────────────
 function ajustarCamposPorTipoPersona() {
-    let tipo = $("input[name='tipoPersona']:checked").val();
+    var tipo = $("input[name='tipoPersona']:checked").val();
+    var esEdicion = $("#txtid").val() > 0;
 
     if (tipo === "F") {
         $("#txtNombres, #txtApellidos").prop("disabled", false);
         $("#txtRazonSocial").prop("disabled", true).val("");
-        $("#cboTipoDocumento").empty()
-            .append('<option value="CI">CI</option>')
-            .append('<option value="RUC">RUC</option>')
-            .prop("disabled", false);
-    } else if (tipo === "J") {
+        if (!esEdicion) {
+            $("#cboTipoDocumento").empty()
+                .append('<option value="CI">CI</option>')
+                .append('<option value="RUC">RUC</option>');
+        }
+        $("#divNombres, #divApellidos").show();
+        $("#divRazonSocial").hide();
+    } else {
         $("#txtNombres, #txtApellidos").prop("disabled", true).val("");
         $("#txtRazonSocial").prop("disabled", false);
-        $("#cboTipoDocumento").empty()
-            .append('<option value="RUC">RUC</option>')
-            .prop("disabled", false);
+        if (!esEdicion) {
+            $("#cboTipoDocumento").empty()
+                .append('<option value="RUC">RUC</option>');
+        }
+        $("#divNombres, #divApellidos").hide();
+        $("#divRazonSocial").show();
     }
 }
 
+// ── Validar y guardar ─────────────────────────────────────
 function GuardarPersona() {
+    limpiarErrores();
+    var esValido = true;
+    var tipo = $("input[name='tipoPersona']:checked").val();
+    var tipoDoc = $("#cboTipoDocumento").val();
+    var doc = $("#txtDocumento").val().trim();
+    var correo = $("#txtCorreo").val().trim();
+    var tel = $("#txtTelefono").val().trim();
+
+    // Documento obligatorio
+    if (!doc) {
+        marcarError("txtDocumento", "El documento es obligatorio.");
+        esValido = false;
+    } else {
+        // Validar formato CI: solo números, 6-8 dígitos
+        if (tipoDoc === "CI" && !/^\d{6,8}$/.test(doc)) {
+            marcarError("txtDocumento", "CI debe tener entre 6 y 8 dígitos numéricos.");
+            esValido = false;
+        }
+        // Validar formato RUC: números-dígito (ej: 80012345-1)
+        if (tipoDoc === "RUC" && !/^\d{6,8}-\d$/.test(doc)) {
+            marcarError("txtDocumento", "RUC debe tener formato XXXXXXXX-X (ej: 80012345-1).");
+            esValido = false;
+        }
+    }
+
+    // Validar según tipo persona
+    if (tipo === "F") {
+        if (!$("#txtNombres").val().trim()) {
+            marcarError("txtNombres", "El nombre es obligatorio.");
+            esValido = false;
+        }
+        if (!$("#txtApellidos").val().trim()) {
+            marcarError("txtApellidos", "El apellido es obligatorio.");
+            esValido = false;
+        }
+    } else {
+        if (!$("#txtRazonSocial").val().trim()) {
+            marcarError("txtRazonSocial", "La razón social es obligatoria.");
+            esValido = false;
+        }
+    }
+
+    // Correo — si se ingresó, validar formato
+    if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+        marcarError("txtCorreo", "Ingrese un correo válido.");
+        esValido = false;
+    }
+
+    // Teléfono — si se ingresó más que el prefijo, validar formato
+    if (tel && tel !== "+595" && !/^\+595\d{6,10}$/.test(tel.replace(/\s/g, ''))) {
+        marcarError("txtTelefono", "Teléfono inválido. Formato: +595XXXXXXXXX");
+        esValido = false;
+    }
+
+    if (!esValido) return;
+
     var persona = {
         IdPersona: $("#txtid").val(),
-        Documento: $("#txtDocumento").val(),
-        Nombres: $("#txtNombres").val(),
-        Apellidos: $("#txtApellidos").val(),
-        Correo: $("#txtCorreo").val(),
-        Telefono: $("#txtTelefono").val(),
-        Calle1: $("#txtCallePrincipal").val(),
-        Calle2: $("#txtCalleSecundaria").val(),
-        Ciudad: $("#txtCiudad").val(),
-        Barrio: $("#txtBarrio").val(),
-        TipoDocumento: $("#cboTipoDocumento").val(),
-        RazonSocial: $("#txtRazonSocial").val(),
+        Documento: doc,
+        Nombres: $("#txtNombres").val().trim(),
+        Apellidos: $("#txtApellidos").val().trim(),
+        Correo: correo,
+        Telefono: tel === "+595" ? "" : tel,
+        Calle1: $("#txtCallePrincipal").val().trim(),
+        Calle2: $("#txtCalleSecundaria").val().trim(),
+        Ciudad: $("#txtCiudad").val().trim(),
+        Barrio: $("#txtBarrio").val().trim(),
+        TipoDocumento: tipoDoc,
+        RazonSocial: $("#txtRazonSocial").val().trim(),
         Activo: $("#ddlEstado").val() === "1"
     };
 
@@ -186,17 +300,29 @@ function GuardarPersona() {
         url: '/Persona/Guardar',
         type: 'POST',
         data: persona,
-        success: function (response) {
-            if (response.resultado) {
-                Swal.fire("Éxito", response.mensaje, "success");
+        success: function (resp) {
+            if (resp.resultado) {
+                Swal.fire("Éxito", resp.mensaje, "success");
                 $("#FormModal").modal("hide");
                 $('#tbdata').DataTable().ajax.reload();
             } else {
-                Swal.fire("Atención", response.mensaje, "warning");
+                Swal.fire("Atención", resp.mensaje, "warning");
             }
         },
         error: function () {
             Swal.fire("Error", "Ocurrió un error al guardar.", "error");
         }
     });
+}
+
+// ── Helpers de validación visual ──────────────────────────
+function marcarError(idCampo, mensaje) {
+    var $campo = $("#" + idCampo);
+    $campo.addClass("is-invalid");
+    $campo.closest(".form-group").find(".invalid-feedback").text(mensaje).show();
+}
+
+function limpiarErrores() {
+    $("#form .form-control, #form select").removeClass("is-invalid");
+    $("#form .invalid-feedback").text("").hide();
 }

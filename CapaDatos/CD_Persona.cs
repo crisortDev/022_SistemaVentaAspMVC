@@ -110,9 +110,9 @@ namespace CapaDatos
                 {
                     string query = @"
                 INSERT INTO Persona 
-                (Nombres, Apellidos, RazonSocial, TipoDocumento, Documento, Correo, Telefono, Direccion, Activo, FechaRegistro)
+                (Nombres, Apellidos, RazonSocial, TipoDocumento, Documento, Correo, Telefono, Calle1, Calle2, Ciudad, Barrio, Activo, FechaRegistro)
                 VALUES
-                (@Nombres, @Apellidos, @RazonSocial, @TipoDocumento, @Documento, @Correo, @Telefono, @Direccion, @Activo, GETDATE());
+                (@Nombres, @Apellidos, @RazonSocial, @TipoDocumento, @Documento, @Correo, @Telefono, @Calle1, @Calle2, @Ciudad, @Barrio, @Activo, GETDATE());
                 SELECT SCOPE_IDENTITY();";
 
                     using (SqlCommand cmd = new SqlCommand(query, oConexion))
@@ -126,6 +126,8 @@ namespace CapaDatos
                         cmd.Parameters.AddWithValue("@Telefono", (object)p.Telefono ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@Calle1", (object)p.Calle1 ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@Calle2", (object)p.Calle2 ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@Ciudad", (object)p.Ciudad ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@Barrio", (object)p.Barrio ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@Activo", p.Activo);
 
                         oConexion.Open();
@@ -141,6 +143,7 @@ namespace CapaDatos
                 return (false, "Error al registrar persona: " + ex.Message, 0);
             }
         }
+
 
 
         // Eliminar persona (borrado lógico)

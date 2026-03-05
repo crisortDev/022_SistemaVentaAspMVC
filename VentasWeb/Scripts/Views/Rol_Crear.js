@@ -1,166 +1,188 @@
-﻿var tabladata;
+﻿$(document).ready(function () {
 
-$(document).ready(function () {
-    activarMenu("Mantenedor");
+    // Cargar permisos disponibles y roles al iniciar
+    cargarPermisosDisponibles();
+    cargarRoles();
 
-    // ================== VALIDACIONES ==================
-    $("#form").validate({
-        rules: {
-            Descripcion: {
-                required: true,
-                minlength: 2,
-                maxlength: 50
-            },
-            Activo: {
-                required: true
-            }
-        },
-        messages: {
-            Descripcion: {
-                required: "Ingrese la descripción",
-                minlength: "Mínimo 2 caracteres",
-                maxlength: "Máximo 50 caracteres"
-            },
-            Activo: {
-                required: "Seleccione un estado"
-            }
-        },
-        errorElement: 'span',
-        errorPlacement: function (error, element) {
-            error.addClass("text-danger ml-2");
-            error.insertAfter(element);
+    // 25002500 Forzar may00fasculas al escribir el nombre del rol 2500
+    $("#txtDescripcionRol").on("input", function () {
+        var pos = this.selectionStart; // conservar posici00f3n del cursor
+        $(this).val($(this).val().toUpperCase());
+        this.setSelectionRange(pos, pos);
+    });
+
+    // ── Seleccionar / deseleccionar todos ─────────────
+    $("#chkTodos").change(function () {
+        var checked = $(this).is(":checked");
+        $(".permisoCheck").prop("checked", checked);
+        actualizarContador();
+    });
+
+    // ── Contador de permisos seleccionados ────────────
+    $(document).on("change", ".permisoCheck", function () {
+        actualizarContador();
+        // Si se desmarca uno, desmarcar el "todos"
+        if (!$(this).is(":checked")) {
+            $("#chkTodos").prop("checked", false);
+        }
+        // Si todos están marcados, marcar el "todos"
+        if ($(".permisoCheck:checked").length === $(".permisoCheck").length) {
+            $("#chkTodos").prop("checked", true);
         }
     });
 
-    // ================== DATATABLE ==================
-    tabladata = $('#tbdata').DataTable({
-        "ajax": {
-            "url": $.MisUrls.url._ObtenerRoles + "?v=" + new Date().getTime(), // Anti-cache
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            { "data": "Descripcion" },
-            {
-                "data": "Activo",
-                "render": function (data) {
-                    return data ? '<span class="badge badge-success">Activo</span>' :
-                        '<span class="badge badge-danger">No Activo</span>';
-                }
-            },
-            {
-                "data": "IdRol",
-                "render": function (data, type, row) {
-                    var btnEditar = "<button class='btn btn-primary btn-sm' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>";
-                    var btnDesactivar = "<button class='btn btn-warning btn-sm ml-2' type='button' onclick='desactivar(" + data + ")'><i class='fas fa-ban'></i></button>";
-                    return btnEditar + btnDesactivar;
-                },
-                "orderable": false,
-                "searchable": false,
-                "width": "90px"
-            }
-        ],
-        "language": {
-            "url": $.MisUrls.url.Url_datatable_spanish
-        },
-        responsive: true
+    // ── Cambio de rol en el selector derecho ──────────
+    $("#cboRol").on("change", function () {
+        var idRol = parseInt($(this).val()) || 0;
+        if (idRol > 0) {
+            cargarPermisosPorRol(idRol);
+        } else {
+            $("#tbodyPermisos").html(
+                '<tr><td colspan="2" class="text-center text-muted py-3">' +
+                '<i class="fa fa-info-circle"></i> Seleccione un rol para ver sus permisos</td></tr>'
+            );
+        }
     });
-});
 
-// ================== FUNCIONES ==================
-function abrirPopUpForm(json) {
-    $("#txtid").val(0);
+    // ── Guardar Rol con Permisos ───────────────────────
+    $("#btnGuardarRol").click(function () {
+        var descripcion = $("#txtDescripcionRol").val().trim();
 
-    if (json != null) {
-        $("#txtid").val(json.IdRol);
-        $("#txtDescripcion").val(json.Descripcion);
-        $("#cboEstado").val(json.Activo ? 1 : 0);
-    } else {
-        $("#txtDescripcion").val("");
-        $("#cboEstado").val(1);
-    }
+        if (!descripcion) {
+            swal("Atención", "Ingrese el nombre del rol.", "warning");
+            return;
+        }
 
-    $('#FormModal').modal('show');
-}
+        var permisosSeleccionados = [];
+        $(".permisoCheck:checked").each(function () {
+            permisosSeleccionados.push(parseInt($(this).val()));
+        });
 
-function Guardar() {
-    if ($("#form").valid()) {
-        var request = {
-            objeto: {
-                IdRol: $("#txtid").val(),
-                Descripcion: $("#txtDescripcion").val(),
-                Activo: $("#cboEstado").val() == "1"
-            }
+        if (permisosSeleccionados.length === 0) {
+            swal("Atención", "Seleccione al menos un permiso.", "warning");
+            return;
+        }
+
+        var modelo = {
+            Descripcion: descripcion,
+            Activo: true,
+            Permisos: permisosSeleccionados
         };
 
         $.ajax({
-            url: $.MisUrls.url._GuardarRol,
+            url: $.MisUrls.url._GuardarRolConPermisos,
             type: "POST",
-            data: JSON.stringify(request),
-            dataType: "json",
+            data: JSON.stringify(modelo),
             contentType: "application/json; charset=utf-8",
-            success: function (data) {
-                if (data.resultado) {
-                    tabladata.ajax.reload(null, false);
-                    $('#FormModal').modal('hide');
-                    swal("Éxito", "Rol guardado correctamente", "success");
+            success: function (resp) {
+                if (resp.resultado) {
+                    swal("Éxito", "Rol y permisos guardados correctamente.", "success");
+                    // Limpiar formulario
+                    $("#txtDescripcionRol").val("");
+                    $(".permisoCheck").prop("checked", false);
+                    $("#chkTodos").prop("checked", false);
+                    actualizarContador();
+                    // Recargar selector de roles del panel derecho
+                    cargarRoles();
                 } else {
-                    swal("Atención", data.mensaje || "No se pudo guardar el rol", "warning");
+                    swal("Error", "No se pudo guardar el rol.", "error");
                 }
             },
-            error: function (error) { console.log(error); }
-        });
-    }
-}
-
-function desactivar(id) {
-    swal({
-        title: "Mensaje",
-        text: "¿Desea desactivar el rol seleccionado?",
-        type: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Sí",
-        confirmButtonColor: "#DD6B55",
-        cancelButtonText: "No",
-        closeOnConfirm: true
-    }, function () {
-        $.ajax({
-            url: $.MisUrls.url._DesactivarRol + "?id=" + id,
-            type: "POST",
-            dataType: "json",
-            contentType: "application/json; charset=utf-8",
-            success: function (data) {
-                if (data.resultado) {
-                    tabladata.ajax.reload(null, false);
-                    swal("Éxito", data.mensaje || "Rol desactivado correctamente", "success");
-                } else {
-                    swal("Atención", data.mensaje || "No se pudo desactivar el rol", "warning");
-                }
-            },
-            error: function (error) { console.log(error); }
+            error: function () {
+                swal("Error", "Error en la petición.", "error");
+            }
         });
     });
-}
 
-// ================== ACTIVAR MENU ==================
-function activarMenu(menuactivo) {
-    var ul = $("ul.navbar-nav");
-    ul.find("li.nav-item").each(function (i, li) {
-        var a;
-        if ($(li).find("div.dropdown-menu").length != 0) {
-            var div = $($(li).find("div.dropdown-menu"));
-            div.find("a.dropdown-item").each(function (x, tagA) {
-                if ($(tagA).attr("name") == menuactivo) {
-                    $(li).addClass("active");
-                    return false;
-                }
-            });
-        } else {
-            a = $(li).find("a.nav-link");
-            if ($(a).attr("name") == menuactivo) {
-                $(li).addClass("active");
-                return false;
+});
+
+// ── Cargar permisos disponibles (panel izquierdo) ─────
+function cargarPermisosDisponibles() {
+    $.ajax({
+        url: $.MisUrls.url._ListPermisosDisponibles,
+        type: "GET",
+        success: function (data) {
+            var lista = data.data || data;
+            var html = "";
+
+            if (!lista || lista.length === 0) {
+                html = '<div class="text-muted text-center w-100">No hay permisos disponibles.</div>';
+            } else {
+                lista.forEach(function (p) {
+                    html += '<div class="form-check">' +
+                        '<input class="form-check-input permisoCheck" type="checkbox"' +
+                        ' value="' + p.IdSubMenu + '" id="perm_' + p.IdSubMenu + '">' +
+                        '<label class="form-check-label" for="perm_' + p.IdSubMenu + '" title="' + p.NombreSubMenu + '">' +
+                        p.NombreSubMenu +
+                        '</label>' +
+                        '</div>';
+                });
             }
+
+            $("#divPermisosCheckbox").html(html);
+            actualizarContador();
+        },
+        error: function () {
+            $("#divPermisosCheckbox").html('<div class="text-danger">Error al cargar permisos.</div>');
         }
     });
+}
+
+// ── Cargar roles en el selector (panel derecho) ───────
+function cargarRoles() {
+    $.ajax({
+        url: $.MisUrls.url._ObtenerRoles,
+        type: "GET",
+        success: function (data) {
+            var lista = data.data || data;
+            var $select = $("#cboRol");
+            $select.empty().append('<option value="">-- Seleccione --</option>');
+            lista.forEach(function (r) {
+                $select.append('<option value="' + r.IdRol + '">' + r.Descripcion + '</option>');
+            });
+        }
+    });
+}
+
+// ── Cargar permisos de un rol (panel derecho) ─────────
+function cargarPermisosPorRol(idRol) {
+    $("#tbodyPermisos").html(
+        '<tr><td colspan="2" class="text-center py-2">' +
+        '<i class="fa fa-spinner fa-spin"></i> Cargando...</td></tr>'
+    );
+
+    $.ajax({
+        url: $.MisUrls.url._ListPermisosPorRol,
+        type: "GET",
+        data: { idRol: idRol },
+        success: function (data) {
+            var lista = data.data || data;
+            var html = "";
+
+            if (!lista || lista.length === 0) {
+                html = '<tr><td colspan="2" class="text-center text-muted py-3">Este rol no tiene permisos asignados.</td></tr>';
+            } else {
+                lista.forEach(function (p) {
+                    var badge = p.Activo
+                        ? '<span class="badge-activo">Activo</span>'
+                        : '<span class="badge-inactivo">Inactivo</span>';
+                    html += '<tr>' +
+                        '<td>' + p.SubMenu + '</td>' +
+                        '<td class="text-center">' + badge + '</td>' +
+                        '</tr>';
+                });
+            }
+
+            $("#tbodyPermisos").html(html);
+        },
+        error: function () {
+            $("#tbodyPermisos").html('<tr><td colspan="2" class="text-danger text-center">Error al cargar permisos.</td></tr>');
+        }
+    });
+}
+
+// ── Actualizar contador de permisos seleccionados ─────
+function actualizarContador() {
+    var total = $(".permisoCheck:checked").length;
+    $("#lblContador").text(total + " seleccionado" + (total !== 1 ? "s" : ""));
 }
