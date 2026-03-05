@@ -83,43 +83,5 @@ namespace VentasWeb.Controllers
             var lista = CD_Permisos.Instancia.ListarTodosLosPermisos(); // método que devuelve IdSubMenu, NombreMenu, NombreSubMenu
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
-        public async Task<JsonResult> ProbarEnvioCorreo()
-        {
-            try
-            {
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-                var apiKey = "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";
-                var client = new SendGridClient(apiKey);
-
-                var from = new EmailAddress("cristian.a.ortega@hotmail.com", "Sistema");
-                var to = new EmailAddress("cristian.a.ortega@hotmail.com");
-
-                var msg = MailHelper.CreateSingleEmail(
-                    from,
-                    to,
-                    "Prueba SendGrid",
-                    "Correo de prueba",
-                    "<strong>Correo de prueba</strong>"
-                );
-
-                var response = await client.SendEmailAsync(msg);
-
-                return Json(new
-                {
-                    ok = true,
-                    status = response.StatusCode.ToString()
-                }, JsonRequestBehavior.AllowGet);
-            }
-            catch (Exception ex)
-            {
-                return Json(new
-                {
-                    ok = false,
-                    error = ex.ToString()
-                }, JsonRequestBehavior.AllowGet);
-            }
-        }
-
     }
 }
