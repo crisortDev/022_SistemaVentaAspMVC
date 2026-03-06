@@ -1,5 +1,6 @@
 ﻿using CapaDatos;
 using CapaModelo;
+using CapaModelo.CapaModelo;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -33,11 +34,24 @@ namespace VentasWeb.Controllers
 
         public JsonResult ObtenerVenta(string fechainicio, string fechafin, int idtienda)
         {
-            
+
             List<ReporteVenta> lista = CD_Reportes.Instancia.ReporteVenta(Convert.ToDateTime(fechainicio), Convert.ToDateTime(fechafin), idtienda);
             return Json(lista, JsonRequestBehavior.AllowGet);
         }
 
+        public ActionResult Bajas()
+        {
+            return View();
+        }
 
+        public JsonResult ObtenerBajas(string fechainicio, string fechafin, int idtienda)
+        {
+            List<ReporteBaja> lista = CD_Reportes.Instancia.ReporteBajas(
+                Convert.ToDateTime(fechainicio),
+                Convert.ToDateTime(fechafin),
+                idtienda);
+
+            return Json(lista, JsonRequestBehavior.AllowGet);
+        }
     }
 }

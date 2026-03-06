@@ -49,8 +49,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.11.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="SendGrid, Version=9.29.3.0, Culture=neutral, PublicKeyToken=4f047e93159395ca, processorArchitecture=MSIL">
       <HintPath>..\packages\SendGrid.9.29.3\lib\net452\SendGrid.dll</HintPath>
@@ -2017,6 +2017,7 @@
     <Content Include="Scripts\Views\Index_login.js" />
     <Content Include="Scripts\Views\MotivoBaja_Crear.js" />
     <Content Include="Scripts\Views\Persona_Crear.js" />
+    <Content Include="Scripts\Views\Reporte_Bajas.js" />
     <Content Include="Scripts\Views\Usuario_Contraseña.js" />
     <Content Include="Scripts\Views\ConsultarCompraCaja.js" />
     <Content Include="Scripts\Views\Compra_Consultar.js" />
@@ -2036,6 +2037,7 @@
     <Content Include="Scripts\Views\Rol_Crear.js" />
     <Content Include="Scripts\Views\Venta_Consultar.js" />
     <Content Include="Scripts\Views\Venta_Crear.js" />
+    <Content Include="Views\Reporte\Bajas.cshtml" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>

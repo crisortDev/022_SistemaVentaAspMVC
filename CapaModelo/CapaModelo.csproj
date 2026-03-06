@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="MotivoBaja.cs" />
     <Compile Include="Persona.cs" />
+    <Compile Include="ReporteBaja.cs" />
     <Compile Include="ResultadoRegistroUsuario.cs" />
     <Compile Include="ResultadoSP.cs" />
     <Compile Include="Categoria.cs" />

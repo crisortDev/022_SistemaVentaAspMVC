@@ -21,16 +21,18 @@ namespace CapaDatos
             }
         }
 
+        // Usado por MotivoBajaController y ProductoController
         public List<MotivoBaja> ObtenerMotivosBaja()
         {
             var lista = new List<MotivoBaja>();
-            using (SqlConnection cn = new SqlConnection(Conexion.CN))
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                SqlCommand cmd = new SqlCommand("usp_ObtenerMotivosBaja", cn)
-                { CommandType = CommandType.StoredProcedure };
+                SqlCommand cmd = new SqlCommand(
+                    "SELECT IdMotivoBaja, Descripcion, Activo, FechaRegistro FROM MotivoBaja WHERE Activo = 1 ORDER BY Descripcion",
+                    oConexion);
                 try
                 {
-                    cn.Open();
+                    oConexion.Open();
                     SqlDataReader dr = cmd.ExecuteReader();
                     while (dr.Read())
                     {
@@ -44,65 +46,107 @@ namespace CapaDatos
                     }
                     dr.Close();
                 }
-                catch { lista = new List<MotivoBaja>(); }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error ObtenerMotivosBaja: " + ex.Message);
+                }
             }
             return lista;
         }
 
-        public bool RegistrarMotivoBaja(MotivoBaja obj)
+        public bool RegistrarMotivoBaja(MotivoBaja oMotivo)
         {
-            using (SqlConnection cn = new SqlConnection(Conexion.CN))
+            bool respuesta = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                SqlCommand cmd = new SqlCommand("usp_RegistrarMotivoBaja", cn)
-                { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.AddWithValue("@Descripcion", obj.Descripcion);
-                cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                // Verifica duplicado antes de insertar
+                SqlCommand cmdCheck = new SqlCommand(
+                    "SELECT COUNT(1) FROM MotivoBaja WHERE Descripcion = @Descripcion",
+                    oConexion);
+                cmdCheck.Parameters.AddWithValue("@Descripcion", oMotivo.Descripcion);
+
                 try
                 {
-                    cn.Open();
-                    cmd.ExecuteNonQuery();
-                    return Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    oConexion.Open();
+                    int existe = Convert.ToInt32(cmdCheck.ExecuteScalar());
+                    if (existe > 0) return false; // ya existe
+
+                    SqlCommand cmd = new SqlCommand(
+                        "INSERT INTO MotivoBaja (Descripcion, Activo, FechaRegistro) VALUES (@Descripcion, 1, GETDATE())",
+                        oConexion);
+                    cmd.Parameters.AddWithValue("@Descripcion", oMotivo.Descripcion);
+                    respuesta = cmd.ExecuteNonQuery() > 0;
                 }
-                catch { return false; }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error RegistrarMotivoBaja: " + ex.Message);
+                }
             }
+            return respuesta;
         }
 
-        public bool ModificarMotivoBaja(MotivoBaja obj)
+        public bool ModificarMotivoBaja(MotivoBaja oMotivo)
         {
-            using (SqlConnection cn = new SqlConnection(Conexion.CN))
+            bool respuesta = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                SqlCommand cmd = new SqlCommand("usp_ModificarMotivoBaja", cn)
-                { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.AddWithValue("@IdMotivoBaja", obj.IdMotivoBaja);
-                cmd.Parameters.AddWithValue("@Descripcion", obj.Descripcion);
-                cmd.Parameters.AddWithValue("@Activo", obj.Activo);
-                cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                // Verifica duplicado en otro registro
+                SqlCommand cmdCheck = new SqlCommand(
+                    "SELECT COUNT(1) FROM MotivoBaja WHERE Descripcion = @Descripcion AND IdMotivoBaja <> @IdMotivoBaja",
+                    oConexion);
+                cmdCheck.Parameters.AddWithValue("@Descripcion", oMotivo.Descripcion);
+                cmdCheck.Parameters.AddWithValue("@IdMotivoBaja", oMotivo.IdMotivoBaja);
+
                 try
                 {
-                    cn.Open();
-                    cmd.ExecuteNonQuery();
-                    return Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    oConexion.Open();
+                    int existe = Convert.ToInt32(cmdCheck.ExecuteScalar());
+                    if (existe > 0) return false;
+
+                    SqlCommand cmd = new SqlCommand(
+                        "UPDATE MotivoBaja SET Descripcion = @Descripcion WHERE IdMotivoBaja = @IdMotivoBaja",
+                        oConexion);
+                    cmd.Parameters.AddWithValue("@Descripcion", oMotivo.Descripcion);
+                    cmd.Parameters.AddWithValue("@IdMotivoBaja", oMotivo.IdMotivoBaja);
+                    respuesta = cmd.ExecuteNonQuery() > 0;
                 }
-                catch { return false; }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error ModificarMotivoBaja: " + ex.Message);
+                }
             }
+            return respuesta;
         }
 
         public bool EliminarMotivoBaja(int idMotivoBaja)
         {
-            using (SqlConnection cn = new SqlConnection(Conexion.CN))
+            bool respuesta = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                SqlCommand cmd = new SqlCommand("usp_EliminarMotivoBaja", cn)
-                { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.AddWithValue("@IdMotivoBaja", idMotivoBaja);
-                cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                // Verificar si está en uso en HISTORIAL_MOVIMIENTO antes de eliminar
+                SqlCommand cmdCheck = new SqlCommand(
+                    "SELECT COUNT(1) FROM HISTORIAL_MOVIMIENTO WHERE IdMotivoBaja = @IdMotivoBaja",
+                    oConexion);
+                cmdCheck.Parameters.AddWithValue("@IdMotivoBaja", idMotivoBaja);
+
                 try
                 {
-                    cn.Open();
-                    cmd.ExecuteNonQuery();
-                    return Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    oConexion.Open();
+                    int enUso = Convert.ToInt32(cmdCheck.ExecuteScalar());
+                    if (enUso > 0) return false; // no eliminar si está en uso
+
+                    SqlCommand cmd = new SqlCommand(
+                        "UPDATE MotivoBaja SET Activo = 0 WHERE IdMotivoBaja = @IdMotivoBaja",
+                        oConexion);
+                    cmd.Parameters.AddWithValue("@IdMotivoBaja", idMotivoBaja);
+                    respuesta = cmd.ExecuteNonQuery() > 0;
                 }
-                catch { return false; }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error EliminarMotivoBaja: " + ex.Message);
+                }
             }
+            return respuesta;
         }
     }
 }

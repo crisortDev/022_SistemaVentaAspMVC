@@ -199,26 +199,7 @@ namespace VentasWeb.Controllers
             }
         }
 
-        [HttpPost]
-        public JsonResult BajaStockProductoTienda(int idProductoTienda, int cantidad, string motivo, int idProducto)
-        {
-            try
-            {
-                // Llamamos al servicio que maneja la baja de stock, pasando todos los parámetros
-                string resultado = _productoTiendaService.BajaStockProductoTienda(idProductoTienda, cantidad, motivo, idProducto);
-
-                if (resultado.Contains("Error"))
-                {
-                    return Json(new { resultado = false, mensaje = resultado });
-                }
-
-                return Json(new { resultado = true, mensaje = "Stock reducido correctamente" });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { resultado = false, mensaje = "Error: " + ex.Message });
-            }
-        }
+       
 
         [HttpPost]
         public JsonResult GuardarPrecioVenta(PrecioVenta objeto)
@@ -316,7 +297,7 @@ namespace VentasWeb.Controllers
             }
         }
 
-       
+
 
         [HttpPost]
         public JsonResult GuardarMultiplesPrecios(List<PrecioVenta> precios)
@@ -381,6 +362,51 @@ namespace VentasWeb.Controllers
             }
         }
 
+        // ======================================================
+        // REEMPLAZAR el método BajaStockProductoTienda existente
+        // y AGREGAR ObtenerMotivosBaja en ProductoController.cs
+        // ======================================================
+
+        // GET: Producto/ObtenerMotivosBaja
+        [HttpGet]
+        public JsonResult ObtenerMotivosBaja()
+        {
+            try
+            {
+                var lista = CD_MotivoBaja.Instancia.ObtenerMotivosBaja();
+                return Json(lista, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+        // POST: Producto/BajaStockProductoTienda  ← REEMPLAZA el anterior
+        [HttpPost]
+        public JsonResult BajaStockProductoTienda(int idProductoTienda, int idProducto, int idMotivoBaja, int cantidad, string observaciones)
+        {
+            try
+            {
+                if (cantidad <= 0)
+                    return Json(new { resultado = false, mensaje = "La cantidad debe ser mayor a cero." });
+
+                if (idMotivoBaja <= 0)
+                    return Json(new { resultado = false, mensaje = "Debe seleccionar un motivo de baja." });
+
+                bool resultado = _productoTiendaService.BajaStockConHistorial(
+                    idProductoTienda, idProducto, idMotivoBaja, cantidad, observaciones ?? "");
+
+                return Json(new
+                {
+                    resultado = resultado,
+                    mensaje = resultado ? "Baja registrada correctamente." : "No se pudo registrar la baja."
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = "Error: " + ex.Message });
+            }
+        }
 
     }
 }

@@ -91,7 +91,7 @@
 
 
     <!-- Configuración de URLs centralizadas -->
-    <script type="text/javascript">
+<script type="text/javascript">
         $.extend({
             MisUrls: {
                 url: {},
@@ -197,9 +197,12 @@ $.MisUrls.urls({
         });
 
         // ---- REPORTE ----
+        // ---- REPORTE ----
+        // ---- REPORTE ----
         $.MisUrls.urls({
             _ObtenerReporteProducto: '@Url.Action("ObtenerProducto", "Reporte")',
-            _ObtenerReporteVenta: '@Url.Action("ObtenerVenta", "Reporte")'
+            _ObtenerReporteVenta:    '@Url.Action("ObtenerVenta",   "Reporte")',
+            _ObtenerReporteBajas:    '@Url.Action("ObtenerBajas",   "Reporte")'  // ← ESTA
         });
 
         // ---- CLIENTE ----
@@ -221,7 +224,7 @@ $.MisUrls.urls({
             Url_datatable_spanish: '@Url.Content("~/content/plugins/datatables/js/datatable_spanish.json")'
         });
 
-    </script>
+</script>
 
     <script>
         function activarMenu(menuactivo) {

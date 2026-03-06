@@ -16,6 +16,7 @@ namespace VentasWeb.Controllers
             return View();
         }
 
+        [HttpGet]
         public JsonResult Obtener()
         {
             List<Tienda> lista = CD_Tienda.Instancia.ObtenerTiendas();

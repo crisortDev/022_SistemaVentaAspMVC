@@ -72,7 +72,7 @@ namespace CapaDatos
                             Stock = Convert.ToInt32(dr["Stock"].ToString()),
                             PorcentajeIva = Convert.ToInt32(dr["Porcentaje"].ToString()),
                             Iniciado = Convert.ToBoolean(dr["Iniciado"].ToString()),
-                            
+
                             //PrecioUnidadVenta = Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PE")),
                         });
                     }
@@ -245,6 +245,85 @@ namespace CapaDatos
                 }
             }
             return resultado;
+        }
+        // ======================================================
+        // REEMPLAZAR el método BajaStockConHistorial en CD_ProductoTienda.cs
+        // ======================================================
+
+        public bool BajaStockConHistorial(int idProductoTienda, int idProducto, int idMotivoBaja, int cantidad, string observaciones)
+        {
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                oConexion.Open();
+                SqlTransaction transaction = oConexion.BeginTransaction();
+
+                try
+                {
+                    // 1. Verificar stock suficiente
+                    SqlCommand cmdStock = new SqlCommand(
+                        "SELECT Stock FROM PRODUCTO_TIENDA WHERE IdProductoTienda = @IdProductoTienda",
+                        oConexion, transaction);
+                    cmdStock.Parameters.AddWithValue("@IdProductoTienda", idProductoTienda);
+                    object stockObj = cmdStock.ExecuteScalar();
+
+                    if (stockObj == null || stockObj == DBNull.Value)
+                        throw new Exception("Producto-Tienda no encontrado.");
+
+                    int stockActual = Convert.ToInt32(stockObj);
+                    if (cantidad > stockActual)
+                        throw new Exception("Stock insuficiente. Stock actual: " + stockActual);
+
+                    // 2. Reducir stock en PRODUCTO_TIENDA
+                    SqlCommand cmdReducir = new SqlCommand(
+                        "UPDATE PRODUCTO_TIENDA SET Stock = Stock - @Cantidad WHERE IdProductoTienda = @IdProductoTienda",
+                        oConexion, transaction);
+                    cmdReducir.Parameters.AddWithValue("@Cantidad", cantidad);
+                    cmdReducir.Parameters.AddWithValue("@IdProductoTienda", idProductoTienda);
+                    cmdReducir.ExecuteNonQuery();
+
+                    // 3. Obtener IdProductoDeposito por IdTienda del producto
+                    SqlCommand cmdDeposito = new SqlCommand(@"
+                        SELECT TOP 1 pd.IdProductoDeposito
+                        FROM PRODUCTO_DEPOSITO pd
+                        INNER JOIN DEPOSITO d ON d.IdDeposito = pd.IdDeposito
+                        WHERE d.IdTienda = (SELECT IdTienda FROM PRODUCTO_TIENDA WHERE IdProductoTienda = @IdProductoTienda)
+                          AND pd.IdProducto = @IdProducto",
+                        oConexion, transaction);
+                    cmdDeposito.Parameters.AddWithValue("@IdProductoTienda", idProductoTienda);
+                    cmdDeposito.Parameters.AddWithValue("@IdProducto", idProducto);
+                    object depositoObj = cmdDeposito.ExecuteScalar();
+
+                    int? idProductoDeposito = (depositoObj != null && depositoObj != DBNull.Value)
+                        ? (int?)Convert.ToInt32(depositoObj)
+                        : null;
+
+                    // 4. Registrar en HISTORIAL_MOVIMIENTO
+                    SqlCommand cmdHistorial = new SqlCommand(@"
+                        INSERT INTO HISTORIAL_MOVIMIENTO 
+                            (IdProductoDeposito, Estado, Cantidad, FechaMovimiento, Observaciones, IdProducto, IdMotivoBaja)
+                        VALUES 
+                            (@IdProductoDeposito, 'Baja', @Cantidad, GETDATE(), @Observaciones, @IdProducto, @IdMotivoBaja)",
+                        oConexion, transaction);
+
+                    cmdHistorial.Parameters.AddWithValue("@IdProductoDeposito",
+                        idProductoDeposito.HasValue ? (object)idProductoDeposito.Value : DBNull.Value);
+                    cmdHistorial.Parameters.AddWithValue("@Cantidad", cantidad);
+                    cmdHistorial.Parameters.AddWithValue("@Observaciones",
+                        string.IsNullOrEmpty(observaciones) ? (object)DBNull.Value : observaciones);
+                    cmdHistorial.Parameters.AddWithValue("@IdProducto", idProducto);
+                    cmdHistorial.Parameters.AddWithValue("@IdMotivoBaja", idMotivoBaja);
+                    cmdHistorial.ExecuteNonQuery();
+
+                    transaction.Commit();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    System.Diagnostics.Debug.WriteLine("Error BajaStockConHistorial: " + ex.Message);
+                    throw new Exception(ex.Message);
+                }
+            }
         }
     }
 }

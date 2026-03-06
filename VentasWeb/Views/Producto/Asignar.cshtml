@@ -1,5 +1,4 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = "Asignar";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -77,7 +76,6 @@
                                     <input type="text" class="form-control form-control-sm model" readonly id="txtDescripcion" name="Descripcion">
                                 </div>
                             </div>
-                            <!-- Nuevos campos StockMínimo y StockMáximo -->
                             <div class="col-sm-2">
                                 <div class="form-group mb-0">
                                     <label for="txtStockMinimo" class="col-form-label col-form-label-sm">Stock Mínimo:</label>
@@ -101,13 +99,10 @@
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
-
         </div>
-
 
         <div class="card border-info">
             <div class="card-header bg-info text-white p-2">
@@ -125,7 +120,7 @@
                                         <th>Codigo Producto</th>
                                         <th>Nombre Producto</th>
                                         <th>Stock</th>
-                                        <th>Eliminar Asignación a Tienda</th>
+                                        <th>Eliminar Asignación</th>
                                         <th>Baja de Stock</th>
                                     </tr>
                                 </thead>
@@ -139,8 +134,63 @@
     </div>
 </div>
 
+<!-- ==================== MODAL BAJA DE STOCK ==================== -->
+<div class="modal fade" id="modalBajaStock" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title"><i class="fas fa-arrow-down"></i> Baja de Stock</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bajaIdProductoTienda" />
+                <input type="hidden" id="bajaIdProducto" />
+                <input type="hidden" id="bajaStockActual" />
 
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">Producto:</label>
+                    <div class="col-sm-8">
+                        <input type="text" id="bajaNombreProducto" class="form-control form-control-sm" readonly />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">Stock actual:</label>
+                    <div class="col-sm-8">
+                        <input type="text" id="bajaStockMostrar" class="form-control form-control-sm" readonly />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">Cantidad a dar de baja: <span class="text-danger">*</span></label>
+                    <div class="col-sm-8">
+                        <input type="number" id="bajaCantidad" class="form-control form-control-sm" min="1" value="1" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">Motivo: <span class="text-danger">*</span></label>
+                    <div class="col-sm-8">
+                        <select id="bajaIdMotivo" class="form-control form-control-sm">
+                            <option value="0">-- Seleccione un motivo --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">Observaciones:</label>
+                    <div class="col-sm-8">
+                        <textarea id="bajaObservaciones" class="form-control form-control-sm" rows="3" placeholder="Descripción adicional (opcional)"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal"><i class="fas fa-times"></i> Cancelar</button>
+                <button type="button" class="btn btn-sm btn-warning" id="btnConfirmarBaja"><i class="fas fa-check"></i> Confirmar Baja</button>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- ==================== MODAL TIENDA ==================== -->
 <div class="modal fade" id="modalTienda" tabindex="-1" role="dialog" data-backdrop="static" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -164,7 +214,6 @@
                         <tbody></tbody>
                     </table>
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Cerrar</button>
@@ -173,6 +222,7 @@
     </div>
 </div>
 
+<!-- ==================== MODAL PRODUCTO ==================== -->
 <div class="modal fade" id="modalProducto" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -197,7 +247,6 @@
                         <tbody></tbody>
                     </table>
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Cerrar</button>
@@ -207,7 +256,5 @@
 </div>
 
 @section scripts{
-
-    <script src="@Url.Content("~/Scripts/Views/Producto_Asignar.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/Views/Producto_Asignar.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }
-
