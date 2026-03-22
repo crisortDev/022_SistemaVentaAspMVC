@@ -92,6 +92,7 @@ namespace CapaDatos
                             PasswordTemporalHash = dr["PasswordTemporalHash"] != DBNull.Value ? dr["PasswordTemporalHash"].ToString() : null,
                             RequiereCambioPassword = dr["RequiereCambioPassword"] != DBNull.Value && dr["RequiereCambioPassword"].ToString() == "1",
                             PasswordTemporalExpira = dr["PasswordTemporalExpira"] != DBNull.Value ? Convert.ToDateTime(dr["PasswordTemporalExpira"]) : (DateTime?)null,
+                            FechaCambioPassword = dr["FechaCambioPassword"] != DBNull.Value ? Convert.ToDateTime(dr["FechaCambioPassword"]) : (DateTime?)null,
                             oRol = new Rol()
                             {
                                 Descripcion = dr["DescripcionRol"] != DBNull.Value ? dr["DescripcionRol"].ToString() : ""
@@ -103,10 +104,10 @@ namespace CapaDatos
                 }
                 catch (Exception ex)
                 {
-                    // Loguear ex.Message si quieres
+                    System.Diagnostics.Debug.WriteLine("ObtenerUsuarios ERROR: " + ex.Message);
                 }
             }
-            return rptListaUsuario; // siempre retorna una lista, nunca null
+            return rptListaUsuario;
         }
 
         public Usuario ObtenerDetalleUsuario(int IdUsuario)
@@ -441,7 +442,10 @@ namespace CapaDatos
             bool respuesta = false;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                string query = "UPDATE Usuario SET Activo=@Activo WHERE IdUsuario=@IdUsuario";
+                string query = @"UPDATE Usuario 
+                 SET Activo = @Activo,
+                     IntentosFallidos = CASE WHEN @Activo = 1 THEN 0 ELSE IntentosFallidos END
+                 WHERE IdUsuario = @IdUsuario";
                 using (SqlCommand cmd = new SqlCommand(query, oConexion))
                 {
                     cmd.Parameters.AddWithValue("@Activo", nuevoEstado);
@@ -464,7 +468,7 @@ namespace CapaDatos
 
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                string query = "UPDATE Usuario SET Clave=@Clave WHERE IdUsuario=@IdUsuario";
+                string query = @"UPDATE Usuario SET Clave = @Clave, FechaCambioPassword = GETDATE() WHERE IdUsuario = @IdUsuario"; 
                 using (SqlCommand cmd = new SqlCommand(query, oConexion))
                 {
                     cmd.Parameters.AddWithValue("@Clave", claveEncriptada);
@@ -484,28 +488,31 @@ namespace CapaDatos
             {
                 string query = @"
             UPDATE Usuario SET
-                PasswordTemporalHash   = @PasswordTemporalHash,
-                PasswordTemporalExpira = @PasswordTemporalExpira,
-                RequiereCambioPassword = @RequiereCambioPassword,
-                IntentosFallidos       = @IntentosFallidos,
-                FechaUltimoLogin       = @FechaUltimoLogin
+                IntentosFallidos      = @IntentosFallidos,
+                PasswordTemporalHash  = @PasswordTemporalHash,
+                PasswordTemporalExpira= @PasswordTemporalExpira,
+                RequiereCambioPassword= @RequiereCambioPassword,
+                FechaUltimoLogin      = @FechaUltimoLogin,
+                FechaCambioPassword   = @FechaCambioPassword
             WHERE IdUsuario = @IdUsuario";
 
                 using (SqlCommand cmd = new SqlCommand(query, oConexion))
                 {
+                    cmd.Parameters.AddWithValue("@IntentosFallidos", usuario.IntentosFallidos);
                     cmd.Parameters.AddWithValue("@PasswordTemporalHash",
                         usuario.PasswordTemporalHash ?? (object)DBNull.Value);
-
                     cmd.Parameters.AddWithValue("@PasswordTemporalExpira",
                         usuario.PasswordTemporalExpira.HasValue
                             ? (object)usuario.PasswordTemporalExpira.Value
                             : (object)DBNull.Value);
-
                     cmd.Parameters.AddWithValue("@RequiereCambioPassword", usuario.RequiereCambioPassword);
-                    cmd.Parameters.AddWithValue("@IntentosFallidos", usuario.IntentosFallidos);
                     cmd.Parameters.AddWithValue("@FechaUltimoLogin",
                         usuario.FechaUltimoLogin != DateTime.MinValue
                             ? (object)usuario.FechaUltimoLogin
+                            : (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@FechaCambioPassword",        // NUEVO
+                        usuario.FechaCambioPassword.HasValue
+                            ? (object)usuario.FechaCambioPassword.Value
                             : (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("@IdUsuario", usuario.IdUsuario);
 

@@ -17,6 +17,8 @@ namespace VentasWeb.Controllers
         private static readonly string GmailPassword = ConfigurationManager.AppSettings["GmailPassword"];
         private static readonly string NombreSistema = ConfigurationManager.AppSettings["NombreSistema"] ?? "Sistema de Ventas";
 
+        private const int MAX_INTENTOS = 5;
+
         // ── GET: Index ────────────────────────────────────────
         public ActionResult Index() => View();
 
@@ -30,44 +32,120 @@ namespace VentasWeb.Controllers
             Usuario usuario = CD_Usuario.Instancia.ObtenerUsuarios()
                 .FirstOrDefault(u => u.Correo == correo);
 
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Correo: {correo}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Usuario encontrado: {(usuario != null ? "SÍ" : "NO")}");
+#endif
+
             if (usuario == null)
                 return Json(new { success = false, mensaje = "Usuario o contraseña incorrecta." });
+
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Activo: {usuario.Activo}");
+#endif
 
             if (!usuario.Activo)
                 return Json(new { success = false, mensaje = "Tu cuenta está desactivada. Contactá al administrador." });
 
+            // ── Bloqueo por intentos fallidos ─────────────────
+            if (usuario.IntentosFallidos >= MAX_INTENTOS)
+                return Json(new { success = false, mensaje = "Tu cuenta está bloqueada por demasiados intentos fallidos. Contactá al administrador." });
+
             string hashIngresado = GetSHA256(clave);
 
-            // Contraseña temporal vigente
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Hash ingresado:  {hashIngresado}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Hash en BD:      {usuario.Clave}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Hash temporal:   {usuario.PasswordTemporalHash ?? "NULL"}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Expira temporal: {usuario.PasswordTemporalExpira?.ToString() ?? "NULL"}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] FechaCambioPass: {usuario.FechaCambioPassword?.ToString() ?? "NULL"}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] FechaRegistro:   {usuario.FechaRegistro}");
+#endif
+
+            // ── Contraseña temporal vigente ───────────────────
             if (usuario.PasswordTemporalHash != null &&
                 usuario.PasswordTemporalExpira.HasValue &&
                 usuario.PasswordTemporalExpira > DateTime.Now &&
                 usuario.PasswordTemporalHash == hashIngresado)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Entró por: contraseña temporal vigente");
+#endif
+                // Éxito — resetear intentos
+                usuario.IntentosFallidos = 0;
+                CD_Usuario.Instancia.ActualizarUsuario(usuario);
+
                 usuario.RequiereCambioPassword = true;
                 Session["UsuarioCambio"] = usuario;
                 return Json(new { success = true, requiereCambio = true });
             }
 
-            // Contraseña temporal expirada
+            // ── Contraseña temporal expirada ──────────────────
             if (usuario.PasswordTemporalHash != null &&
                 usuario.PasswordTemporalExpira.HasValue &&
                 usuario.PasswordTemporalExpira <= DateTime.Now &&
                 usuario.PasswordTemporalHash == hashIngresado)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Entró por: contraseña temporal EXPIRADA");
+#endif
                 return Json(new { success = false, mensaje = "La contraseña temporal expiró. Contactá al administrador para obtener una nueva." });
             }
 
-            // Contraseña definitiva
+            // ── Contraseña definitiva ─────────────────────────
             if (usuario.Clave == hashIngresado)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Entró por: contraseña definitiva");
+#endif
+                bool passwordExpirada = usuario.FechaCambioPassword.HasValue
+                    ? usuario.FechaCambioPassword.Value.AddMonths(2) < DateTime.Now
+                    : usuario.FechaRegistro.AddMonths(2) < DateTime.Now;
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Password expirada: {passwordExpirada}");
+#endif
+
+                if (passwordExpirada)
+                {
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Forzando cambio por expiración");
+#endif
+                    // Éxito — resetear intentos
+                    usuario.IntentosFallidos = 0;
+                    CD_Usuario.Instancia.ActualizarUsuario(usuario);
+
+                    usuario.RequiereCambioPassword = true;
+                    Session["UsuarioCambio"] = usuario;
+                    return Json(new { success = true, requiereCambio = true, motivo = "expiracion" });
+                }
+
+                // Login exitoso completo — resetear intentos
+                usuario.IntentosFallidos = 0;
                 usuario.FechaUltimoLogin = DateTime.Now;
                 CD_Usuario.Instancia.ActualizarUsuario(usuario);
                 Session["Usuario"] = CD_Usuario.Instancia.ObtenerDetalleUsuario(usuario.IdUsuario);
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Login exitoso, redirigiendo a Home");
+#endif
                 return Json(new { success = true, requiereCambio = false });
             }
 
-            return Json(new { success = false, mensaje = "Usuario o contraseña incorrecta." });
+            // ── Contraseña incorrecta — sumar intento fallido ─
+            usuario.IntentosFallidos++;
+            CD_Usuario.Instancia.ActualizarUsuario(usuario);
+
+            int restantes = MAX_INTENTOS - usuario.IntentosFallidos;
+            string msgIntentos = restantes > 0
+                ? $" Te quedan {restantes} intento(s)."
+                : " Tu cuenta ha sido bloqueada. Contactá al administrador.";
+
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Contraseña incorrecta — no matcheó ningún bloque");
+#endif
+
+            return Json(new { success = false, mensaje = "Usuario o contraseña incorrecta." + msgIntentos });
         }
 
         // ── GET: CambiarPassword ──────────────────────────────
@@ -115,6 +193,7 @@ namespace VentasWeb.Controllers
             usuarioBD.PasswordTemporalHash = null;
             usuarioBD.PasswordTemporalExpira = null;
             usuarioBD.FechaUltimoLogin = DateTime.Now;
+            usuarioBD.FechaCambioPassword = DateTime.Now;
             CD_Usuario.Instancia.ActualizarUsuario(usuarioBD);
 
             Session["Usuario"] = CD_Usuario.Instancia.ObtenerDetalleUsuario(usuarioBD.IdUsuario);
@@ -135,14 +214,9 @@ namespace VentasWeb.Controllers
                 Usuario usuario = CD_Usuario.Instancia.ObtenerUsuarios()
                     .FirstOrDefault(u => u.Correo == correo && u.Activo);
 
-                // Respuesta genérica por seguridad
+                // Respuesta genérica por seguridad (no revelar si el correo existe)
                 if (usuario == null)
                     return Json(new { success = true, mensaje = "Si el correo está registrado, recibirás una contraseña temporal en breve." });
-
-                // ── Guardar clave actual en historial ANTES de generar la temporal ──
-                // Esto garantiza que al cambiar la nueva clave, la anterior quede bloqueada
-                if (!string.IsNullOrEmpty(usuario.Clave))
-                    CD_HistorialClaves.Instancia.GuardarEnHistorial(usuario.IdUsuario, usuario.Clave);
 
                 // Generar contraseña temporal
                 string claveTemp = GenerarClaveTemporal();
@@ -164,6 +238,9 @@ namespace VentasWeb.Controllers
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"[RECUPERAR] Error: {ex.Message}");
+#endif
                 return Json(new { success = false, mensaje = "Ocurrió un error al procesar la solicitud." });
             }
         }

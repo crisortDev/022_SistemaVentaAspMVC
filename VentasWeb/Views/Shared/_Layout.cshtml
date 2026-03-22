@@ -18,7 +18,6 @@
     <title>@ViewBag.Title - Tienda COMPU SPACE</title>
 
     @{
-        // Genera un número de versión dinámico para evitar cacheo del navegador
         var version = DateTime.Now.Ticks.ToString();
     }
 
@@ -26,19 +25,154 @@
     @Styles.RenderFormat("<link href=\"{0}?v=" + version + "\" rel=\"stylesheet\"/>", "~/Content/PluginsCSS")
     @Scripts.RenderFormat("<script src=\"{0}?v=" + version + "\"></script>", "~/bundles/modernizr")
 
-
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" crossorigin="" />
-
     @RenderSection("estilos", required: false)
+
+    <style>
+        /* ── NAVBAR ─────────────────────────────────────────── */
+        .navbar {
+            background: linear-gradient(90deg, #0984e3 0%, #00b4d8 100%) !important;
+            box-shadow: 0 2px 12px rgba(9, 132, 227, 0.3);
+            padding: 0 1.2rem;
+            min-height: 56px;
+        }
+
+        .navbar-brand img {
+            opacity: 0.95;
+            transition: opacity 0.2s;
+        }
+
+        .navbar-brand:hover img {
+            opacity: 1;
+        }
+        .navbar-brand:hover img { opacity: 1; }
+
+        /* Links principales */
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.88) !important;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 0.65rem 0.9rem !important;
+            border-radius: 6px;
+            transition: background 0.18s, color 0.18s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-item.active .nav-link {
+            background: rgba(255,255,255,0.15) !important;
+            color: #fff !important;
+        }
+
+        /* Dropdown toggle — quitar borde al abrir */
+        .navbar-nav .nav-item.dropdown.show .nav-link {
+            background: rgba(255,255,255,0.18) !important;
+            color: #fff !important;
+        }
+
+        /* ── DROPDOWN MENU ──────────────────────────────────── */
+        .dropdown-menu.drop-menu {
+            background: #fff;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.06);
+            padding: 6px;
+            min-width: 210px;
+            margin-top: 6px !important;
+            animation: dropIn 0.18s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+       @@keyframes dropIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-item {
+            border-radius: 6px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            color: #2d3748;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
+            color: #0984e3;
+            font-size: 0.82rem;
+            flex-shrink: 0;
+        }
+
+        .dropdown-item:hover {
+            background: #ebf5ff;
+            color: #0984e3;
+        }
+
+        .dropdown-item:hover i { color: #0984e3; }
+
+        /* Separador sutil entre items */
+        .dropdown-item + .dropdown-item {
+            border-top: 1px solid #f1f5f9;
+        }
+
+        /* ── BOTÓN SALIR ────────────────────────────────────── */
+        .nav-salir .nav-link {
+            background: rgba(255,255,255,0.12) !important;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 7px !important;
+            color: #fff !important;
+            padding: 0.45rem 1rem !important;
+            font-size: 0.83rem;
+        }
+
+        .nav-salir .nav-link:hover {
+            background: rgba(255,255,255,0.22) !important;
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        /* ── USUARIO LOGUEADO (derecha) ─────────────────────── */
+        .nav-user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.88);
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0 0.6rem;
+        }
+
+        .nav-user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: 1.5px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        /* ── FOOTER ─────────────────────────────────────────── */
+        footer {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 0.75rem;
+            margin-top: 2rem;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js" crossorigin=""></script>
-
     <!-- NAVBAR -->
-    <nav class="navbar navbar-icon-top navbar-expand-lg navbar-dark bg-info" style="font-weight:bold">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="font-weight:bold">
         <a class="navbar-brand" href="@Url.Action("Index", "Home")">
             <img src="@Url.Content("~/Imagenes/tiendalogo.png")" width="110" height="45" alt="Logo Tienda Compu Space" />
         </a>
@@ -59,10 +193,22 @@
             </ul>
 
             <!-- Menú derecho -->
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
+            <ul class="navbar-nav ml-auto align-items-center">
+                @{
+                    var usuarioNav = Session["Usuario"] as CapaModelo.Usuario;
+                }
+                @if (usuarioNav != null)
+                {
+                    <li class="nav-item">
+                        <span class="nav-user-info">
+                            <span class="nav-user-avatar">👤</span>
+                            <span>@usuarioNav.Nombres</span>
+                        </span>
+                    </li>
+                }
+                <li class="nav-item nav-salir">
                     <a href="@Url.Action("Salir", "Home")" class="nav-link">
-                        <i class="fas fa-sign-out-alt"></i> <strong>Salir</strong>
+                        <i class="fas fa-sign-out-alt"></i> Salir
                     </a>
                 </li>
             </ul>
@@ -72,9 +218,8 @@
     <!-- CUERPO -->
     <div class="container-fluid mt-4">
         @RenderBody()
-        <hr />
-        <footer class="text-center text-muted small">
-            <p>&copy; @DateTime.Now.Year - Tienda Compu Space</p>
+        <footer class="text-center">
+            <p>&copy; @DateTime.Now.Year — Tienda Compu Space</p>
         </footer>
     </div>
 
@@ -87,11 +232,8 @@
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/bundles/bootstrap")
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/Content/PluginsJS")
 
-
-
-
     <!-- Configuración de URLs centralizadas -->
-<script type="text/javascript">
+    <script type="text/javascript">
         $.extend({
             MisUrls: {
                 url: {},
@@ -105,11 +247,9 @@
             _GuardarRol: '@Url.Action("Guardar", "Rol")',
             _DesactivarRol: '@Url.Action("Desactivar", "Rol")',
             _ListPermisosPorRol: '@Url.Action("ListPermisosPorRol", "Rol")',
-            _GuardarRolConPermisos: '@Url.Action("GuardarRolConPermisos", "Rol")', // NUEVO
-            _ListPermisosDisponibles: '@Url.Action("ListPermisosDisponibles", "Rol")' // NUEVO
+            _GuardarRolConPermisos: '@Url.Action("GuardarRolConPermisos", "Rol")',
+            _ListPermisosDisponibles: '@Url.Action("ListPermisosDisponibles", "Rol")'
         });
-
-
 
         // ---- PERMISOS ----
         $.MisUrls.urls({
@@ -118,24 +258,22 @@
         });
 
         // ---- USUARIO ----
-$.MisUrls.urls({
-    _ObtenerUsuarios: '@Url.Action("Obtener", "Usuario")',
-    _GuardarUsuario: '@Url.Action("Guardar", "Usuario")',
-    _EliminarUsuario: '@Url.Action("Eliminar", "Usuario")',
-        _CambiarEstadoUsuario: '@Url.Action("CambiarEstadoUsuario", "Usuario")', // nueva acción
-    _CrearUsuarioPendiente: '@Url.Action("CrearUsuarioPendiente", "Usuario")',
-    _CambiarClave: '@Url.Action("CambioContraseña", "Usuario")'
-});
+        $.MisUrls.urls({
+            _ObtenerUsuarios: '@Url.Action("Obtener", "Usuario")',
+            _GuardarUsuario: '@Url.Action("Guardar", "Usuario")',
+            _EliminarUsuario: '@Url.Action("Eliminar", "Usuario")',
+            _CambiarEstadoUsuario: '@Url.Action("CambiarEstadoUsuario", "Usuario")',
+            _CrearUsuarioPendiente: '@Url.Action("CrearUsuarioPendiente", "Usuario")',
+            _CambiarClave: '@Url.Action("CambioContraseña", "Usuario")'
+        });
 
-// ---- EMPLEADO ----
-$.MisUrls.urls({
-    _EsEmpleado: '@Url.Action("EsEmpleado", "Empleado")',
-    _BuscarEmpleadoPorCI: '@Url.Action("BuscarEmpleadoPorCI", "Usuario")',
-    _BuscarPorCI: '@Url.Action("BuscarPorCI", "Empleado")',
-    _ObtenerTiendasActivas: '@Url.Action("ObtenerTiendasActivas", "Empleado")' // NUEVO
-});
-
-
+        // ---- EMPLEADO ----
+        $.MisUrls.urls({
+            _EsEmpleado: '@Url.Action("EsEmpleado", "Empleado")',
+            _BuscarEmpleadoPorCI: '@Url.Action("BuscarEmpleadoPorCI", "Usuario")',
+            _BuscarPorCI: '@Url.Action("BuscarPorCI", "Empleado")',
+            _ObtenerTiendasActivas: '@Url.Action("ObtenerTiendasActivas", "Empleado")'
+        });
 
         // ---- PROVEEDOR ----
         $.MisUrls.urls({
@@ -197,12 +335,10 @@ $.MisUrls.urls({
         });
 
         // ---- REPORTE ----
-        // ---- REPORTE ----
-        // ---- REPORTE ----
         $.MisUrls.urls({
             _ObtenerReporteProducto: '@Url.Action("ObtenerProducto", "Reporte")',
             _ObtenerReporteVenta:    '@Url.Action("ObtenerVenta",   "Reporte")',
-            _ObtenerReporteBajas:    '@Url.Action("ObtenerBajas",   "Reporte")'  // ← ESTA
+            _ObtenerReporteBajas:    '@Url.Action("ObtenerBajas",   "Reporte")'
         });
 
         // ---- CLIENTE ----
@@ -219,12 +355,22 @@ $.MisUrls.urls({
             _CancelarMovimiento: '@Url.Action("Cancelar", "ConsultarCajaCompra")'
         });
 
+        // ---- INVENTARIO ----
+        $.MisUrls.urls({
+            _RegistrarTraslado:                 '@Url.Action("RegistrarTraslado",             "Inventario")',
+            _ObtenerHistorialTraslados:         '@Url.Action("ObtenerHistorialTraslados",     "Inventario")',
+            _BajarStock:                        '@Url.Action("BajarStock",                    "Inventario")',
+            _ObtenerProductosPorTiendaBaja:     '@Url.Action("ObtenerProductosPorTiendaBaja","Inventario")',
+            _ObtenerProductosPorTiendaTraslado: '@Url.Action("ObtenerProductosPorTienda",    "Inventario")',
+            _ObtenerStock:                      '@Url.Action("ObtenerStock",                  "Inventario")',
+            _ObtenerMotivosBaja:                '@Url.Action("Obtener",                       "MotivoBaja")'
+        });
+
         // ---- DATATABLES ----
         $.MisUrls.urls({
             Url_datatable_spanish: '@Url.Content("~/content/plugins/datatables/js/datatable_spanish.json")'
         });
-
-</script>
+    </script>
 
     <script>
         function activarMenu(menuactivo) {

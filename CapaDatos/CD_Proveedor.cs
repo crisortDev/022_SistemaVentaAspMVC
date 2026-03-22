@@ -49,7 +49,7 @@ namespace CapaDatos
                         rptListaProveedor.Add(new Proveedor()
                         {
                             IdProveedor = Convert.ToInt32(dr["IdProveedor"]),
-                            Ruc = dr["Ruc"].ToString(),
+                            Ruc = dr["RUC"].ToString(),
                             RazonSocial = dr["RazonSocial"].ToString(),
                             Telefono = dr["Telefono"].ToString(),
                             Correo = dr["Correo"].ToString(),

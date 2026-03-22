@@ -1,0 +1,72 @@
+﻿@{
+    ViewBag.Title = "Baja de Productos";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Inventario</a></li>
+        <li class="breadcrumb-item active">Baja de Productos</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-arrow-down"></i> Registrar Baja de Stock
+            </div>
+            <div class="card-body">
+
+                <!-- Tienda -->
+                <div class="form-group">
+                    <label>Tienda <span class="text-danger">*</span></label>
+                    <select id="cboTienda" class="form-control form-control-sm">
+                        <option value="">-- Seleccione tienda --</option>
+                    </select>
+                </div>
+
+                <!-- Producto -->
+                <div class="form-group">
+                    <label>Producto <span class="text-danger">*</span></label>
+                    <select id="cboProducto" class="form-control form-control-sm" disabled>
+                        <option value="">-- Seleccione producto --</option>
+                    </select>
+                    <small class="text-muted">Stock actual: <strong id="lblStockActual">-</strong></small>
+                </div>
+
+                <!-- Cantidad -->
+                <div class="form-group">
+                    <label>Cantidad a dar de baja <span class="text-danger">*</span></label>
+                    <input type="number" id="txtCantidad" class="form-control form-control-sm" min="1" value="1" />
+                </div>
+
+                <!-- Motivo -->
+                <div class="form-group">
+                    <label>Motivo de Baja <span class="text-danger">*</span></label>
+                    <select id="cboMotivoBaja" class="form-control form-control-sm">
+                        <option value="">-- Seleccione motivo --</option>
+                    </select>
+                </div>
+
+                <!-- Observaciones -->
+                <div class="form-group">
+                    <label>Observaciones</label>
+                    <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2"
+                              maxlength="255" placeholder="Detalle adicional (opcional)..."></textarea>
+                </div>
+
+                <button id="btnBajarStock" class="btn btn-danger btn-block">
+                    <i class="fas fa-arrow-down"></i> Confirmar Baja
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/Inventario_Baja.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

@@ -27,65 +27,107 @@ $(document).ready(function () {
     });
 
     tabladata = $('#tbdata').DataTable({
-        "ajax": {
-            "url": $.MisUrls.url._ObtenerProveedores,
-            "type": "GET",
-            "datatype": "json"
+        ajax: {
+            url: $.MisUrls.url._ObtenerProveedores,
+            type: "GET",
+            datatype: "json"
         },
-        "columns": [
-            { "data": "Ruc" },
-            { "data": "RazonSocial" },
-            { "data": "Telefono" },
-            { "data": "Correo" },
-            { "data": "Direccion" },
-            { "data": "Barrio" },
-            { "data": "Calle" },
-            { "data": "Referencia" },
+        scrollX: true,
+        responsive: false,
+        fixedColumns: {
+            leftColumns: 1,   // RUC siempre visible a la izquierda
+            rightColumns: 1   // Acciones siempre visible a la derecha
+        },
+        columns: [
+            { data: "Ruc" },
+            { data: "RazonSocial" },
+            { data: "Telefono" },
+            { data: "Correo" },
+            { data: "Ciudad" },
             {
-                "data": "Activo",
-                "render": function (data) {
+                data: "Activo",
+                render: function (data) {
                     return data
                         ? '<span class="badge badge-success">Activo</span>'
                         : '<span class="badge badge-danger">No Activo</span>';
                 }
             },
-            { "data": "Ciudad" },
             {
-                "data": "Geolocalizacion",
-                "render": function (data) {
-                    return `<button class='btn btn-info btn-sm' onclick='abrirMapaDesdeDataTable("${data}")'>Ver en Mapa</button>`;
-                }
+                data: "Geolocalizacion",
+                render: function (data) {
+                    if (!data || !data.includes(','))
+                        return '<span class="text-muted">Sin ubicación</span>';
+                    return `<button class='btn btn-info btn-sm' onclick='abrirMapaDesdeDataTable("${data}")'>
+                                <i class='fas fa-map-marker-alt'></i> Ver Mapa
+                            </button>`;
+                },
+                orderable: false,
+                searchable: false
             },
             {
-                "data": "IdProveedor",
-                "render": function (data, type, row) {
+                data: "IdProveedor",
+                render: function (data, type, row) {
+                    var rowJson = JSON.stringify(row).replace(/'/g, "\\'");
                     return `
-                    <button class='btn btn-primary btn-sm' onclick='abrirPopUpForm(${JSON.stringify(row)})'>
-                        <i class='fas fa-pen'></i>
-                    </button>
-                    <button class='btn btn-danger btn-sm ml-2' onclick='eliminar(${data})'>
-                        <i class='fa fa-trash'></i>
-                    </button>`;
+                        <button class='btn btn-info btn-sm' onclick='verDetalle(${rowJson})' title='Ver detalle'>
+                            <i class='fas fa-eye'></i>
+                        </button>
+                        <button class='btn btn-primary btn-sm ml-1' onclick='abrirPopUpForm(${rowJson})' title='Editar'>
+                            <i class='fas fa-pen'></i>
+                        </button>
+                        <button class='btn btn-danger btn-sm ml-1' onclick='eliminar(${data})' title='Eliminar'>
+                            <i class='fa fa-trash'></i>
+                        </button>`;
                 },
-                "orderable": false,
-                "searchable": false,
-                "width": "90px"
+                orderable: false,
+                searchable: false,
+                width: "120px"
             }
         ],
-        "language": {
-            "url": $.MisUrls.url.Url_datatable_spanish
-        },
-        scrollX: true,   // Habilitar scroll horizontal
-        responsive: false
+        language: {
+            url: $.MisUrls.url.Url_datatable_spanish
+        }
     });
-
-
 
     $('#FormModal').on('shown.bs.modal', function () {
         abrirMapa();
     });
 });
 
+// ── Ver detalle (solo lectura) ────────────────────────────
+function verDetalle(row) {
+    $('#detRuc').text(row.Ruc || '-');
+    $('#detRazonSocial').text(row.RazonSocial || '-');
+    $('#detTelefono').text(row.Telefono || '-');
+    $('#detCorreo').text(row.Correo || '-');
+    $('#detDireccion').text(row.Direccion || '-');
+    $('#detCiudad').text(row.Ciudad || '-');
+    $('#detBarrio').text(row.Barrio || '-');
+    $('#detCalle').text(row.Calle || '-');
+    $('#detReferencia').text(row.Referencia || '-');
+    $('#detEstado').html(row.Activo
+        ? '<span class="badge badge-success">Activo</span>'
+        : '<span class="badge badge-danger">No Activo</span>');
+
+    if (row.Geolocalizacion && row.Geolocalizacion.includes(',')) {
+        var partes = row.Geolocalizacion.split(',');
+        var lat = partes[0];
+        var lng = partes[1];
+        $('#detGeo').html(
+            `${row.Geolocalizacion} &nbsp;
+             <a href='https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}'
+                target='_blank' class='btn btn-sm btn-outline-info'>
+                 <i class='fas fa-map-marker-alt'></i> Ver mapa
+             </a>`
+        );
+    } else {
+        $('#detGeo').text('-');
+    }
+
+    $('#ModalDetalle').modal('show');
+}
+
+// ── Abrir formulario nuevo / editar ──────────────────────
 function abrirPopUpForm(json) {
     $("#txtid").val(0);
 
@@ -109,13 +151,13 @@ function abrirPopUpForm(json) {
         $("#txtBarrio").val("");
         $("#txtCalle").val("");
         $("#txtReferencia").val("");
-        $("#txtGeolocalizacion").val("");  // Limpia ubicación si es nuevo
+        $("#txtGeolocalizacion").val("");
     }
 
     $('#FormModal').modal('show');
 }
 
-
+// ── Guardar ──────────────────────────────────────────────
 function Guardar() {
     if (!$("#form").valid()) return;
 
@@ -156,6 +198,7 @@ function Guardar() {
     });
 }
 
+// ── Eliminar ─────────────────────────────────────────────
 function eliminar(id) {
     swal({
         title: "Mensaje",
@@ -184,15 +227,15 @@ function eliminar(id) {
     });
 }
 
+// ── Mapa dentro del formulario ───────────────────────────
 function abrirMapa() {
     if (mapForm !== null) {
         mapForm.remove();
     }
 
-    // Obtener coordenadas guardadas o establecer valores por defecto
     let geoStr = $("#txtGeolocalizacion").val();
-    let lat = -25.2637;   // default Lat (Asunción Paraguay)
-    let lng = -57.5759;   // default Lng
+    let lat = -25.2637;
+    let lng = -57.5759;
 
     if (geoStr && geoStr.includes(",")) {
         const parts = geoStr.split(",");
@@ -212,13 +255,11 @@ function abrirMapa() {
 
     markerForm = L.marker([lat, lng], { draggable: true }).addTo(mapForm);
 
-    // Actualizar coordenadas al mover el marcador
     markerForm.on('moveend', function (e) {
         const pos = e.target.getLatLng();
         $("#txtGeolocalizacion").val(`${pos.lat},${pos.lng}`);
     });
 
-    // También permitir seleccionar ubicación con click en el mapa
     mapForm.on('click', function (e) {
         markerForm.setLatLng(e.latlng);
         $("#txtGeolocalizacion").val(`${e.latlng.lat},${e.latlng.lng}`);
@@ -229,6 +270,7 @@ function abrirMapa() {
     }, 300);
 }
 
+// ── Abrir mapa externo desde la tabla ───────────────────
 function abrirMapaDesdeDataTable(coordenadas) {
     if (!coordenadas || !coordenadas.includes(',')) {
         alert("Coordenadas no disponibles o inválidas.");
@@ -242,22 +284,8 @@ function abrirMapaDesdeDataTable(coordenadas) {
         return;
     }
 
-    const lat = coords[0];
-    const lng = coords[1];
-
-    window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`, '_blank');
-}
-
-function geolocalizarDireccion(direccion) {
-    const apiKey = "66a0018652cf42cb97c4f2e3909abb1d";
-    const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(direccion)}&key=${apiKey}`;
-
-    $.getJSON(url, function (data) {
-        if (data.results.length > 0) {
-            const latlng = data.results[0].geometry;
-            $("#txtGeolocalizacion").val(`${latlng.lat},${latlng.lng}`);
-        } else {
-            alert("No se pudo obtener la ubicación.");
-        }
-    });
+    window.open(
+        `https://www.openstreetmap.org/?mlat=${coords[0]}&mlon=${coords[1]}#map=17/${coords[0]}/${coords[1]}`,
+        '_blank'
+    );
 }

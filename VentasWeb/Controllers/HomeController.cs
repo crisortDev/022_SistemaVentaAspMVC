@@ -8,23 +8,14 @@ namespace VentasWeb.Controllers
         private static Usuario SesionUsuario;
         public ActionResult Index()
         {
-            if (Session["Usuario"] != null)
-                SesionUsuario = (Usuario)Session["Usuario"];
-            else
-            {
-                SesionUsuario = new Usuario();
-            }
-            try
-            {
-                ViewBag.NombreUsuario = SesionUsuario.Nombres + " " + SesionUsuario.Apellidos;
-                ViewBag.RolUsuario = SesionUsuario.oRol.Descripcion;
+            // Línea 20 probablemente es algo como esto:
+            Usuario usuario = (Usuario)Session["Usuario"]; // ← null si no hay sesión
 
-            }
-            catch
-            {
+            if (usuario == null)
+                return RedirectToAction("Index", "Login");
 
-            }
-
+            ViewBag.NombreUsuario = usuario.Nombres + " " + usuario.Apellidos;
+            ViewBag.RolUsuario = usuario.oRol?.Descripcion ?? "";
 
             return View();
         }

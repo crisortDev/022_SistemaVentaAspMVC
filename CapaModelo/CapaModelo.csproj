@@ -45,8 +45,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BajaProducto.cs" />
     <Compile Include="MotivoBaja.cs" />
     <Compile Include="Persona.cs" />
+    <Compile Include="ProductoTiendaBaja.cs" />
     <Compile Include="ReporteBaja.cs" />
     <Compile Include="ResultadoRegistroUsuario.cs" />
     <Compile Include="ResultadoSP.cs" />
@@ -70,8 +72,10 @@
     <Compile Include="Respuesta.cs" />
     <Compile Include="Rol.cs" />
     <Compile Include="RolPermiso.cs" />
+    <Compile Include="StockTienda.cs" />
     <Compile Include="SubMenu.cs" />
     <Compile Include="Tienda.cs" />
+    <Compile Include="Traslado.cs" />
     <Compile Include="Usuario.cs" />
     <Compile Include="ValidaStockMaximo.cs" />
     <Compile Include="Venta.cs" />

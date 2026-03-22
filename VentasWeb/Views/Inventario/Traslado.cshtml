@@ -1,0 +1,122 @@
+﻿@{
+    ViewBag.Title = "Traslado entre Tiendas";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Inventario</a></li>
+        <li class="breadcrumb-item active">Traslado entre Tiendas</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <!-- PANEL FORMULARIO -->
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-white">
+                <i class="fas fa-exchange-alt"></i> Nuevo Traslado
+            </div>
+            <div class="card-body">
+
+                <!-- Tienda Origen -->
+                <div class="form-group">
+                    <label>Tienda Origen <span class="text-danger">*</span></label>
+                    <select id="cboTiendaOrigen" class="form-control form-control-sm">
+                        <option value="">-- Seleccione tienda origen --</option>
+                    </select>
+                </div>
+
+                <!-- Producto -->
+                <div class="form-group">
+                    <label>Producto <span class="text-danger">*</span></label>
+                    <select id="cboProducto" class="form-control form-control-sm" disabled>
+                        <option value="">-- Seleccione producto --</option>
+                    </select>
+                    <small class="text-muted">Stock disponible: <strong id="lblStockDisponible">-</strong></small>
+                </div>
+
+                <!-- Tienda Destino -->
+                <div class="form-group">
+                    <label>Tienda Destino <span class="text-danger">*</span></label>
+                    <select id="cboTiendaDestino" class="form-control form-control-sm">
+                        <option value="">-- Seleccione tienda destino --</option>
+                    </select>
+                </div>
+
+                <!-- Cantidad -->
+                <div class="form-group">
+                    <label>Cantidad <span class="text-danger">*</span></label>
+                    <input type="number" id="txtCantidad" class="form-control form-control-sm" min="1" value="1" />
+                </div>
+
+                <!-- Observaciones -->
+                <div class="form-group">
+                    <label>Observaciones</label>
+                    <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2" maxlength="500"></textarea>
+                </div>
+
+                <button id="btnRegistrarTraslado" class="btn btn-warning btn-block">
+                    <i class="fas fa-exchange-alt"></i> Registrar Traslado
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL HISTORIAL -->
+    <div class="col-md-8">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <i class="far fa-list-alt"></i> Historial de Traslados
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-3">
+                        <label>Fecha Desde</label>
+                        <input type="text" id="txtFechaInicio" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label>Fecha Hasta</label>
+                        <input type="text" id="txtFechaFin" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label>Tienda</label>
+                        <select id="cboFiltroTienda" class="form-control form-control-sm">
+                            <option value="0">-- Todas --</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-3 d-flex align-items-end">
+                        <button onclick="buscarHistorial()" class="btn btn-info btn-sm btn-block">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+                <hr />
+                <div class="table-responsive">
+                    <table id="tbTraslados" class="table table-striped table-bordered table-sm">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Código</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Cantidad</th>
+                                <th>Usuario</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/Inventario_Traslado.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

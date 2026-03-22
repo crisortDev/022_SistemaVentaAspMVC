@@ -100,13 +100,11 @@ function guardarClave() {
         setLoading('btnGuardar', false);
 
         if (resp.success) {
-            // Paso 3 completado — redirigir
             $('#cambioOk').text('✓ Contraseña guardada. Redirigiendo...').show();
             setTimeout(function () {
-                window.location.href = '/Home/Index';
+                window.location.href = '/Home';
             }, 1500);
         } else {
-            // Error del servidor (ej: contraseña reutilizada)
             mostrarError('cambioError', '⚠️ ' + resp.mensaje);
             // Limpiar campos para que ingrese una nueva
             $('#nuevaClave').val('');
@@ -140,16 +138,23 @@ $(document).ready(function () {
 
             if (resp.success) {
                 if (resp.requiereCambio) {
-                    // Mostrar panel de cambio de contraseña
-                    $('#panelTitle').text('Crear contraseña');
-                    $('#panelSubtitle').text('Primer acceso — establecé tu contraseña personal');
+                    // Primer acceso o contraseña expirada
+                    var esPrimerAcceso = resp.motivo !== 'expiracion';
+                    $('#panelTitle').text('Cambiar contraseña');
+                    $('#panelSubtitle').text(
+                        esPrimerAcceso
+                            ? 'Primer acceso — establecé tu contraseña personal'
+                            : '⚠ Tu contraseña expiró — debés establecer una nueva para continuar'
+                    );
                     mostrarPanel('panelCambio');
                 } else {
-                    window.location.href = '/Home/Index';
+                    // Login exitoso — redirigir a Home
+                    window.location.href = '/Home';
                 }
             } else {
                 mostrarError('loginError', resp.mensaje);
             }
+
         }).fail(function () {
             setLoading('btnLogin', false);
             mostrarError('loginError', 'Error de conexión. Intentá de nuevo.');

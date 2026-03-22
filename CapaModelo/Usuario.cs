@@ -37,6 +37,7 @@ namespace CapaModelo
         public DateTime FechaActivacion { get; set; }
         public DateTime FechaBaja { get; set; }
         public DateTime FechaUltimoLogin { get; set; }
+        public DateTime? FechaCambioPassword { get; set; }
 
         // ── Propiedades de navegación ─────────────────────────────
         public Rol oRol { get; set; }
