@@ -141,8 +141,12 @@
             {
                 data: 'IdEmpleado',
                 render: function (data, type, row) {
+                    // Botón Ver (solo lectura)
+                    let botones = `<button class="btn btn-sm btn-info mr-1" onclick='verEmpleado(${JSON.stringify(row)})' title="Ver detalle">
+                        <i class="fa fa-eye"></i></button>`;
+
                     // Botón Editar siempre disponible
-                    let botones = `<button class="btn btn-sm btn-primary mr-1" onclick="abrirPopUpFormEmpleado(${data}, true)" title="Editar">
+                    botones += `<button class="btn btn-sm btn-primary mr-1" onclick="abrirPopUpFormEmpleado(${data}, true)" title="Editar">
                         <i class="fa fa-edit"></i></button>`;
 
                     // Borrado lógico: toggle Activo/Inactivo según estado actual
@@ -158,11 +162,31 @@
                 },
                 orderable: false,
                 searchable: false,
-                width: "100px"
+                width: "130px"
             }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish }
     });
+
+    // Ver detalle empleado (solo lectura)
+    window.verEmpleado = function (json) {
+        $("#verDocumento").text(json.Documento || '—');
+        $("#verNombres").text(json.Nombres || '—');
+        $("#verApellidos").text(json.Apellidos || '—');
+        $("#verCorreo").text(json.Correo || '—');
+        $("#verTelefono").text(json.Telefono || '—');
+        if (json.FechaIngreso) {
+            var timestamp = parseInt(json.FechaIngreso.replace(/\/Date\((\d+)\)\//, '$1'));
+            var fecha = new Date(timestamp);
+            $("#verFechaIngreso").text(fecha.toLocaleDateString('es-ES'));
+        } else {
+            $("#verFechaIngreso").text('—');
+        }
+        $("#verEstado").html(json.Activo
+            ? '<span class="badge badge-success">Activo</span>'
+            : '<span class="badge badge-danger">Inactivo</span>');
+        $('#VerModal').modal('show');
+    };
 
     // Cambiar estado Activo/Inactivo (borrado lógico)
     window.CambiarEstadoEmpleado = function (id, activar) {

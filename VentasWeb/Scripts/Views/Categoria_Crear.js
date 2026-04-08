@@ -103,7 +103,6 @@ $(document).ready(function () {
 // ── Ver detalle (solo lectura) ────────────────────────────
 function verCategoria(json) {
     var porcentaje = parseFloat(json.PorcentajeGanancia) || 0;
-    $("#verId").text(json.IdCategoria);
     $("#verDescripcion").text(json.Descripcion);
     $("#verPorcentaje").text(porcentaje.toFixed(2));
     $("#verEstado").html(json.Activo

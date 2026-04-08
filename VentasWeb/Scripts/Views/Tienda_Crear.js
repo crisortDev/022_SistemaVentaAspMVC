@@ -44,12 +44,13 @@ $(document).ready(function () {
             },
             {
                 "data": "IdTienda", "render": function (data, type, row, meta) {
-                    return "<button class='btn btn-primary btn-sm' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>" +
-                        "<button class='btn btn-danger btn-sm ml-2' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>"
+                    return "<button class='btn btn-info btn-sm mr-1' type='button' onclick='verTienda(" + JSON.stringify(row) + ")' title='Ver detalle'><i class='fa fa-eye'></i></button>" +
+                        "<button class='btn btn-primary btn-sm mr-1' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>" +
+                        "<button class='btn btn-danger btn-sm' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>"
                 },
                 "orderable": false,
                 "searchable": false,
-                "width": "90px"
+                "width": "130px"
             }
 
         ],
@@ -62,6 +63,19 @@ $(document).ready(function () {
 
 })
 
+
+// ── Ver detalle (solo lectura) ────────────────────────────
+function verTienda(json) {
+    $("#verId").text(json.IdTienda);
+    $("#verNombre").text(json.Nombre);
+    $("#verRuc").text(json.RUC);
+    $("#verDireccion").text(json.Direccion);
+    $("#verTelefono").text(json.Telefono);
+    $("#verEstado").html(json.Activo
+        ? '<span class="badge badge-success">Activo</span>'
+        : '<span class="badge badge-danger">No Activo</span>');
+    $('#VerModal').modal('show');
+}
 
 function abrirPopUpForm(json) {
 

@@ -60,6 +60,47 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════ -->
+<!--  MODAL — Ver Usuario (solo lectura)                  -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="modal fade" id="VerModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fa fa-eye mr-1"></i> Detalle de Usuario</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-2">
+                    <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Nombres</label>
+                    <div class="col-sm-7"><p class="form-control-plaintext ver-text font-weight-bold" id="verNombres"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Apellidos</label>
+                    <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verApellidos"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Correo</label>
+                    <div class="col-sm-7"><p class="form-control-plaintext ver-text small" id="verCorreo"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Rol</label>
+                    <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verRol"></p></div>
+                </div>
+                <div class="form-group row mb-0">
+                    <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Estado</label>
+                    <div class="col-sm-7 d-flex align-items-center"><span id="verEstado"></span></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
 <!--  MODAL — Crear Usuario                              -->
 <!-- ═══════════════════════════════════════════════════ -->
 <div class="modal fade" id="FormUsuario" tabindex="-1" role="dialog"

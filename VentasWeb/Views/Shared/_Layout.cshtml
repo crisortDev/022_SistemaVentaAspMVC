@@ -28,6 +28,13 @@
     @RenderSection("estilos", required: false)
 
     <style>
+        /* ── MODALES VER — evita que textos largos (emails, URLs) se salgan ── */
+        .ver-text {
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal !important;
+        }
+
         /* ── NAVBAR ─────────────────────────────────────────── */
         .navbar {
             background: linear-gradient(90deg, #0984e3 0%, #00b4d8 100%) !important;

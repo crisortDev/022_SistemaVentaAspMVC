@@ -80,9 +80,13 @@ function inicializarDataTable() {
                 data: null,
                 orderable: false,
                 searchable: false,
-                width: "150px",
+                width: "200px",
                 render: function (data, type, row) {
                     var rowData = htmlEscape(JSON.stringify(row));
+
+                    var btnVer = '<button class="btn btn-info btn-sm mr-1" ' +
+                        'onclick="verProducto(\'' + rowData + '\')" title="Ver detalle">' +
+                        '<i class="fa fa-eye"></i></button>';
 
                     var btnEditar = '<button class="btn btn-primary btn-sm mr-1" ' +
                         'onclick="abrirPopUpForm(\'' + rowData + '\')">' +
@@ -100,7 +104,7 @@ function inicializarDataTable() {
                             '<i class="fa fa-check"></i> Reactivar</button>';
                     }
 
-                    return '<div class="btn-group">' + btnEditar + btnEstado + '</div>';
+                    return '<div class="btn-group">' + btnVer + btnEditar + btnEstado + '</div>';
                 }
             }
         ],
@@ -117,6 +121,22 @@ function htmlEscape(str) {
         .replace(/'/g, '&#39;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
+}
+
+function verProducto(jsonString) {
+    try {
+        var json = JSON.parse(jsonString.replace(/&#39;/g, '"'));
+        $("#verCodigo").text(json.Codigo || '—');
+        $("#verNombre").text(json.Nombre || '—');
+        $("#verDescripcion").text(json.Descripcion || '—');
+        $("#verCategoria").text((json.oCategoria && json.oCategoria.Descripcion) ? json.oCategoria.Descripcion : 'Sin categoría');
+        $("#verEstado").html(json.Activo
+            ? '<span class="badge badge-success">Activo</span>'
+            : '<span class="badge badge-danger">Inactivo</span>');
+        $('#VerModal').modal('show');
+    } catch (e) {
+        swal("Error", "No se pudo cargar el detalle", "error");
+    }
 }
 
 function abrirPopUpForm(jsonString) {

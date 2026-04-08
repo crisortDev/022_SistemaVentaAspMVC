@@ -70,13 +70,15 @@
                 {
                     data: 'IdUsuario',
                     render: function (data, type, row) {
-                        return row.Activo
+                        var btnVer = '<button class="btn btn-sm btn-info mr-1" onclick=\'verUsuario(' + JSON.stringify(row) + ')\' title="Ver detalle"><i class="fa fa-eye"></i></button>';
+                        var btnEstado = row.Activo
                             ? '<button class="btn btn-sm btn-warning" onclick="CambiarEstado(' + data + ',false)" title="Desactivar"><i class="fa fa-toggle-off"></i></button>'
                             : '<button class="btn btn-sm btn-success" onclick="CambiarEstado(' + data + ',true)"  title="Activar"><i class="fa fa-check"></i></button>';
+                        return btnVer + btnEstado;
                     },
                     orderable: false,
                     searchable: false,
-                    width: "80px"
+                    width: "120px"
                 }
             ],
             language: { url: $.MisUrls.url.Url_datatable_spanish }
@@ -185,6 +187,20 @@
             }
         });
     });
+
+    // ══════════════════════════════════════════════════
+    //  VER DETALLE — solo lectura
+    // ══════════════════════════════════════════════════
+    window.verUsuario = function (json) {
+        $("#verNombres").text(json.Nombres);
+        $("#verApellidos").text(json.Apellidos);
+        $("#verCorreo").text(json.Correo);
+        $("#verRol").text((json.oRol && json.oRol.Descripcion) ? json.oRol.Descripcion : '—');
+        $("#verEstado").html(json.Activo
+            ? '<span class="badge badge-success">Activo</span>'
+            : '<span class="badge badge-danger">Inactivo</span>');
+        $('#VerModal').modal('show');
+    };
 
     // ══════════════════════════════════════════════════
     //  CAMBIAR ESTADO — _CambiarEstadoUsuario → Usuario/CambiarEstadoUsuario

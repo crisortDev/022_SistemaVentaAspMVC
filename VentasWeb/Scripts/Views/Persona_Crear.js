@@ -33,9 +33,11 @@
                 data: 'IdPersona',
                 orderable: false,
                 searchable: false,
-                width: '90px',
+                width: '120px',
                 render: function (data, type, row) {
-                    var btns = '<button class="btn btn-xs btn-primary mr-1" onclick="abrirPopUpForm(' + data + ')" title="Editar">' +
+                    var btns = '<button class="btn btn-xs btn-info mr-1" onclick=\'verPersona(' + JSON.stringify(row) + ')\' title="Ver detalle">' +
+                        '<i class="fa fa-eye"></i></button>';
+                    btns += '<button class="btn btn-xs btn-primary mr-1" onclick="abrirPopUpForm(' + data + ')" title="Editar">' +
                         '<i class="fa fa-edit"></i></button>';
                     if (row.Activo) {
                         btns += '<button class="btn btn-xs btn-warning" onclick="CambiarEstado(' + data + ', false)" title="Desactivar">' +
@@ -107,6 +109,25 @@
         }
     });
 });
+
+// ── Ver detalle (solo lectura) ────────────────────────────
+function verPersona(json) {
+    $("#verTipoDocumento").text(json.TipoDocumento || '—');
+    $("#verDocumento").text(json.Documento || '—');
+    $("#verNombres").text(json.Nombres || '—');
+    $("#verApellidos").text(json.Apellidos || '—');
+    $("#verRazonSocial").text(json.RazonSocial || '—');
+    $("#verCorreo").text(json.Correo || '—');
+    $("#verTelefono").text(json.Telefono || '—');
+    $("#verCalle1").text(json.Calle1 || '—');
+    $("#verCalle2").text(json.Calle2 || '—');
+    $("#verCiudad").text(json.Ciudad || '—');
+    $("#verBarrio").text(json.Barrio || '—');
+    $("#verEstado").html(json.Activo
+        ? '<span class="badge badge-success">Activo</span>'
+        : '<span class="badge badge-danger">Inactivo</span>');
+    $('#VerModal').modal('show');
+}
 
 // ── Cambiar estado activo/inactivo ────────────────────────
 function CambiarEstado(id, activar) {

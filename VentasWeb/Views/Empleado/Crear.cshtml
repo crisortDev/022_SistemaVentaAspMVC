@@ -51,6 +51,53 @@
     </div>
 </div>
 
+<!-- Modal Ver Empleado (solo lectura) -->
+<div class="modal fade" id="VerModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fa fa-eye mr-1"></i> Detalle de Empleado</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label font-weight-bold text-muted small">Documento</label>
+                    <div class="col-sm-8"><p class="form-control-plaintext ver-text font-weight-bold" id="verDocumento"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label font-weight-bold text-muted small">Nombres</label>
+                    <div class="col-sm-8"><p class="form-control-plaintext ver-text" id="verNombres"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label font-weight-bold text-muted small">Apellidos</label>
+                    <div class="col-sm-8"><p class="form-control-plaintext ver-text" id="verApellidos"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label font-weight-bold text-muted small">Correo</label>
+                    <div class="col-sm-8"><p class="form-control-plaintext ver-text small" id="verCorreo"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label font-weight-bold text-muted small">Teléfono</label>
+                    <div class="col-sm-8"><p class="form-control-plaintext ver-text" id="verTelefono"></p></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label font-weight-bold text-muted small">Fecha Ingreso</label>
+                    <div class="col-sm-8"><p class="form-control-plaintext ver-text" id="verFechaIngreso"></p></div>
+                </div>
+                <div class="form-group row mb-0">
+                    <label class="col-sm-4 col-form-label font-weight-bold text-muted small">Estado</label>
+                    <div class="col-sm-8 d-flex align-items-center"><span id="verEstado"></span></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Empleado -->
 <div class="modal fade" id="FormEmpleado" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
     <div class="modal-dialog" role="document">

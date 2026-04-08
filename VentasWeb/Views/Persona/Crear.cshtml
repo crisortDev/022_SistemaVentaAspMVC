@@ -46,6 +46,81 @@
     </div>
 </div>
 
+<!-- ══════════════ MODAL VER (solo lectura) ══════════════ -->
+<div class="modal fade" id="VerModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fa fa-eye mr-1"></i> Detalle de Persona</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Tipo Doc.</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verTipoDocumento"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Documento</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text font-weight-bold" id="verDocumento"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Nombres</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verNombres"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Apellidos</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verApellidos"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Razón Social</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verRazonSocial"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Estado</label>
+                            <div class="col-sm-7 d-flex align-items-center"><span id="verEstado"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Correo</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text small" id="verCorreo"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Teléfono</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verTelefono"></p></div>
+                        </div>
+                        <hr class="my-2" />
+                        <p class="text-muted small mb-1 font-weight-bold"><i class="fa fa-map-marker mr-1"></i> Dirección</p>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Calle Principal</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verCalle1"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Calle Secundaria</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verCalle2"></p></div>
+                        </div>
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Ciudad</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verCiudad"></p></div>
+                        </div>
+                        <div class="form-group row mb-0">
+                            <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Barrio</label>
+                            <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verBarrio"></p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ══════════════ MODAL ══════════════ -->
 <div class="modal fade" id="FormModal" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">

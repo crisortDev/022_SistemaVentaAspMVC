@@ -31,8 +31,12 @@ $(document).ready(function () {
                 data: 'IdMotivoBaja',
                 orderable: false,
                 searchable: false,
-                width: '120px',
+                width: '140px',
                 render: function (data, type, row) {
+                    var btnVer = '<button class="btn btn-xs btn-info mr-1" ' +
+                        'onclick=\'verMotivoBaja(' + JSON.stringify(row) + ')\' title="Ver detalle">' +
+                        '<i class="fa fa-eye"></i></button>';
+
                     var btnEditar = '<button class="btn btn-xs btn-primary mr-1" ' +
                         'onclick=\'abrirPopUpForm(' + JSON.stringify(row) + ')\' title="Editar">' +
                         '<i class="fa fa-edit"></i></button>';
@@ -51,7 +55,7 @@ $(document).ready(function () {
                             '<i class="fa fa-check"></i></button>';
                     }
 
-                    return btnEditar + btnEstado;
+                    return btnVer + btnEditar + btnEstado;
                 }
             }
         ]
@@ -64,6 +68,16 @@ $(document).ready(function () {
         this.setSelectionRange(pos, pos);
     });
 });
+
+// ── Ver detalle (solo lectura) ────────────────────────────
+function verMotivoBaja(json) {
+    $("#verId").text(json.IdMotivoBaja);
+    $("#verDescripcion").text(json.Descripcion);
+    $("#verEstado").html(json.Activo
+        ? '<span class="badge badge-success">Activo</span>'
+        : '<span class="badge badge-danger">Inactivo</span>');
+    $('#VerModal').modal('show');
+}
 
 // ── Abrir modal ───────────────────────────────────────────
 function abrirPopUpForm(json) {
