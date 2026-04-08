@@ -10,7 +10,7 @@ using VentasWeb.Filters;
 namespace VentasWeb.Controllers
 {
     [AuthorizeRol("Cliente", "*")]
-    public class ClienteController : Controller
+    public class ClienteController : BaseController
     {
         // GET: Cliente
         public ActionResult Crear()

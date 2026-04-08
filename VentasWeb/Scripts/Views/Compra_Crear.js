@@ -1,6 +1,7 @@
 ﻿var tablaproveedor;
 var tablatienda;
 var tablaproducto;
+
 // Extensión jQuery para inputFilter (previene entrada inválida)
 $.fn.inputFilter = function (inputFilter) {
     return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function () {
@@ -20,11 +21,42 @@ $.fn.inputFilter = function (inputFilter) {
 $(document).ready(function () {
     activarMenu("Compras");
     inicializarDataTables();
+
+    // ── Controlar sección tienda según rol ────────────────
+    if (!AppSession.esSuperAdmin) {
+        // Ocultar botón buscar tienda — el usuario no puede cambiarla
+        $("#divBtnBuscarTienda").hide();
+
+        // Cargar automáticamente la tienda del usuario
+        cargarTiendaAutomatica(AppSession.idTienda);
+    }
+
     $(document).on('click', '#tbCompra tbody button.btn-danger', function () {
         $(this).closest('tr').remove();
         actualizarTotalesCompra();
     });
 });
+
+// Carga automática de tienda para usuarios no SuperAdmin
+function cargarTiendaAutomatica(idTienda) {
+    $.ajax({
+        url: $.MisUrls.url._ObtenerTiendas,
+        type: "GET",
+        dataType: "json",
+        success: function (data) {
+            if (data && data.data) {
+                var tienda = data.data.find(function (t) { return t.IdTienda == idTienda; });
+                if (tienda) {
+                    $("#txtIdTienda").val(tienda.IdTienda);
+                    $("#txtRucTienda").val(tienda.RUC);
+                    $("#txtNombreTienda").val(tienda.Nombre);
+                    actualizarProductosPorTienda(tienda.IdTienda);
+                }
+            }
+        }
+    });
+}
+
 // Delegación del evento para seleccionar proveedor desde el modal
 $(document).on('click', '.seleccionar-proveedor', function () {
     const id = $(this).data('id');
@@ -68,54 +100,52 @@ function inicializarDataTables() {
         "language": lenguajeDataTable()
     });
 
-
-    // DataTable Tiendas
-    tablatienda = $('#tbTienda').DataTable({
-        "ajax": {
-            "url": $.MisUrls.url._ObtenerTiendas,
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            {
-                "data": null,
-                "render": function (data, type, row) {
-                    return `
-                    <button class="btn btn-sm btn-primary seleccionar-tienda"
-                            data-id="${row.IdTienda}"
-                            data-ruc="${row.RUC}"
-                            data-nombre="${row.Nombre}">
-                        <i class="fas fa-check"></i>
-                    </button>`;
-                },
-                "orderable": false,
-                "searchable": false,
-                "width": "60px"
+    // DataTable Tiendas — solo inicializa si es SuperAdmin
+    if (AppSession.esSuperAdmin) {
+        tablatienda = $('#tbTienda').DataTable({
+            "ajax": {
+                "url": $.MisUrls.url._ObtenerTiendas,
+                "type": "GET",
+                "datatype": "json"
             },
-            { "data": "RUC" },
-            { "data": "Nombre" },
-            {
-                "data": "Direccion",
-                "render": function (data, type, row) {
-                    // Suponiendo que dirección pueda ser texto normal
-                    return data;
+            "columns": [
+                {
+                    "data": null,
+                    "render": function (data, type, row) {
+                        return `
+                        <button class="btn btn-sm btn-primary seleccionar-tienda"
+                                data-id="${row.IdTienda}"
+                                data-ruc="${row.RUC}"
+                                data-nombre="${row.Nombre}">
+                            <i class="fas fa-check"></i>
+                        </button>`;
+                    },
+                    "orderable": false,
+                    "searchable": false,
+                    "width": "60px"
+                },
+                { "data": "RUC" },
+                { "data": "Nombre" },
+                {
+                    "data": "Direccion",
+                    "render": function (data) { return data; }
                 }
-            }
-        ],
-        "language": lenguajeDataTable()
-    });
+            ],
+            "language": lenguajeDataTable()
+        });
 
-    $(document).on('click', '.seleccionar-tienda', function () {
-        const id = $(this).data('id');
-        const ruc = $(this).data('ruc');
-        const nombre = $(this).data('nombre');
+        $(document).on('click', '.seleccionar-tienda', function () {
+            const id = $(this).data('id');
+            const ruc = $(this).data('ruc');
+            const nombre = $(this).data('nombre');
 
-        $("#txtIdTienda").val(id);
-        $("#txtRucTienda").val(ruc);
-        $("#txtNombreTienda").val(nombre);
-        actualizarProductosPorTienda(id);
-        $('#modalTienda').modal('hide');
-    });
+            $("#txtIdTienda").val(id);
+            $("#txtRucTienda").val(ruc);
+            $("#txtNombreTienda").val(nombre);
+            actualizarProductosPorTienda(id);
+            $('#modalTienda').modal('hide');
+        });
+    }
 
     $(document).on('click', '.seleccionar-producto', function () {
         const id = $(this).data('id');
@@ -130,7 +160,6 @@ function inicializarDataTables() {
     });
 
     // DataTable Productos
-    // Inicialización DataTable Productos con data-iva agregado para obtener IVA real
     tablaproducto = $('#tbProducto').DataTable({
         "ajax": {
             "url": `${$.MisUrls.url._ObtenerProductosPorTienda}?IdTienda=0`,
@@ -165,68 +194,37 @@ function inicializarDataTables() {
         "language": lenguajeDataTable()
     });
 
-    // Evento para seleccionar producto y rellenar campos, sin afectar historial
+    // Evento seleccionar producto
     $(document).on('click', '.seleccionar-producto', function () {
         const id = $(this).data('id');
         const codigo = $(this).data('codigo');
         const nombre = $(this).data('nombre');
-        const iva = $(this).data('iva') || 10; // IVA que viene o 10 por defecto
+        const iva = $(this).data('iva') || 10;
 
         $("#txtIdProducto").val(id);
         $("#txtCodigoProducto").val(codigo);
         $("#txtNombreProducto").val(nombre);
         $("#txtIvaPorcentaje").val(iva);
-
-        // Inicializa Cantidad y Precio Compra para ingreso manual
         $("#txtCantidadProducto").val("0");
         $("#txtPrecioCompraProducto").val("0");
-
-        // Limpia Precio Compra con IVA
         $("#txtPrecioCompraConIva").val("0");
 
-        // Fuerza cálculo para actualizar el campo Precio Compra c/IVA
         calcularPrecioConIva();
-
         $('#modalProducto').modal('hide');
     });
 
-    // Función para calcular Precio Compra con IVA
     function calcularPrecioConIva() {
         const precioCompra = parseFloat($("#txtPrecioCompraProducto").val()) || 0;
         const iva = parseFloat($("#txtIvaPorcentaje").val()) || 0;
-
         const precioConIva = precioCompra * (1 + (iva / 100));
         $("#txtPrecioCompraConIva").val(formatearMonedaGs(Math.round(precioConIva)));
     }
 
-    // Evento para recalcular Precio Compra con IVA al cambiar Precio o IVA
     $("#txtPrecioCompraProducto, #txtIvaPorcentaje").on("input", function () {
         calcularPrecioConIva();
     });
 
-    // Función formatear con separadores de miles
-    function formatearMonedaGs(valor) {
-        if (isNaN(valor)) return "0";
-        return valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-
-
     configurarFiltrosEntrada();
-}
-
-function columnaBotonSeleccion(clickHandler) {
-    return {
-        "data": null,
-        "render": (data, type, row) =>
-            `<button class="btn btn-sm btn-primary ml-2" 
-                    type="button" 
-                    onclick="${clickHandler.name}(${JSON.stringify(row)})">
-                <i class="fas fa-check"></i>
-            </button>`,
-        "orderable": false,
-        "searchable": false,
-        "width": "90px"
-    };
 }
 
 function lenguajeDataTable() {
@@ -234,32 +232,25 @@ function lenguajeDataTable() {
 }
 
 function configurarFiltrosEntrada() {
-    // Configurar filtros de entrada numéricos
     $("#txtCantidadProducto").inputFilter(value => /^\d*$/.test(value));
     $("#txtPrecioCompraProducto").inputFilter(value => /^\d*[.]?\d{0,2}$/.test(value));
-    // Solo permitir números y decimales
     $("#txtIvaPorcentaje").inputFilter(value => /^\d{0,2}([.]\d{0,2})?$/.test(value));
 
-    // Evento que recalcula el Precio Compra con IVA cuando cambia Precio o IVA %
     $("#txtPrecioCompraProducto, #txtIvaPorcentaje").on("input", function () {
         calcularPrecioConIva();
     });
 
-
-    // Evento búsqueda por código producto
     $("#txtCodigoProducto").on('keypress', async function (e) {
         if (e.which === 13) await buscarProductoPorCodigo();
     });
 }
+
 function calcularPrecioConIva() {
     const precioCompra = parseFloat($("#txtPrecioCompraProducto").val()) || 0;
     const iva = parseFloat($("#txtIvaPorcentaje").val()) || 0;
-
     const precioConIva = precioCompra * (1 + (iva / 100));
-    // Asignar valor formateado
     $("#txtPrecioCompraConIva").val(formatearMonedaGs(Math.round(precioConIva)));
 }
-
 
 async function buscarProductoPorCodigo() {
     try {
@@ -282,10 +273,10 @@ async function buscarProductoPorCodigo() {
         }
     } catch (error) {
         limpiarCamposProducto();
-        console.error("Error buscando producto:", error);
         mostrarError("Error al buscar producto");
     }
 }
+
 function limpiarCamposProducto() {
     $("#txtIdProducto").val("0");
     $("#txtCodigoProducto").val("");
@@ -293,19 +284,16 @@ function limpiarCamposProducto() {
     $("#txtCantidadProducto").val("0");
     $("#txtPrecioCompraProducto").val("0");
     $("#txtPrecioCompraConIva").val("");
-    $("#txtIvaPorcentaje").val("10"); // o lo que quieras por defecto
-    // Si estás usando Precio Venta y lo querés limpiar también:
+    $("#txtIvaPorcentaje").val("10");
     $("#txtPrecioVentaProducto").val("0");
 }
 
-// Funciones de selección
 function proveedorSelect(proveedor) {
     $("#txtIdProveedor").val(proveedor.IdProveedor);
     $("#txtRucProveedor").val(proveedor.Ruc);
     $("#txtRazonSocialProveedor").val(proveedor.RazonSocial);
     $('#modalProveedor').modal('hide');
 }
-
 
 function tiendaSelect(tienda) {
     $("#txtIdTienda").val(tienda.IdTienda);
@@ -355,7 +343,7 @@ function validarCamposRequeridos() {
         { id: "#txtIdTienda", nombre: "Tienda" },
         { id: "#txtIdProducto", nombre: "Producto" },
         { id: "#txtCantidadProducto", nombre: "Cantidad" },
-        { id: "#txtPrecioCompraProducto", nombre: "Precio Compra" },
+        { id: "#txtPrecioCompraProducto", nombre: "Precio Compra" }
     ];
 
     for (let campo of campos) {
@@ -391,9 +379,6 @@ function agregarFilaProducto() {
     actualizarTotalesCompra();
 }
 
-
-
-// Gestión del formulario
 $('#btnTerminarGuardarCompra').on('click', guardarCompra);
 
 async function guardarCompra() {
@@ -405,10 +390,7 @@ async function guardarCompra() {
 
         if (response.resultado) {
             mostrarExito("Compra registrada exitosamente");
-            // Recarga la página para empezar una compra nueva
-            setTimeout(() => {
-                location.reload();
-            }, 1000); // espera 1 segundo para que el usuario vea el mensaje
+            setTimeout(() => { location.reload(); }, 1000);
         } else {
             manejarErrorServidor(response);
         }
@@ -427,19 +409,17 @@ function validarListaProductos() {
     return true;
 }
 
-
 function construirXMLCompra() {
     let totalCosto = 0;
     let detalleXML = "";
 
     $("#tbCompra tbody tr").each(function () {
         const $tds = $(this).find('td');
-        const idProducto = $tds.eq(1).data('idproducto'); // columna Código Producto
+        const idProducto = $tds.eq(1).data('idproducto');
         const cantidad = parseInt($tds.eq(3).text());
         const precioCompra = parseMonedaGs($tds.eq(4).text());
         const totalSinIva = parseMonedaGs($tds.eq(5).text());
         const totalConIva = parseMonedaGs($tds.eq(6).text());
-
 
         totalCosto += totalSinIva;
 
@@ -485,20 +465,16 @@ async function enviarCompraAlServidor(xmlData) {
     });
 }
 
-// Helpers
+function manejarErrorServidor(response) {
+    mostrarError(response.error || "Error desconocido al guardar la compra");
+}
+
 function mostrarError(mensaje) {
     swal("Error", mensaje, "error");
 }
 
 function mostrarExito(mensaje) {
     swal("Éxito", mensaje, "success");
-}
-
-function resetPurchaseForm() {
-    $("#tbCompra tbody").empty();
-    $(".form-control").val("");
-    $("input[type='hidden']").val("0");
-    actualizarTotalesCompra(); // para que muestre 0 en totales
 }
 
 function cargarHistorialPrecioCompra(idProducto) {
@@ -526,25 +502,25 @@ function formatearFecha(fechaISO) {
     return new Date(fechaISO).toLocaleDateString('es-PY');
 }
 
-// Inicializar tooltips
 $(function () {
-    $('[data-toggle="tooltip"]').tooltip()
+    $('[data-toggle="tooltip"]').tooltip();
 });
 
 function buscarProveedor() {
     $('#modalProveedor').modal('show');
-    tablaproveedor.ajax.reload(); // Cargar datos cada vez que se abre
+    tablaproveedor.ajax.reload();
 }
 
-
 function buscarTienda() {
+    // Solo SuperAdmin puede abrir este modal
+    if (!AppSession.esSuperAdmin) return;
     $('#modalTienda').modal('show');
-    tablatienda.ajax.reload(); // Recarga la tabla de tiendas
+    tablatienda.ajax.reload();
 }
 
 function buscarProducto() {
     $('#modalProducto').modal('show');
-    tablaproducto.ajax.reload(); // Cargar la tabla de productos cada vez que se abre
+    tablaproducto.ajax.reload();
 }
 
 function buscarProductoEnLista() {
@@ -555,21 +531,15 @@ function buscarProductoEnLista() {
         const idEnTabla = $(this).find("td.codigoproducto").data("idproducto");
         if (idProductoActual && idProductoActual === idEnTabla.toString()) {
             encontrado = true;
-            return false; // salir del .each()
+            return false;
         }
     });
 
     return encontrado;
 }
 
-//function formatearMonedaGs(valor) {
-//    if (isNaN(valor)) return "0";
-//    return valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-//}
-
 function parseMonedaGs(valor) {
     if (!valor) return 0;
-    // Quitar puntos usados como separadores de miles y convertir a entero
     return parseInt(valor.toString().replace(/\./g, ''), 10) || 0;
 }
 
@@ -577,7 +547,6 @@ function formatearMonedaGs(valor) {
     if (isNaN(valor)) return "0";
     return valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
-
 
 function actualizarTotalesCompra() {
     let totalCantidad = 0;
@@ -587,11 +556,7 @@ function actualizarTotalesCompra() {
 
     $("#tbCompra tbody tr").each(function () {
         const $tds = $(this).find('td');
-
-        // Cantidad es número sin formato, ok
         let cantidad = parseFloat($tds.eq(3).text()) || 0;
-
-        // Para las otras columnas, que están formateadas con puntos, parseamos quitando puntos
         let precioUnidad = parseMonedaGs($tds.eq(4).text());
         let totalSinIva = parseMonedaGs($tds.eq(5).text());
         let totalConIva = parseMonedaGs($tds.eq(6).text());
@@ -602,7 +567,6 @@ function actualizarTotalesCompra() {
         totalPrecioTotalCompraIVA += totalConIva;
     });
 
-    // Mostrar totales con formato
     $("#totalCantidad").text(totalCantidad);
     $("#totalPrecioUnidadCompra").text(formatearMonedaGs(Math.round(totalPrecioUnidadCompra)));
     $("#totalPrecioTotalCompra").text(formatearMonedaGs(Math.round(totalPrecioTotalCompra)));

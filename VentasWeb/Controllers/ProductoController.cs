@@ -4,27 +4,28 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
 {
-    public class ProductoController : Controller
+    public class ProductoController : BaseController
     {
         private readonly CD_Producto _productoService = CD_Producto.Instancia;
         private readonly CD_ProductoTienda _productoTiendaService = CD_ProductoTienda.Instancia;
 
-        // GET: Producto
-        public ActionResult Crear()
+        private string UsuarioActual
         {
-            return View();
+            get
+            {
+                var usuario = Session["Usuario"] as Usuario;
+                if (usuario == null) return "SISTEMA";
+                return $"{usuario.Nombres} {usuario.Apellidos}".Trim();
+            }
         }
 
-        // GET: Asignación de productos a tiendas
-        public ActionResult Asignar()
-        {
-            return View();
-        }
+        public ActionResult Crear() => View();
+
+        public ActionResult Asignar() => View();
 
         [HttpGet]
         public JsonResult Obtener()
@@ -46,19 +47,16 @@ namespace VentasWeb.Controllers
             try
             {
                 var productos = _productoService.ObtenerProducto()
-                    .Where(x => x.Activo == true)
-                    .ToList();
+                    .Where(x => x.Activo == true).ToList();
 
                 if (IdTienda != 0)
                 {
                     var productosTienda = _productoTiendaService.ObtenerProductoTienda()
-                        .Where(x => x.oTienda.IdTienda == IdTienda)
-                        .ToList();
+                        .Where(x => x.oTienda.IdTienda == IdTienda).ToList();
 
-                    productos = (from producto in productos
-                                 join productoTienda in productosTienda
-                                 on producto.IdProducto equals productoTienda.oProducto.IdProducto
-                                 select producto).ToList();
+                    productos = (from p in productos
+                                 join pt in productosTienda on p.IdProducto equals pt.oProducto.IdProducto
+                                 select p).ToList();
                 }
 
                 return Json(new { data = productos }, JsonRequestBehavior.AllowGet);
@@ -74,51 +72,44 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                bool respuesta;
-
+                // CAMBIO: PrecioVenta ya no viene del formulario de creación,
+                // se deja en 0 por defecto para nuevos productos.
+                // Se gestiona desde el módulo de Precios de Venta.
                 if (objeto.IdProducto == 0)
-                {
-                    respuesta = _productoService.RegistrarProducto(objeto);
-                }
-                else
-                {
-                    respuesta = _productoService.ModificarProducto(objeto);
-                }
+                    objeto.PrecioVenta = 0;
+
+                bool respuesta = objeto.IdProducto == 0
+                    ? _productoService.RegistrarProducto(objeto)
+                    : _productoService.ModificarProducto(objeto);
 
                 return Json(new
                 {
                     resultado = respuesta,
-                    message = respuesta ? "Operación exitosa" : "Error al guardar"
+                    mensaje = respuesta ? "Operación exitosa" : "Error al guardar"
                 });
             }
             catch (Exception ex)
             {
-                return Json(new { resultado = false, message = ex.Message });
+                return Json(new { resultado = false, mensaje = ex.Message });
             }
         }
 
+        // ── Borrado lógico ────────────────────────────────────────
         [HttpPost]
-        public JsonResult Eliminar(int id)
+        public JsonResult CambiarEstado(int id, bool activo)
         {
+            if (id <= 0)
+                return Json(new { resultado = false, mensaje = "ID inválido." });
+
             try
             {
-                if (id <= 0)
-                    return Json(new { resultado = false, mensaje = "ID inválido" });
-
-                bool resultado = CD_Producto.Instancia.EliminarProducto(id);
-                return Json(new
-                {
-                    resultado = resultado,
-                    mensaje = resultado ? "Producto eliminado correctamente" : "No se pudo eliminar el producto"
-                });
+                bool respuesta = CD_Producto.Instancia.CambiarEstadoProducto(id, activo);
+                string mensaje = activo ? "Producto activado correctamente." : "Producto desactivado correctamente.";
+                return Json(new { resultado = respuesta, mensaje = mensaje });
             }
             catch (Exception ex)
             {
-                return Json(new
-                {
-                    resultado = false,
-                    mensaje = "Error: " + ex.Message
-                });
+                return Json(new { resultado = false, mensaje = ex.Message });
             }
         }
 
@@ -127,17 +118,14 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                // Validar StockMínimo y StockMáximo
+                if (!TienePermiso(objeto.oTienda?.IdTienda ?? 0))
+                    return Json(new { resultado = false, mensaje = "No tiene permisos para asignar productos en esta sucursal." });
 
                 if (objeto.StockMinimo < 0 || objeto.StockMaximo < 0)
-                {
                     return Json(new { resultado = false, mensaje = "Los stocks no pueden ser negativos." });
-                }
 
                 if (objeto.StockMaximo <= objeto.StockMinimo)
-                {
                     return Json(new { resultado = false, mensaje = "Stock máximo debe ser mayor que stock mínimo." });
-                }
 
                 bool respuesta = _productoTiendaService.RegistrarProductoTienda(objeto);
                 return Json(new { resultado = respuesta });
@@ -161,6 +149,7 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, message = ex.Message });
             }
         }
+
         [HttpPost]
         public JsonResult EliminarProductoTienda(int id)
         {
@@ -173,9 +162,7 @@ namespace VentasWeb.Controllers
                 return Json(new
                 {
                     resultado = resultado,
-                    mensaje = resultado
-                        ? "Asignación eliminada correctamente"
-                        : "No se pudo eliminar (el producto ya está en uso)"
+                    mensaje = resultado ? "Asignación eliminada correctamente" : "No se pudo eliminar (el producto ya está en uso)"
                 });
             }
             catch (Exception ex)
@@ -183,7 +170,6 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, mensaje = "Error: " + ex.Message });
             }
         }
-
 
         [HttpGet]
         public JsonResult ObtenerAsignaciones()
@@ -199,29 +185,16 @@ namespace VentasWeb.Controllers
             }
         }
 
-       
-
         [HttpPost]
         public JsonResult GuardarPrecioVenta(PrecioVenta objeto)
         {
             try
             {
-                bool resultado = false;
+                bool resultado = objeto.IdPrecioVenta == 0
+                    ? CD_Producto.Instancia.RegistrarPrecioVenta(objeto)
+                    : CD_Producto.Instancia.ModificarPrecioVenta(objeto);
 
-                if (objeto.IdPrecioVenta == 0)
-                {
-                    resultado = CD_Producto.Instancia.RegistrarPrecioVenta(objeto);
-                }
-                else
-                {
-                    resultado = CD_Producto.Instancia.ModificarPrecioVenta(objeto);
-                }
-
-                return Json(new
-                {
-                    resultado = resultado,
-                    message = resultado ? "Operación exitosa" : "Error al guardar el precio"
-                });
+                return Json(new { resultado = resultado, message = resultado ? "Operación exitosa" : "Error al guardar el precio" });
             }
             catch (Exception ex)
             {
@@ -238,12 +211,7 @@ namespace VentasWeb.Controllers
                     return Json(new { resultado = false, message = "ID inválido" });
 
                 bool resultado = CD_Producto.Instancia.EliminarPrecioVenta(id);
-
-                return Json(new
-                {
-                    resultado = resultado,
-                    message = resultado ? "Precio eliminado correctamente" : "No se pudo eliminar"
-                });
+                return Json(new { resultado = resultado, message = resultado ? "Precio eliminado correctamente" : "No se pudo eliminar" });
             }
             catch (Exception ex)
             {
@@ -251,22 +219,17 @@ namespace VentasWeb.Controllers
             }
         }
 
-        public ActionResult ConsultarPrecioVenta()
-        {
-            return View();
-        }
+        public ActionResult ConsultarPrecioVenta() => View();
 
         [HttpGet]
         public ContentResult ObtenerHistorialPrecios(int idProducto)
         {
             var lista = CD_Producto.Instancia.ObtenerPorProducto(idProducto);
-
             var json = JsonConvert.SerializeObject(new { data = lista }, new JsonSerializerSettings
             {
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
                 DateTimeZoneHandling = DateTimeZoneHandling.Utc
             });
-
             return Content(json, "application/json");
         }
 
@@ -276,19 +239,14 @@ namespace VentasWeb.Controllers
             try
             {
                 if (string.IsNullOrWhiteSpace(codigo))
-                {
                     return Json(new { resultado = false, message = "El código de producto es requerido." }, JsonRequestBehavior.AllowGet);
-                }
 
                 var producto = CD_Producto.Instancia.ObtenerProducto()
-                                .FirstOrDefault(p => p.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(p => p.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
 
                 if (producto == null)
-                {
                     return Json(new { resultado = false, message = "Producto no encontrado." }, JsonRequestBehavior.AllowGet);
-                }
 
-                // Solo devolver el producto, para que el cliente JS haga otra llamada para obtener el historial con IdProducto
                 return Json(new { resultado = true, data = producto }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
@@ -296,8 +254,6 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, message = "Error: " + ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
-
-
 
         [HttpPost]
         public JsonResult GuardarMultiplesPrecios(List<PrecioVenta> precios)
@@ -309,20 +265,11 @@ namespace VentasWeb.Controllers
 
                 foreach (var precio in precios)
                 {
-                    if (precio.IdPrecioVenta == 0)
-                    {
-                        // Nuevo registro
-                        bool resInsert = CD_Producto.Instancia.RegistrarPrecioVenta(precio);
-                        if (!resInsert)
-                            return Json(new { resultado = false, message = "Error al insertar un precio." });
-                    }
-                    else
-                    {
-                        // Actualizar existente
-                        bool resUpdate = CD_Producto.Instancia.ModificarPrecioVenta(precio);
-                        if (!resUpdate)
-                            return Json(new { resultado = false, message = "Error al actualizar un precio." });
-                    }
+                    bool ok = precio.IdPrecioVenta == 0
+                        ? CD_Producto.Instancia.RegistrarPrecioVenta(precio)
+                        : CD_Producto.Instancia.ModificarPrecioVenta(precio);
+
+                    if (!ok) return Json(new { resultado = false, message = "Error al procesar un precio." });
                 }
 
                 return Json(new { resultado = true });
@@ -332,6 +279,7 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, message = ex.Message });
             }
         }
+
         [HttpPost]
         public JsonResult ActualizarPrecioVenta(int IdPrecioVenta, decimal PrecioVenta, DateTime FechaInicio, DateTime? FechaFin)
         {
@@ -343,8 +291,7 @@ namespace VentasWeb.Controllers
                 if (FechaFin.HasValue && FechaFin < FechaInicio)
                     return Json(new { resultado = false, message = "La fecha fin no puede ser menor que la fecha inicio." });
 
-                var precio = CD_Producto.Instancia.ObtenerHistorialPreciosVentaPorId(IdPrecioVenta); // <-- usa método que devuelve UNO
-
+                var precio = CD_Producto.Instancia.ObtenerHistorialPreciosVentaPorId(IdPrecioVenta);
                 if (precio == null)
                     return Json(new { resultado = false, message = "Precio no encontrado." });
 
@@ -353,7 +300,6 @@ namespace VentasWeb.Controllers
                 precio.FechaFinVigencia = FechaFin;
 
                 bool actualizado = CD_Producto.Instancia.ActualizarPrecioVenta(precio);
-
                 return Json(new { resultado = actualizado });
             }
             catch (Exception ex)
@@ -362,12 +308,6 @@ namespace VentasWeb.Controllers
             }
         }
 
-        // ======================================================
-        // REEMPLAZAR el método BajaStockProductoTienda existente
-        // y AGREGAR ObtenerMotivosBaja en ProductoController.cs
-        // ======================================================
-
-        // GET: Producto/ObtenerMotivosBaja
         [HttpGet]
         public JsonResult ObtenerMotivosBaja()
         {
@@ -381,7 +321,7 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, mensaje = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
-        // POST: Producto/BajaStockProductoTienda  ← REEMPLAZA el anterior
+
         [HttpPost]
         public JsonResult BajaStockProductoTienda(int idProductoTienda, int idProducto, int idMotivoBaja, int cantidad, string observaciones)
         {
@@ -392,6 +332,9 @@ namespace VentasWeb.Controllers
 
                 if (idMotivoBaja <= 0)
                     return Json(new { resultado = false, mensaje = "Debe seleccionar un motivo de baja." });
+
+                if (!TienePermiso(TiendaActiva))
+                    return Json(new { resultado = false, mensaje = "No tiene permisos para dar de baja stock en esta sucursal." });
 
                 bool resultado = _productoTiendaService.BajaStockConHistorial(
                     idProductoTienda, idProducto, idMotivoBaja, cantidad, observaciones ?? "");
@@ -407,6 +350,5 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, mensaje = "Error: " + ex.Message });
             }
         }
-
     }
 }

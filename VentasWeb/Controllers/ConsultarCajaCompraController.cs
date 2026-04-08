@@ -8,7 +8,7 @@ using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
 {
-    public class ConsultarCajaCompraController : Controller
+    public class ConsultarCajaCompraController : BaseController
     {
         // GET: ConsultarCajaCompra
         public ActionResult ConsultarCajaCompra()

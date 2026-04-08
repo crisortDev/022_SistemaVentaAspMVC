@@ -44,7 +44,10 @@
         .navbar-brand:hover img {
             opacity: 1;
         }
-        .navbar-brand:hover img { opacity: 1; }
+
+        .navbar-brand:hover img {
+            opacity: 1;
+        }
 
         /* Links principales */
         .navbar-nav .nav-link {
@@ -60,11 +63,11 @@
             gap: 6px;
         }
 
-        .navbar-nav .nav-link:hover,
-        .navbar-nav .nav-item.active .nav-link {
-            background: rgba(255,255,255,0.15) !important;
-            color: #fff !important;
-        }
+            .navbar-nav .nav-link:hover,
+            .navbar-nav .nav-item.active .nav-link {
+                background: rgba(255,255,255,0.15) !important;
+                color: #fff !important;
+            }
 
         /* Dropdown toggle — quitar borde al abrir */
         .navbar-nav .nav-item.dropdown.show .nav-link {
@@ -84,9 +87,16 @@
             animation: dropIn 0.18s cubic-bezier(0.16,1,0.3,1) both;
         }
 
-       @@keyframes dropIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to   { opacity: 1; transform: translateY(0); }
+        @@keyframes dropIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .dropdown-item {
@@ -101,25 +111,27 @@
             transition: background 0.15s, color 0.15s;
         }
 
-        .dropdown-item i {
-            width: 16px;
-            text-align: center;
-            color: #0984e3;
-            font-size: 0.82rem;
-            flex-shrink: 0;
-        }
+            .dropdown-item i {
+                width: 16px;
+                text-align: center;
+                color: #0984e3;
+                font-size: 0.82rem;
+                flex-shrink: 0;
+            }
 
-        .dropdown-item:hover {
-            background: #ebf5ff;
-            color: #0984e3;
-        }
+            .dropdown-item:hover {
+                background: #ebf5ff;
+                color: #0984e3;
+            }
 
-        .dropdown-item:hover i { color: #0984e3; }
+                .dropdown-item:hover i {
+                    color: #0984e3;
+                }
 
-        /* Separador sutil entre items */
-        .dropdown-item + .dropdown-item {
-            border-top: 1px solid #f1f5f9;
-        }
+            /* Separador sutil entre items */
+            .dropdown-item + .dropdown-item {
+                border-top: 1px solid #f1f5f9;
+            }
 
         /* ── BOTÓN SALIR ────────────────────────────────────── */
         .nav-salir .nav-link {
@@ -131,10 +143,10 @@
             font-size: 0.83rem;
         }
 
-        .nav-salir .nav-link:hover {
-            background: rgba(255,255,255,0.22) !important;
-            border-color: rgba(255,255,255,0.4);
-        }
+            .nav-salir .nav-link:hover {
+                background: rgba(255,255,255,0.22) !important;
+                border-color: rgba(255,255,255,0.4);
+            }
 
         /* ── USUARIO LOGUEADO (derecha) ─────────────────────── */
         .nav-user-info {
@@ -231,6 +243,8 @@
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/bundles/jquery")
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/bundles/bootstrap")
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/Content/PluginsJS")
+    <!-- SweetAlert2 — disponible globalmente -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Configuración de URLs centralizadas -->
     <script type="text/javascript">
@@ -240,6 +254,12 @@
                 urls: function (a) { $.extend($.MisUrls.url, a); }
             }
         });
+
+        // ── SESIÓN USUARIO — disponible globalmente en todo el JS ─
+        var AppSession = {
+            esSuperAdmin: @(Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"] ? "true" : "false"),
+            idTienda: @(Session["TiendaActiva"] != null ? Session["TiendaActiva"].ToString() : "0")
+        };
 
         // ---- ROL ----
         $.MisUrls.urls({
@@ -287,7 +307,8 @@
         $.MisUrls.urls({
             _ObtenerCategorias: '@Url.Action("Obtener", "Categoria")',
             _GuardarCategoria: '@Url.Action("Guardar", "Categoria")',
-            _EliminarCategoria: '@Url.Action("Eliminar", "Categoria")'
+            _EliminarCategoria: '@Url.Action("Eliminar", "Categoria")',
+            _CambiarEstadoCategoria: '@Url.Action("CambiarEstado", "Categoria")'
         });
 
         // ---- PRODUCTO ----
@@ -296,6 +317,7 @@
             _ObtenerProductosPorTienda: '@Url.Action("ObtenerProductosPorTienda", "Producto")',
             _GuardarProducto: '@Url.Action("Guardar", "Producto")',
             _EliminarProducto: '@Url.Action("Eliminar", "Producto")',
+            _CambiarEstadoProducto: '@Url.Action("CambiarEstado", "Producto")',
             _ObtenerAsignaciones: '@Url.Action("ObtenerAsignaciones", "Producto")',
             _RegistrarProductoTienda: '@Url.Action("RegistrarProductoTienda", "Producto")',
             _ModificarProductoTienda: '@Url.Action("ModificarProductoTienda", "Producto")',
@@ -390,5 +412,40 @@
     </script>
 
     @RenderSection("scripts", required: false)
+
+    <script>
+        // ── Interceptor global AJAX ───────────────────────────────
+        $(document).ajaxComplete(function (event, xhr, settings) {
+            try {
+                var contentType = xhr.getResponseHeader("Content-Type") || "";
+                if (!contentType.includes("application/json")) return;
+
+                var response = JSON.parse(xhr.responseText);
+
+                if (response.resultado === false && response.mensaje) {
+                    Swal.fire({
+                        title: 'Operación no permitida',
+                        text: response.mensaje,
+                        icon: 'warning',
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#0984e3'
+                    });
+                }
+
+                if (response.estado === false && response.valor && response.valor !== "") {
+                    Swal.fire({
+                        title: 'Operación no permitida',
+                        text: response.valor,
+                        icon: 'warning',
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#0984e3'
+                    });
+                }
+
+            } catch (e) {
+                // No es JSON o ya fue manejado — ignorar silenciosamente
+            }
+        });
+    </script>
 </body>
 </html>

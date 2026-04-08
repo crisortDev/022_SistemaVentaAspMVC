@@ -10,7 +10,7 @@ using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
 {
-    public class ReporteController : Controller
+    public class ReporteController : BaseController
     {
         // GET: Reporte
         public ActionResult Producto()

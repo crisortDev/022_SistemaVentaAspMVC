@@ -14,7 +14,7 @@ using VentasWeb.Filters;
 namespace VentasWeb.Controllers
 {
     [AuthorizeRol("Rol", "*")] // '*' significa todas las vistas/acciones del controlador
-    public class RolController : Controller
+    public class RolController : BaseController
     {
         // GET: Rol
         public ActionResult Crear()

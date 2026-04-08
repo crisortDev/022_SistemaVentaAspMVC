@@ -3,25 +3,14 @@
 $(document).ready(function () {
     activarMenu("Mantenedor");
 
-    // Validación del formulario mejorada
     $("#form").validate({
         rules: {
             Nombre: "required",
-            Descripcion: "required",
-            PrecioVenta: {
-                required: true,
-                number: true,
-                min: 0
-            }
+            Descripcion: "required"
         },
         messages: {
             Nombre: "Este campo es obligatorio",
-            Descripcion: "Este campo es obligatorio",
-            PrecioVenta: {
-                required: "Este campo es obligatorio",
-                number: "Debe ser un número válido",
-                min: "El valor mínimo es 0"
-            }
+            Descripcion: "Este campo es obligatorio"
         },
         errorElement: 'span',
         errorClass: 'text-danger',
@@ -29,18 +18,11 @@ $(document).ready(function () {
             error.addClass('invalid-feedback');
             element.closest('.form-group').append(error);
         },
-        highlight: function (element, errorClass, validClass) {
-            $(element).addClass('is-invalid');
-        },
-        unhighlight: function (element, errorClass, validClass) {
-            $(element).removeClass('is-invalid');
-        }
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
     });
 
-    // Obtener categorías
     cargarCategorias();
-
-    // Configuración de DataTable
     inicializarDataTable();
 });
 
@@ -50,7 +32,6 @@ function cargarCategorias() {
         url: $.MisUrls.url._ObtenerCategorias,
         type: "GET",
         dataType: "json",
-        contentType: "application/json; charset=utf-8",
         success: function (data) {
             $("#cboCategoria").html("");
             if (data.data != null) {
@@ -62,8 +43,7 @@ function cargarCategorias() {
             }
             hideLoading();
         },
-        error: function (error) {
-            console.error("Error al cargar categorías:", error);
+        error: function () {
             swal("Error", "No se pudieron cargar las categorías", "error");
             hideLoading();
         }
@@ -72,70 +52,67 @@ function cargarCategorias() {
 
 function inicializarDataTable() {
     tabladata = $('#tbdata').DataTable({
-        "ajax": {
-            "url": $.MisUrls.url._ObtenerProductos,
-            "type": "GET",
-            "datatype": "json",
-            "beforeSend": function () {
-                showLoading();
-            },
-            "complete": function () {
-                hideLoading();
-            },
-            "error": function (xhr, error, thrown) {
-                console.error("Error al cargar productos:", error);
-                swal("Error", "No se pudieron cargar los productos", "error");
-            }
+        ajax: {
+            // CAMBIO: trae activos e inactivos para ver y poder reactivar
+            url: $.MisUrls.url._ObtenerProductos,
+            type: "GET",
+            beforeSend: function () { showLoading(); },
+            complete: function () { hideLoading(); },
+            error: function () { swal("Error", "No se pudieron cargar los productos", "error"); }
         },
-        "columns": [
-            { "data": "Codigo" },
-            { "data": "Nombre" },
-            { "data": "Descripcion" },
+        columns: [
+            { data: "Codigo" },
+            { data: "Nombre" },
+            { data: "Descripcion" },
             {
-                "data": "oCategoria",
-                "render": function (data) {
-                    return data ? data.Descripcion : "Sin categoría";
-                }
+                data: "oCategoria",
+                render: function (data) { return data ? data.Descripcion : "Sin categoría"; }
             },
             {
-                "data": "Activo",
-                "render": function (data) {
+                data: "Activo",
+                render: function (data) {
                     return data
                         ? '<span class="badge badge-success">Activo</span>'
                         : '<span class="badge badge-danger">Inactivo</span>';
                 }
             },
             {
-                "data": null,
-                "render": function (data, type, row) {
-                    // Escapar comillas para evitar problemas con el JSON
+                data: null,
+                orderable: false,
+                searchable: false,
+                width: "150px",
+                render: function (data, type, row) {
                     var rowData = htmlEscape(JSON.stringify(row));
-                    return '<div class="btn-group">' +
-                        '<button class="btn btn-primary btn-sm" onclick="abrirPopUpForm(\'' + rowData + '\')">' +
-                        '<i class="fas fa-edit"></i> Editar' +
-                        '</button>' +
-                        '<button class="btn btn-danger btn-sm ml-2" onclick="eliminar(' + row.IdProducto + ')">' +
-                        '<i class="fa fa-trash"></i> Eliminar' +
-                        '</button>' +
-                        '</div>';
-                },
-                "orderable": false,
-                "searchable": false,
-                "width": "150px"
+
+                    var btnEditar = '<button class="btn btn-primary btn-sm mr-1" ' +
+                        'onclick="abrirPopUpForm(\'' + rowData + '\')">' +
+                        '<i class="fas fa-edit"></i> Editar</button>';
+
+                    // CAMBIO: botón dinámico — desactivar si está activo, reactivar si está inactivo
+                    var btnEstado;
+                    if (row.Activo) {
+                        btnEstado = '<button class="btn btn-danger btn-sm" ' +
+                            'onclick="cambiarEstado(' + row.IdProducto + ', false)" title="Desactivar">' +
+                            '<i class="fa fa-ban"></i> Desactivar</button>';
+                    } else {
+                        btnEstado = '<button class="btn btn-success btn-sm" ' +
+                            'onclick="cambiarEstado(' + row.IdProducto + ', true)" title="Reactivar">' +
+                            '<i class="fa fa-check"></i> Reactivar</button>';
+                    }
+
+                    return '<div class="btn-group">' + btnEditar + btnEstado + '</div>';
+                }
             }
         ],
-        "language": {
-            "url": $.MisUrls.url.Url_datatable_spanish
-        },
-        "responsive": true,
-        "initComplete": function () {
-            hideLoading();
-        }
+        language: { url: $.MisUrls.url.Url_datatable_spanish },
+        responsive: true,
+        initComplete: function () { hideLoading(); }
     });
 }
 
 function htmlEscape(str) {
-    return str.replace(/&/g, '&amp;')
+    return str
+        .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;')
         .replace(/</g, '&lt;')
@@ -144,10 +121,10 @@ function htmlEscape(str) {
 
 function abrirPopUpForm(jsonString) {
     try {
-        // Convertir el string JSON a objeto
-        var json = jsonString ? JSON.parse(jsonString.replace(/&#39;/g, '"')) : null;
+        var json = jsonString
+            ? JSON.parse(jsonString.replace(/&#39;/g, '"'))
+            : null;
 
-        // Resetear formulario
         $("#form")[0].reset();
         $("#txtid").val(0);
         $("#txtCodigo").val("AUTOGENERADO").prop("disabled", true);
@@ -159,16 +136,12 @@ function abrirPopUpForm(jsonString) {
             $("#txtDescripcion").val(json.Descripcion);
             $("#cboCategoria").val(json.IdCategoria);
             $("#cboEstado").val(json.Activo ? "1" : "0");
-            $("#cboPrecioVenta").val(json.PrecioVenta || 0);
         }
 
-        // Limpiar errores de validación
         $("#form").validate().resetForm();
         $(".form-control").removeClass("is-invalid");
-
         $('#FormModal').modal('show');
     } catch (e) {
-        console.error("Error al abrir formulario:", e);
         swal("Error", "No se pudo cargar el formulario", "error");
     }
 }
@@ -183,8 +156,8 @@ function Guardar() {
                 Nombre: $("#txtNombre").val(),
                 Descripcion: $("#txtDescripcion").val(),
                 IdCategoria: $("#cboCategoria").val(),
-                PrecioVenta: parseFloat($("#cboPrecioVenta").val()) || 0,
                 Activo: $("#cboEstado").val() === "1"
+                // CAMBIO: PrecioVenta eliminado del formulario
             }
         };
 
@@ -200,12 +173,11 @@ function Guardar() {
                     tabladata.ajax.reload();
                     $('#FormModal').modal('hide');
                 } else {
-                    swal("Error", "No se pudo guardar el producto", "error");
+                    swal("Error", data.mensaje || "No se pudo guardar el producto", "error");
                 }
                 hideLoading();
             },
-            error: function (error) {
-                console.error("Error al guardar:", error);
+            error: function () {
                 swal("Error", "Ocurrió un error al guardar", "error");
                 hideLoading();
             }
@@ -213,111 +185,49 @@ function Guardar() {
     }
 }
 
-function eliminar(id) {
-    console.log("ID recibido para eliminación:", id);  // Agrega esta línea para depuración
-    if (!id || isNaN(id) || id <= 0) {
-        console.error("ID inválido recibido:", id);
-        swal("Error", "El ID del producto no es válido", "error");
-        return;
-    }
+// CAMBIO: reemplaza desactivarProducto() — ahora maneja desactivar Y reactivar
+function cambiarEstado(id, activar) {
+    var accion = activar ? 'reactivar' : 'desactivar';
+    var textoConfirm = activar ? 'Sí, reactivar' : 'Sí, desactivar';
 
-    swal({
-        title: "Confirmar eliminación",
-        text: "¿Está seguro que desea eliminar este producto? Esta acción no se puede deshacer.",
-        icon: "warning",
-        buttons: {
-            cancel: {
-                text: "Cancelar",
-                value: null,
-                visible: true,
-                className: "btn-light"
-            },
-            confirm: {
-                text: "Sí, eliminar",
-                value: true,
-                className: "btn-danger"
-            }
-        },
-        dangerMode: true
-    }).then((confirmed) => {
-        if (!confirmed) return;
-
-        showLoading();
-        console.log("Iniciando eliminación del producto ID:", id);
-
-        eliminarProducto(id)
-            .then(response => {
-                console.log("Respuesta del servidor:", response);  // Verifica la respuesta
-                if (response.resultado) {
-                    swal({
-                        title: "¡Eliminado!",
-                        text: response.mensaje || "Producto eliminado correctamente",
-                        icon: "success",
-                        timer: 2000
-                    });
-                    tabladata.ajax.reload(null, false); // Recarga manteniendo paginación
-                } else {
-                    swal("Error", response.mensaje || "No se pudo completar la eliminación", "error");
+    Swal.fire({
+        title: '¿' + accion.charAt(0).toUpperCase() + accion.slice(1) + ' producto?',
+        text: activar
+            ? 'El producto volverá a estar disponible.'
+            : 'El producto quedará inactivo pero podrá reactivarse.',
+        icon: activar ? 'question' : 'warning',
+        showCancelButton: true,
+        confirmButtonText: textoConfirm,
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: activar ? '#28a745' : '#d33'
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            showLoading();
+            $.ajax({
+                url: $.MisUrls.url._CambiarEstadoProducto,
+                type: "POST",
+                data: { id: id, activo: activar },
+                success: function (data) {
+                    if (data.resultado) {
+                        Swal.fire('Listo', data.mensaje, 'success');
+                        tabladata.ajax.reload(null, false);
+                    } else {
+                        Swal.fire('Atención', data.mensaje || 'No se pudo cambiar el estado.', 'warning');
+                    }
+                    hideLoading();
+                },
+                error: function () {
+                    Swal.fire('Error', 'Ocurrió un error al cambiar el estado.', 'error');
+                    hideLoading();
                 }
-            })
-            .catch(error => {
-                console.error("Error en la petición:", error);
-                swal("Error", "No se pudo eliminar el producto", "error");
-            })
-            .finally(() => {
-                hideLoading();
             });
+        }
     });
 }
 
-
-// Función para envolver AJAX en una promesa
-function eliminarProducto(id) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: $.MisUrls.url._EliminarProducto,
-            type: "POST",
-            data: JSON.stringify({ id: id }),
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            timeout: 10000 // 10 segundos de timeout
-        })
-            .done(function (response) {
-                resolve(response);  // Resolviendo la promesa con la respuesta
-            })
-            .fail(function (xhr, status, error) {
-                reject(error);  // Rechazando la promesa si hay un error
-            });
-    });
-}
-
-
-// Función para envolver AJAX en una promesa
-function eliminarProducto(id) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: $.MisUrls.url._EliminarProducto,
-            type: "POST",
-            data: JSON.stringify({ id: id }),
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            timeout: 10000 // 10 segundos de timeout
-        })
-            .done(function (response) {
-                resolve(response);  // Resolviendo la promesa con la respuesta
-            })
-            .fail(function (xhr, status, error) {
-                reject(error);  // Rechazando la promesa si hay un error
-            });
-    });
-}
-
-// Funciones auxiliares
+// ── Auxiliares ────────────────────────────────────────────
 function showLoading() {
-    $('body').LoadingOverlay("show", {
-        background: "rgba(0, 0, 0, 0.5)",
-        imageColor: "#1cc88a"
-    });
+    $('body').LoadingOverlay("show", { background: "rgba(0,0,0,0.5)", imageColor: "#1cc88a" });
 }
 
 function hideLoading() {

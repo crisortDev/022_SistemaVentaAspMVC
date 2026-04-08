@@ -25,6 +25,11 @@ IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'usp_ObtenerUsu
 DROP PROCEDURE usp_ObtenerUsuario
 
 go
+
+IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'usp_ObtenerUsuarioPorCorreo')
+DROP PROCEDURE usp_ObtenerUsuarioPorCorreo
+
+go
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'usp_RegistrarUsuario')
 DROP PROCEDURE usp_RegistrarUsuario
 
@@ -341,9 +346,66 @@ go
 CREATE PROC usp_ObtenerUsuario
 as
 begin
- select u.IdUsuario,u.Nombres,u.Apellidos,u.Correo,u.Clave,u.IdTienda,u.IdRol,u.Activo,u.FechaRegistro,r.Descripcion[DescripcionRol],u.Activo from USUARIO u
- inner join ROL r on r.IdRol = u.IdRol
+    SELECT
+        u.IdUsuario,
+        p.Documento                         AS Documento,
+        u.Nombres,
+        u.Apellidos,
+        u.Correo,
+        u.Clave,
+        u.IdTienda,
+        u.IdRol,
+        u.Activo,
+        u.FechaRegistro,
+        u.PasswordTemporalHash,
+        u.PasswordTemporalExpira,
+        u.RequiereCambioPassword,
+        u.FechaCambioPassword,
+        r.Descripcion                       AS DescripcionRol,
+        ISNULL(u.IntentosFallidos, 0)       AS IntentosFallidos,
+        u.FechaUltimoLogin
+    FROM USUARIO u
+    INNER JOIN EMPLEADO e   ON u.IdEmpleado = e.IdEmpleado
+    INNER JOIN Persona p    ON e.IdPersona  = p.IdPersona
+    INNER JOIN ROL r        ON r.IdRol      = u.IdRol
 end
+
+go
+
+--PROCEDIMIENTO PARA OBTENER USUARIO POR CORREO (optimizado para login)
+CREATE PROC usp_ObtenerUsuarioPorCorreo
+    @Correo VARCHAR(100)
+AS
+BEGIN
+    SELECT TOP 1
+        u.IdUsuario,
+        p.Documento                         AS Documento,
+        u.Nombres,
+        u.Apellidos,
+        u.Correo,
+        u.Clave,
+        u.IdTienda,
+        u.IdRol,
+        u.Activo,
+        u.FechaRegistro,
+        u.PasswordTemporalHash,
+        u.PasswordTemporalExpira,
+        u.RequiereCambioPassword,
+        u.FechaCambioPassword,
+        r.Descripcion                       AS DescripcionRol,
+        ISNULL(u.IntentosFallidos, 0)       AS IntentosFallidos,
+        u.FechaUltimoLogin
+    FROM USUARIO u
+    INNER JOIN EMPLEADO e   ON u.IdEmpleado = e.IdEmpleado
+    INNER JOIN Persona p    ON e.IdPersona  = p.IdPersona
+    INNER JOIN ROL r        ON r.IdRol      = u.IdRol
+    WHERE u.Correo = @Correo
+END
+
+go
+
+-- ÍNDICE para búsqueda por correo (ejecutar una sola vez)
+-- CREATE INDEX IX_Usuario_Correo ON USUARIO(Correo);
 
 go
 --PROCEDIMIENTO PARA REGISTRAR USUARIO

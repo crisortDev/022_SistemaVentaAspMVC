@@ -141,8 +141,8 @@ $("#txtmontopago").inputFilter(function (value) {
 
 $('#btnBuscarProducto').on('click', function () {
 
-  
-    tablaproducto.ajax.url($.MisUrls.url._ObtenerProductoStockPorTienda + "?IdTienda=" + parseInt($("#txtIdTienda").val()) ).load();
+
+    tablaproducto.ajax.url($.MisUrls.url._ObtenerProductoStockPorTienda + "?IdTienda=" + parseInt($("#txtIdTienda").val())).load();
 
     $('#modalProducto').modal('show');
 })
@@ -408,7 +408,7 @@ $('#btnTerminarGuardarVenta').on('click', function () {
                 $('#total-importeconiva').text("0");
             }
             else {
-                swal("Error", "No se pudo registrar la venta. Intente nuevamente.", "error");
+                swal("Error", data.valor || "No se pudo registrar la venta. Intente nuevamente.", "error");
             }
         },
         error: function (error) {
@@ -483,7 +483,7 @@ function controlarStock($idproducto, $idtienda, $cantidad, $restar) {
         dataType: "json",
         contentType: "application/json; charset=utf-8",
         success: function (data) {
-           
+
         },
         error: function (error) {
             console.log(error)
@@ -492,7 +492,7 @@ function controlarStock($idproducto, $idtienda, $cantidad, $restar) {
         },
     });
 
-  
+
 }
 
 
@@ -553,4 +553,3 @@ function actualizarTotalesTabla() {
     $('#total-importesiniva').text(formatoGuaranies(totalImporteSinIva));
     $('#total-importeconiva').text(formatoGuaranies(totalImporteConIva));
 }
-

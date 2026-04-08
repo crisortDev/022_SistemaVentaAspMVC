@@ -6,7 +6,7 @@ using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
 {
-    public class InventarioController : Controller
+    public class InventarioController : BaseController
     {
         // GET: Inventario/Traslado
         public ActionResult Traslado()
@@ -39,6 +39,10 @@ namespace VentasWeb.Controllers
                 var usuario = (Usuario)Session["Usuario"];
                 if (usuario == null)
                     return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+                // ── Validar permiso sobre tienda origen ───────────
+                if (!TienePermiso(idTiendaOrigen))
+                    return Json(new { resultado = false, mensaje = "No tiene permisos para trasladar desde esta sucursal." });
 
                 var (resultado, mensaje) = CD_Inventario.Instancia.RegistrarTraslado(
                     idProducto, idTiendaOrigen, idTiendaDestino, cantidad, observaciones, usuario.IdUsuario);
@@ -79,6 +83,10 @@ namespace VentasWeb.Controllers
             {
                 if (cantidad <= 0)
                     return Json(new { resultado = false, mensaje = "La cantidad debe ser mayor a cero." });
+
+                // ── Validar permiso por tienda activa ─────────────
+                if (!TienePermiso(TiendaActiva))
+                    return Json(new { resultado = false, mensaje = "No tiene permisos para dar de baja stock en esta sucursal." });
 
                 string resultado = CD_Inventario.Instancia.BajarStock(idProductoTienda, cantidad, motivo, idProducto, idMotivoBaja);
 

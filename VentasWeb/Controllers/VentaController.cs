@@ -7,13 +7,13 @@ using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
 {
-    public class VentaController : Controller
+    public class VentaController : BaseController
     {
-        private static Usuario SesionUsuario;
+        // SesionUsuario eliminado — usar Session["Usuario"] directamente (thread-safe)
         // GET: Venta
         public ActionResult Crear()
         {
-            SesionUsuario = (Usuario)Session["Usuario"];
+            var SesionUsuario = (Usuario)Session["Usuario"];
             return View();
         }
 
@@ -69,8 +69,11 @@ namespace VentasWeb.Controllers
 
         public JsonResult ObtenerUsuario()
         {
-            Usuario rptUsuario = CD_Usuario.Instancia.ObtenerDetalleUsuario(SesionUsuario.IdUsuario);
-            return Json(rptUsuario, JsonRequestBehavior.AllowGet);
+            // Session["Usuario"] ya contiene el detalle completo cargado durante el login
+            var SesionUsuario = (Usuario)Session["Usuario"];
+            if (SesionUsuario == null)
+                return Json(null, JsonRequestBehavior.AllowGet);
+            return Json(SesionUsuario, JsonRequestBehavior.AllowGet);
         }
 
         public JsonResult ObtenerProductoPorTienda(int IdTienda)
@@ -97,8 +100,17 @@ namespace VentasWeb.Controllers
         [HttpPost]
         public JsonResult Guardar(string xml)
         {
+            var SesionUsuario = (Usuario)Session["Usuario"];
+            if (SesionUsuario == null)
+                return Json(new { estado = false, valor = "Sesión expirada." }, JsonRequestBehavior.AllowGet);
+
+            // ── Validar permiso por sucursal ──────────────────────
+            // El XML contiene el IdTienda — se valida contra TiendaActiva
+            if (!EsSuperAdmin && !xml.Contains($"<IdTienda>{TiendaActiva}</IdTienda>"))
+                return Json(new { estado = false, valor = "No tiene permisos para registrar ventas en esta sucursal." }, JsonRequestBehavior.AllowGet);
+
             int numeroTimbrado = 123456;
-            string fechaStr = "31/03/2026"; // La fecha en formato "dd/MM/yyyy"
+            string fechaStr = "31/03/2026";
             DateTime fechaVencimientoTimbrado = DateTime.ParseExact(fechaStr, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
             bool registroFactura = CD_Venta.Instancia.RegistrarSecuenciaFactura(numeroTimbrado, fechaVencimientoTimbrado);

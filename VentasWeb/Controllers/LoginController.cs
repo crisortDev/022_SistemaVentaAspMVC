@@ -18,19 +18,19 @@ namespace VentasWeb.Controllers
         private static readonly string NombreSistema = ConfigurationManager.AppSettings["NombreSistema"] ?? "Sistema de Ventas";
 
         private const int MAX_INTENTOS = 5;
+        private const int ID_ROL_SUPERADMIN = 14;  // IdRol del SuperAdmin en BD
 
-        // ── GET: Index ────────────────────────────────────────
+        // ── GET: Index ────────────────────────────────────────────
         public ActionResult Index() => View();
 
-        // ── POST: Login ───────────────────────────────────────
+        // ── POST: Login ───────────────────────────────────────────
         [HttpPost]
         public ActionResult Index(string correo, string clave)
         {
             if (string.IsNullOrEmpty(correo) || string.IsNullOrEmpty(clave))
                 return Json(new { success = false, mensaje = "Ingrese correo y contraseña." });
 
-            Usuario usuario = CD_Usuario.Instancia.ObtenerUsuarios()
-                .FirstOrDefault(u => u.Correo == correo);
+            Usuario usuario = CD_Usuario.Instancia.ObtenerUsuarioPorCorreo(correo);
 
 #if DEBUG
             System.Diagnostics.Debug.WriteLine($"[LOGIN] Correo: {correo}");
@@ -47,7 +47,7 @@ namespace VentasWeb.Controllers
             if (!usuario.Activo)
                 return Json(new { success = false, mensaje = "Tu cuenta está desactivada. Contactá al administrador." });
 
-            // ── Bloqueo por intentos fallidos ─────────────────
+            // ── Bloqueo por intentos fallidos ─────────────────────
             if (usuario.IntentosFallidos >= MAX_INTENTOS)
                 return Json(new { success = false, mensaje = "Tu cuenta está bloqueada por demasiados intentos fallidos. Contactá al administrador." });
 
@@ -62,7 +62,7 @@ namespace VentasWeb.Controllers
             System.Diagnostics.Debug.WriteLine($"[LOGIN] FechaRegistro:   {usuario.FechaRegistro}");
 #endif
 
-            // ── Contraseña temporal vigente ───────────────────
+            // ── Contraseña temporal vigente ───────────────────────
             if (usuario.PasswordTemporalHash != null &&
                 usuario.PasswordTemporalExpira.HasValue &&
                 usuario.PasswordTemporalExpira > DateTime.Now &&
@@ -71,7 +71,6 @@ namespace VentasWeb.Controllers
 #if DEBUG
                 System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Entró por: contraseña temporal vigente");
 #endif
-                // Éxito — resetear intentos
                 usuario.IntentosFallidos = 0;
                 CD_Usuario.Instancia.ActualizarUsuario(usuario);
 
@@ -80,7 +79,7 @@ namespace VentasWeb.Controllers
                 return Json(new { success = true, requiereCambio = true });
             }
 
-            // ── Contraseña temporal expirada ──────────────────
+            // ── Contraseña temporal expirada ──────────────────────
             if (usuario.PasswordTemporalHash != null &&
                 usuario.PasswordTemporalExpira.HasValue &&
                 usuario.PasswordTemporalExpira <= DateTime.Now &&
@@ -92,7 +91,7 @@ namespace VentasWeb.Controllers
                 return Json(new { success = false, mensaje = "La contraseña temporal expiró. Contactá al administrador para obtener una nueva." });
             }
 
-            // ── Contraseña definitiva ─────────────────────────
+            // ── Contraseña definitiva ─────────────────────────────
             if (usuario.Clave == hashIngresado)
             {
 #if DEBUG
@@ -111,7 +110,6 @@ namespace VentasWeb.Controllers
 #if DEBUG
                     System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Forzando cambio por expiración");
 #endif
-                    // Éxito — resetear intentos
                     usuario.IntentosFallidos = 0;
                     CD_Usuario.Instancia.ActualizarUsuario(usuario);
 
@@ -120,19 +118,20 @@ namespace VentasWeb.Controllers
                     return Json(new { success = true, requiereCambio = true, motivo = "expiracion" });
                 }
 
-                // Login exitoso completo — resetear intentos
+                // ── Login exitoso completo ────────────────────────
                 usuario.IntentosFallidos = 0;
                 usuario.FechaUltimoLogin = DateTime.Now;
                 CD_Usuario.Instancia.ActualizarUsuario(usuario);
-                Session["Usuario"] = CD_Usuario.Instancia.ObtenerDetalleUsuario(usuario.IdUsuario);
+
+                IniciarSesion(usuario);
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine("[LOGIN] >>> Login exitoso, redirigiendo a Home");
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] >>> Login exitoso — EsSuperAdmin: {usuario.IdRol == ID_ROL_SUPERADMIN} — TiendaActiva: {usuario.IdTienda?.ToString() ?? "NULL (global)"}");
 #endif
                 return Json(new { success = true, requiereCambio = false });
             }
 
-            // ── Contraseña incorrecta — sumar intento fallido ─
+            // ── Contraseña incorrecta — sumar intento fallido ─────
             usuario.IntentosFallidos++;
             CD_Usuario.Instancia.ActualizarUsuario(usuario);
 
@@ -148,7 +147,7 @@ namespace VentasWeb.Controllers
             return Json(new { success = false, mensaje = "Usuario o contraseña incorrecta." + msgIntentos });
         }
 
-        // ── GET: CambiarPassword ──────────────────────────────
+        // ── GET: CambiarPassword ──────────────────────────────────
         public ActionResult CambiarPassword() => View();
 
         // ── POST: CambiarPassword (primer login o tras recuperación) ──
@@ -164,9 +163,8 @@ namespace VentasWeb.Controllers
 
             string nuevaClaveHash = GetSHA256(nuevaClave);
 
-            // Buscar el usuario FRESCO desde BD para tener Clave actualizada
-            Usuario usuarioBD = CD_Usuario.Instancia.ObtenerUsuarios()
-                .FirstOrDefault(u => u.IdUsuario == usuarioSession.IdUsuario);
+            // Buscar usuario fresco desde BD
+            Usuario usuarioBD = CD_Usuario.Instancia.ObtenerUsuarioPorCorreo(usuarioSession.Correo);
 
             if (usuarioBD == null)
                 return Json(new { success = false, mensaje = "No se encontró el usuario." });
@@ -183,7 +181,7 @@ namespace VentasWeb.Controllers
             if (CD_HistorialClaves.Instancia.ClaveYaUsada(usuarioBD.IdUsuario, nuevaClaveHash))
                 return Json(new { success = false, mensaje = "No podés reutilizar una de tus últimas 3 contraseñas. Elegí una diferente." });
 
-            // Guardar clave ACTUAL de BD en historial antes de cambiarla
+            // Guardar clave actual en historial antes de cambiarla
             if (!string.IsNullOrEmpty(usuarioBD.Clave))
                 CD_HistorialClaves.Instancia.GuardarEnHistorial(usuarioBD.IdUsuario, usuarioBD.Clave);
 
@@ -196,13 +194,13 @@ namespace VentasWeb.Controllers
             usuarioBD.FechaCambioPassword = DateTime.Now;
             CD_Usuario.Instancia.ActualizarUsuario(usuarioBD);
 
-            Session["Usuario"] = CD_Usuario.Instancia.ObtenerDetalleUsuario(usuarioBD.IdUsuario);
+            IniciarSesion(usuarioBD);
             Session.Remove("UsuarioCambio");
 
             return Json(new { success = true });
         }
 
-        // ── POST: RecuperarPassword (olvidé mi contraseña) ────
+        // ── POST: RecuperarPassword ───────────────────────────────
         [HttpPost]
         public ActionResult RecuperarPassword(string correo)
         {
@@ -211,25 +209,21 @@ namespace VentasWeb.Controllers
 
             try
             {
-                Usuario usuario = CD_Usuario.Instancia.ObtenerUsuarios()
-                    .FirstOrDefault(u => u.Correo == correo && u.Activo);
+                Usuario usuario = CD_Usuario.Instancia.ObtenerUsuarioPorCorreo(correo);
 
                 // Respuesta genérica por seguridad (no revelar si el correo existe)
                 if (usuario == null)
                     return Json(new { success = true, mensaje = "Si el correo está registrado, recibirás una contraseña temporal en breve." });
 
-                // Generar contraseña temporal
                 string claveTemp = GenerarClaveTemporal();
                 string claveTempHash = GetSHA256(claveTemp);
 
-                // Actualizar usuario con la temporal
                 usuario.PasswordTemporalHash = claveTempHash;
                 usuario.PasswordTemporalExpira = DateTime.Now.AddHours(24);
                 usuario.RequiereCambioPassword = true;
                 usuario.FechaUltimoLogin = DateTime.MinValue;
                 CD_Usuario.Instancia.ActualizarUsuario(usuario);
 
-                // Enviar correo
                 string asunto = $"Recuperación de acceso — {NombreSistema}";
                 string html = ConstruirCorreoRecuperacion(usuario.Nombres, correo, claveTemp);
                 EnviarCorreo(correo, asunto, html);
@@ -245,7 +239,21 @@ namespace VentasWeb.Controllers
             }
         }
 
-        // ── Helpers privados ──────────────────────────────────
+        // ── Helper: IniciarSesion ─────────────────────────────────
+        /// <summary>
+        /// Centraliza la asignación de variables de sesión tras un login exitoso.
+        /// - Session["Usuario"]      → detalle completo del usuario
+        /// - Session["EsSuperAdmin"] → true si IdRol == 14
+        /// - Session["TiendaActiva"] → IdTienda del usuario (0 si es SuperAdmin global)
+        /// </summary>
+        private void IniciarSesion(Usuario usuario)
+        {
+            Session["Usuario"] = CD_Usuario.Instancia.ObtenerDetalleUsuario(usuario.IdUsuario);
+            Session["EsSuperAdmin"] = (usuario.IdRol == ID_ROL_SUPERADMIN);
+            Session["TiendaActiva"] = usuario.IdTienda ?? 0;  // 0 = acceso global
+        }
+
+        // ── Helpers privados ──────────────────────────────────────
         private string GenerarClaveTemporal(int length = 8)
         {
             const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";

@@ -10,11 +10,10 @@
         overflow-x: hidden;
     }
 
-
     #tbHistorialPrecio {
         table-layout: fixed;
         width: auto;
-        min-width: 480px; /* mínimo necesario para que se vean las 3 columnas bien */
+        min-width: 480px;
     }
 
         #tbHistorialPrecio th,
@@ -25,9 +24,7 @@
             padding: 4px 8px;
             font-size: 0.875rem;
         }
-
 </style>
-
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -67,7 +64,9 @@
                                     </div>
                                     <div class="col-sm-4">
                                         <div class="form-group mb-0">
-                                            <button id="btnBuscarProveedor" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProveedor()"><i class="fas fa-search"></i> Buscar</button>
+                                            <button id="btnBuscarProveedor" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProveedor()">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="col-sm-4 mt-2">
@@ -88,7 +87,6 @@
                                             <input type="date" class="form-control form-control-sm model" id="txtFechaVencimientoTimbrado" name="FechaVencimientoTimbrado">
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
@@ -99,7 +97,7 @@
                         <div class="card border-info">
                             <div class="card-body p-2">
                                 <h6 class="card-title mb-1 text-info">Detalle Tienda Destino</h6>
-                                <div class="row  align-items-end">
+                                <div class="row align-items-end">
                                     <input id="txtIdTienda" type="hidden" value="0" />
                                     <div class="col-sm-4">
                                         <div class="form-group mb-0">
@@ -113,9 +111,12 @@
                                             <input type="text" class="form-control form-control-sm model" readonly id="txtNombreTienda" name="NombreTienda">
                                         </div>
                                     </div>
-                                    <div class="col-sm-4">
+                                    <!-- Botón buscar tienda: solo visible para SuperAdmin -->
+                                    <div class="col-sm-4" id="divBtnBuscarTienda">
                                         <div class="form-group mb-0">
-                                            <button id="btnBuscarTienda" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarTienda()"><i class="fas fa-search"></i> Buscar</button>
+                                            <button id="btnBuscarTienda" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarTienda()">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -159,7 +160,6 @@
                                             <input type="text" class="form-control form-control-sm model" id="txtIvaPorcentaje" name="IvaPorcentaje" value="10">
                                         </div>
                                     </div>
-
                                     <div class="col-sm-2">
                                         <div class="form-group mb-0">
                                             <label for="txtPrecioCompraConIva" class="col-form-label col-form-label-sm">P. Compra c/IVA:</label>
@@ -167,7 +167,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Sección de Histórico de Precios con estilos mejorados -->
+                                    <!-- Histórico de Precios -->
                                     <div class="col-auto mt-2">
                                         <div class="card border-secondary" style="display: inline-block;">
                                             <div class="card-body p-2">
@@ -187,7 +187,6 @@
                                             </div>
                                         </div>
                                     </div>
-
 
                                     <div class="col-sm-1">
                                         <div class="form-group mb-0">
@@ -245,7 +244,6 @@
                                     </tr>
                                 </tfoot>
                             </table>
-
                         </div>
                     </div>
                 </div>
@@ -260,8 +258,9 @@
         </div>
     </div>
 </div>
+
 <!-- MODAL SELECCIONAR PROVEEDOR -->
-<div class="modal fade" id="modalProveedor" tabindex="-1" role="dialog" aria-labelledby="modalProveedorLabel" aria-hidden="true">
+<div class="modal fade" id="modalProveedor" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
@@ -287,8 +286,8 @@
     </div>
 </div>
 
-<!-- MODAL TIENDA -->
-<div class="modal fade" id="modalTienda" tabindex="-1" role="dialog" aria-labelledby="modalTiendaLabel" aria-hidden="true">
+<!-- MODAL TIENDA — solo usado por SuperAdmin -->
+<div class="modal fade" id="modalTienda" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
@@ -315,7 +314,7 @@
 </div>
 
 <!-- MODAL PRODUCTO -->
-<div class="modal fade" id="modalProducto" tabindex="-1" role="dialog" aria-labelledby="modalProductoLabel" aria-hidden="true">
+<div class="modal fade" id="modalProducto" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
@@ -342,9 +341,6 @@
     </div>
 </div>
 
-
-<!-- MODALES -->
-<!-- Los modales de Proveedor, Tienda y Producto se mantienen sin cambios -->
 @section scripts{
     <script type="text/javascript">
         $.MisUrls = { url: {} };
@@ -364,4 +360,3 @@
 
     <script src="@Url.Content("~/Scripts/Views/Compra_Crear.js")" type="text/javascript"></script>
 }
-

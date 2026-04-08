@@ -7,7 +7,7 @@ using VentasWeb.Filters;
 namespace VentasWeb.Controllers
 {
     [AuthorizeRol("MotivoBaja", "*")]
-    public class MotivoBajaController : Controller
+    public class MotivoBajaController : BaseController
     {
         public ActionResult Crear() => View();
 
@@ -55,6 +55,22 @@ namespace VentasWeb.Controllers
                 resultado = ok,
                 mensaje = ok ? "Motivo eliminado." : "No se pudo eliminar. Puede estar en uso."
             }, JsonRequestBehavior.AllowGet);
+        }
+        // Trae todos (activos e inactivos) para la grilla
+        
+
+        public JsonResult ObtenerTodos()
+        {
+            var lista = CD_MotivoBaja.Instancia.ObtenerTodosMotivosBaja();
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+        public JsonResult CambiarEstado(int id, bool activar)
+        {
+            bool resultado = CD_MotivoBaja.Instancia.CambiarEstadoMotivoBaja(id, activar);
+            string mensaje = activar
+                ? (resultado ? "Motivo reactivado correctamente." : "No se pudo reactivar.")
+                : (resultado ? "Motivo desactivado correctamente." : "No se puede desactivar, está en uso.");
+            return Json(new { resultado, mensaje }, JsonRequestBehavior.AllowGet);
         }
     }
 }

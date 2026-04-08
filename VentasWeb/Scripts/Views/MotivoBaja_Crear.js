@@ -4,11 +4,13 @@ $(document).ready(function () {
     activarMenu("Mantenedor");
 
     // ── DataTable ─────────────────────────────────────────
+    // CAMBIO: la URL ahora trae todos los registros (activos e inactivos)
+    // para poder ver el estado y reactivar si se quiere
     tabladata = $('#tbdata').DataTable({
         responsive: true,
         autoWidth: false,
         ajax: {
-            url: '/MotivoBaja/Obtener',
+            url: '/MotivoBaja/ObtenerTodos', // CAMBIO: nuevo endpoint que trae activos e inactivos
             type: 'GET',
             datatype: 'json'
         },
@@ -29,14 +31,27 @@ $(document).ready(function () {
                 data: 'IdMotivoBaja',
                 orderable: false,
                 searchable: false,
-                width: '100px',
+                width: '120px',
                 render: function (data, type, row) {
-                    return '<button class="btn btn-xs btn-primary mr-1" ' +
+                    var btnEditar = '<button class="btn btn-xs btn-primary mr-1" ' +
                         'onclick=\'abrirPopUpForm(' + JSON.stringify(row) + ')\' title="Editar">' +
-                        '<i class="fa fa-edit"></i></button>' +
-                        '<button class="btn btn-xs btn-danger" ' +
-                        'onclick="eliminar(' + data + ')" title="Eliminar">' +
-                        '<i class="fa fa-trash"></i></button>';
+                        '<i class="fa fa-edit"></i></button>';
+
+                    // CAMBIO: el botón cambia según el estado actual del registro
+                    var btnEstado;
+                    if (row.Activo) {
+                        // Si está activo → mostrar botón para desactivar (borrado lógico)
+                        btnEstado = '<button class="btn btn-xs btn-danger" ' +
+                            'onclick="cambiarEstado(' + data + ', false)" title="Desactivar">' +
+                            '<i class="fa fa-ban"></i></button>';
+                    } else {
+                        // Si está inactivo → mostrar botón para reactivar
+                        btnEstado = '<button class="btn btn-xs btn-success" ' +
+                            'onclick="cambiarEstado(' + data + ', true)" title="Reactivar">' +
+                            '<i class="fa fa-check"></i></button>';
+                    }
+
+                    return btnEditar + btnEstado;
                 }
             }
         ]
@@ -111,31 +126,38 @@ function Guardar() {
     });
 }
 
-// ── Eliminar ──────────────────────────────────────────────
-function eliminar(id) {
+// ── CAMBIO: reemplaza la función eliminar() por cambiarEstado() ───────────
+// En vez de eliminar, desactiva o reactiva el registro (borrado lógico)
+function cambiarEstado(id, activar) {
+    var accion = activar ? 'reactivar' : 'desactivar';
+    var icono = activar ? 'question' : 'warning';
+    var textoConfirm = activar ? 'Sí, reactivar' : 'Sí, desactivar';
+
     Swal.fire({
-        title: '¿Eliminar motivo?',
-        text: 'Esta acción no se puede deshacer.',
-        icon: 'warning',
+        title: '¿' + accion.charAt(0).toUpperCase() + accion.slice(1) + ' motivo?',
+        text: activar
+            ? 'El motivo volverá a estar disponible.'
+            : 'El motivo ya no estará disponible para nuevos movimientos.',
+        icon: icono,
         showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
+        confirmButtonText: textoConfirm,
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#d33'
+        confirmButtonColor: activar ? '#28a745' : '#d33'
     }).then(function (result) {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/MotivoBaja/Eliminar?id=' + id,
+                url: '/MotivoBaja/CambiarEstado?id=' + id + '&activar=' + activar,
                 type: 'GET',
                 success: function (resp) {
                     if (resp.resultado) {
                         tabladata.ajax.reload();
-                        Swal.fire('Eliminado', resp.mensaje, 'success');
+                        Swal.fire('Listo', resp.mensaje, 'success');
                     } else {
                         Swal.fire('Atención', resp.mensaje, 'warning');
                     }
                 },
                 error: function () {
-                    Swal.fire('Error', 'Ocurrió un error al eliminar.', 'error');
+                    Swal.fire('Error', 'Ocurrió un error al cambiar el estado.', 'error');
                 }
             });
         }

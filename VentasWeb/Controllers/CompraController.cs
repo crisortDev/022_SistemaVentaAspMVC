@@ -12,16 +12,8 @@ using System.Xml.Serialization;
 
 namespace VentasWeb.Controllers
 {
-    public class CompraController : Controller
+    public class CompraController : BaseController
     {
-        private static Usuario SesionUsuario;
-        // GET: Compra
-        //public ActionResult Crear()
-        //{
-        //    SesionUsuario = (Usuario)Session["Usuario"];
-        //    return View();
-        //}
-
         public ActionResult Crear()
         {
             var usuario = (Usuario)Session["Usuario"];
@@ -29,45 +21,50 @@ namespace VentasWeb.Controllers
             return View();
         }
 
-        // GET: Compra
         public ActionResult Consultar()
         {
             return View();
         }
+
         [HttpGet]
         public JsonResult ObtenerProveedores()
         {
             List<Proveedor> lista = CD_Proveedor.Instancia.ObtenerProveedor();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
-        public ActionResult Documento(int idcompra = 0) {
-            
+
+        public ActionResult Documento(int idcompra = 0)
+        {
             Compra oCompra = CD_Compra.Instancia.ObtenerDetalleCompra(idcompra);
-
-            if (oCompra == null) {
+            if (oCompra == null)
                 oCompra = new Compra();
-            }
-
 
             return View(oCompra);
         }
 
-
         public JsonResult Obtener(string fechainicio, string fechafin, int idproveedor, int idtienda)
         {
-            List<Compra> lista = CD_Compra.Instancia.ObtenerListaCompra(Convert.ToDateTime(fechainicio), Convert.ToDateTime(fechafin), idproveedor, idtienda);
+            // ── Si no es SuperAdmin, forzar su propia tienda ──────
+            if (!EsSuperAdmin)
+                idtienda = TiendaActiva;
+
+            List<Compra> lista = CD_Compra.Instancia.ObtenerListaCompra(
+                Convert.ToDateTime(fechainicio),
+                Convert.ToDateTime(fechafin),
+                idproveedor,
+                idtienda
+            );
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
+
         [HttpPost]
         public JsonResult Guardar(string xml)
         {
             try
             {
-                SesionUsuario = (Usuario)Session["Usuario"];
+                var SesionUsuario = (Usuario)Session["Usuario"];
                 if (SesionUsuario == null)
-                {
                     return Json(new { resultado = false, error = "La sesión ha expirado. Por favor inicie sesión nuevamente." });
-                }
 
                 xml = xml.Replace("!idusuario¡", SesionUsuario.IdUsuario.ToString());
 
@@ -79,26 +76,25 @@ namespace VentasWeb.Controllers
                     detalleRoot = (ValidaStockMaximo.DetalleRoot)serializer.Deserialize(reader);
                 }
 
+                // ── Validar permiso por sucursal ──────────────────
+                if (!TienePermiso(detalleRoot.Compra.IdTienda))
+                    return Json(new { resultado = false, error = "No tiene permisos para registrar compras en esta sucursal." });
+
                 string validacionStock = CD_Compra.Instancia.ValidaStockMaximo(
                     detalleRoot.DetalleCompra.Detalle.IdProducto,
                     detalleRoot.DetalleCompra.Detalle.Cantidad,
                     detalleRoot.Compra.IdTienda
                 );
 
-                // Dividir solo en la primera coma
                 var partes = validacionStock.Split(new[] { ',' }, 2);
 
                 if (partes.Length < 2)
-                {
                     return Json(new { resultado = false, error = "Formato inválido: falta la coma" });
-                }
 
                 if (!int.TryParse(partes[0], out int codigoResultado))
-                {
                     return Json(new { resultado = false, error = "Código no es un número" });
-                }
 
-                string mensaje = partes[1].Trim(); // Elimina espacios al inicio/final
+                string mensaje = partes[1].Trim();
 
                 switch (codigoResultado)
                 {
@@ -130,7 +126,6 @@ namespace VentasWeb.Controllers
             try
             {
                 List<HistorialPrecioCompra> lista = CD_Compra.Instancia.ObtenerHistorialPrecioCompra(idproducto);
-
                 return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
@@ -138,6 +133,5 @@ namespace VentasWeb.Controllers
                 return Json(new { data = new List<HistorialPrecioCompra>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
-
     }
 }

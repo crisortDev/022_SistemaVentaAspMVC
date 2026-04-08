@@ -1,5 +1,4 @@
-﻿
-var tabladata;
+﻿var tabladata;
 $(document).ready(function () {
     activarMenu("Ventas");
 
@@ -119,7 +118,7 @@ function Guardar() {
                     $('#FormModal').modal('hide');
                 } else {
 
-                    swal("Mensaje", "No se pudo guardar los cambios", "warning")
+                    swal("Mensaje", data.mensaje || "No se pudo guardar los cambios", "warning")
                 }
             },
             error: function (error) {
@@ -163,7 +162,7 @@ function eliminar($id) {
                     if (data.resultado) {
                         tabladata.ajax.reload();
                     } else {
-                        swal("Mensaje", "No se pudo eliminar la tienda", "warning")
+                        swal("Mensaje", data.mensaje || "No se pudo eliminar la tienda", "warning")
                     }
                 },
                 error: function (error) {

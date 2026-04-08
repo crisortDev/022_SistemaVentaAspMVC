@@ -7,10 +7,10 @@ using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
-    [AuthorizeRol("Empleado", "*")] // '*' significa todas las vistas/acciones del controlador
+    [AuthorizeRol("Empleado", "*")]
     public class EmpleadoController : Controller
     {
-        // GET: Persona/Crear
+        // GET: Empleado/Crear
         public ActionResult Crear()
         {
             return View();
@@ -31,14 +31,12 @@ namespace VentasWeb.Controllers
             {
                 if (model.IdEmpleado > 0)
                 {
-                    // Actualizar empleado existente
                     exito = CD_Empleado.Instancia.ActualizarEmpleado(model);
                     mensaje = exito ? "Empleado actualizado correctamente." : "No se pudo actualizar el empleado.";
                     idGenerado = model.IdEmpleado;
                 }
                 else
                 {
-                    // Registrar nuevo empleado
                     var resultado = CD_Empleado.Instancia.RegistrarEmpleado(model);
                     exito = resultado.resultado;
                     mensaje = resultado.mensaje;
@@ -61,7 +59,8 @@ namespace VentasWeb.Controllers
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
-        // POST: Empleado/CambiarEstado
+        // POST: Empleado/CambiarEstado — Borrado lógico
+        // Activa o desactiva el empleado. Nunca elimina el registro.
         [HttpPost]
         public ActionResult CambiarEstado(int id, bool activo)
         {
@@ -71,11 +70,11 @@ namespace VentasWeb.Controllers
                     return Json(new { resultado = false, mensaje = "Id de empleado inválido." });
 
                 bool exito = CD_Empleado.Instancia.CambiarEstadoEmpleado(id, activo);
+                string mensaje = activo ? "Empleado activado correctamente." : "Empleado desactivado correctamente.";
 
-                if (exito)
-                    return Json(new { resultado = true, mensaje = activo ? "Empleado activado correctamente." : "Empleado desactivado correctamente." });
-                else
-                    return Json(new { resultado = false, mensaje = "No se pudo cambiar el estado. Verifique que el empleado exista y no tenga registros asociados." });
+                return exito
+                    ? Json(new { resultado = true, mensaje = mensaje })
+                    : Json(new { resultado = false, mensaje = "No se pudo cambiar el estado del empleado." });
             }
             catch (Exception ex)
             {
@@ -90,16 +89,7 @@ namespace VentasWeb.Controllers
             return Json(empleado, JsonRequestBehavior.AllowGet);
         }
 
-
-
-        // POST: Persona/Eliminar
-        [HttpPost]
-        public ActionResult Eliminar(int id)
-        {
-            // Lógica para eliminar
-            return Json(new { success = true });
-        }
-        // GET: Buscar persona por CI (solo físicas)
+        // GET: Buscar persona por CI
         [HttpGet]
         public ActionResult BuscarPorCI(string ci)
         {
@@ -124,12 +114,6 @@ namespace VentasWeb.Controllers
                 if (persona == null)
                     return Json(new { resultado = false, mensaje = "No se encontró la persona." }, JsonRequestBehavior.AllowGet);
 
-                // Verificar si es empleado
-                bool esEmpleado = CD_Empleado.Instancia.EsEmpleado(persona.IdPersona);
-                //if (!esEmpleado)
-                //    return Json(new { resultado = false, mensaje = "Solo empleados pueden tener usuario." }, JsonRequestBehavior.AllowGet);
-
-                // Verificar si ya tiene usuario
                 bool yaTieneUsuario = CD_Usuario.Instancia.TieneUsuarioPorEmpleado(persona.IdPersona);
                 if (yaTieneUsuario)
                     return Json(new { resultado = false, mensaje = "La persona ya tiene usuario." }, JsonRequestBehavior.AllowGet);
@@ -147,42 +131,22 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                // Buscar persona por documento usando ADO
                 var persona = CD_Persona.Instancia.BuscarPorDocumento(documento);
 
                 if (persona == null)
-                {
-                    return Json(new
-                    {
-                        existe = false,
-                        mensaje = "La persona no está registrada. Por favor, vaya a Persona/Crear."
-                    }, JsonRequestBehavior.AllowGet);
-                }
+                    return Json(new { existe = false, mensaje = "La persona no está registrada." }, JsonRequestBehavior.AllowGet);
 
-                // Verificar si ya es empleado
                 bool esEmpleado = CD_Empleado.Instancia.EsEmpleado(persona.IdPersona);
 
                 if (esEmpleado)
                 {
-                    // Obtener datos del empleado
                     var emp = CD_Empleado.Instancia.ObtenerIdEmpleadoPorPersona(persona.IdPersona);
                     var empleado = CD_Empleado.Instancia.ObtenerEmpleadoPorId(emp);
-
-                    return Json(new
-                    {
-                        existe = true,
-                        esEmpleado = true,
-                        data = empleado
-                    }, JsonRequestBehavior.AllowGet);
+                    return Json(new { existe = true, esEmpleado = true, data = empleado }, JsonRequestBehavior.AllowGet);
                 }
                 else
                 {
-                    return Json(new
-                    {
-                        existe = true,
-                        esEmpleado = false,
-                        data = persona
-                    }, JsonRequestBehavior.AllowGet);
+                    return Json(new { existe = true, esEmpleado = false, data = persona }, JsonRequestBehavior.AllowGet);
                 }
             }
             catch (Exception ex)
@@ -190,6 +154,7 @@ namespace VentasWeb.Controllers
                 return Json(new { existe = false, mensaje = "Error: " + ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
+
         [HttpGet]
         public JsonResult ObtenerTiendasActivas()
         {
@@ -204,5 +169,7 @@ namespace VentasWeb.Controllers
             }
         }
 
+        // ELIMINADO: La acción Eliminar física fue removida.
+        // El borrado lógico se maneja completamente a través de CambiarEstado.
     }
 }

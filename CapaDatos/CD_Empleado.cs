@@ -108,7 +108,6 @@ namespace CapaDatos
         public bool ModificarDesdeApp(Empleado emp)
         {
             bool resultado = false;
-
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 SqlCommand cmd = new SqlCommand(
@@ -124,13 +123,15 @@ namespace CapaDatos
                 cmd.Parameters.AddWithValue("@Apellidos", emp.Apellidos);
                 cmd.Parameters.AddWithValue("@IdTienda", emp.IdTienda);
                 cmd.Parameters.AddWithValue("@Activo", emp.Activo);
-                cmd.Parameters.AddWithValue("@FechaIngreso", emp.FechaIngreso);
+                cmd.Parameters.AddWithValue("@FechaIngreso",        // ← fix
+                    emp.FechaIngreso != DateTime.MinValue
+                        ? (object)emp.FechaIngreso
+                        : (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@IdEmpleado", emp.IdEmpleado);
 
                 oConexion.Open();
                 resultado = cmd.ExecuteNonQuery() > 0;
             }
-
             return resultado;
         }
 
@@ -255,9 +256,7 @@ namespace CapaDatos
                         Telefono = dr["Telefono"].ToString(),
                         Activo = Convert.ToBoolean(dr["Activo"]),
                         FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"]),
-                        FechaIngreso = (DateTime)(dr["FechaIngreso"] == DBNull.Value
-                                        ? (DateTime?)null
-                                        : Convert.ToDateTime(dr["FechaIngreso"]))
+                        FechaIngreso = dr["FechaIngreso"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(dr["FechaIngreso"])
                     });
                 }
                 dr.Close();

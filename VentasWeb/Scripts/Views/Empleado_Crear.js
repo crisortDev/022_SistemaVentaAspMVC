@@ -1,29 +1,11 @@
 ﻿$(document).ready(function () {
 
-    // ══════════════════════════════════════════════════
-    //  INICIALIZACIÓN
-    // ══════════════════════════════════════════════════
-    cargarRoles();
-    cargarTiendas();
-
-    // ── Cargar Roles ──────────────────────────────────
-    function cargarRoles() {
-        $.get('/Usuario/ObtenerRoles', function (response) {
-            var lista = Array.isArray(response) ? response : (response.data ? response.data : []);
-            var $select = $("#cboRolUsuario");
-            $select.empty();
-            $select.append('<option value="">-- Seleccione Rol --</option>');
-            lista.forEach(function (item) {
-                $select.append(`<option value="${item.IdRol}">${item.Descripcion}</option>`);
-            });
-        });
-    }
-
-    // ── Cargar Tiendas ────────────────────────────────
+    // Cargar Tiendas al abrir modal
     function cargarTiendas(idTiendaSeleccionada) {
-        $.get('/Empleado/ObtenerTiendasActivas', function (response) {
-            var lista = Array.isArray(response) ? response : (response.data ? response.data : []);
-            var $select = $("#cboTiendaUsuario");
+        $.get($.MisUrls.url._ObtenerTiendasActivas, function (response) {
+            var lista = Array.isArray(response) ? response
+                : (response.data ? response.data : []);
+            var $select = $("#cboTienda");
             $select.empty();
             $select.append('<option value="">-- Seleccione Tienda --</option>');
             lista.forEach(function (item) {
@@ -35,170 +17,119 @@
         });
     }
 
-    // ══════════════════════════════════════════════════
-    //  ABRIR MODAL
-    // ══════════════════════════════════════════════════
-    $(document).on("click", "#btnAgregarUsuario", function () {
-        abrirFormUsuario();
+    // Cargar tiendas al iniciar la página
+    cargarTiendas();
+
+    // Abrir modal para agregar empleado
+    $(document).on("click", "#btnAgregarEmpleado", function () {
+        abrirPopUpFormEmpleado();
     });
 
-    window.abrirFormUsuario = function () {
-        // Limpiar todos los campos
-        $("#txtIdEmpleadoUsuario").val(0);
-        $("#txtDocumentoUsuario").val("");
-        $("#txtNombresUsuario").val("");
-        $("#txtApellidosUsuario").val("");
-        $("#txtCIRUCUsuario").val("");
-        $("#txtCorreoUsuario").val("");
-        $("#cboRolUsuario").val("");
-        $("#ddlEstadoUsuario").val("1"); // default Activo
-        cargarTiendas();
+    // Botón Guardar
+    $("#btnGuardarEmpleado").click(function () {
+        GuardarEmpleado();
+    });
 
-        // Desbloquear campo de búsqueda y limpiar estilos de solo lectura
-        desbloquearCamposProtegidos();
+    // Buscar persona por CI
+    $("#btnBuscarPersona").click(function () {
+        var ci = $("#txtCI").val().trim();
+        if (ci === "") return;
 
-        $("#FormUsuario").modal("show");
-    };
+        $.get($.MisUrls.url._BuscarPorCI, { ci: ci }, function (resp) {
+            if (resp.resultado) {
+                $("#txtIdPersona").val(resp.data.IdPersona);
+                $("#txtDocumento").val(resp.data.Documento);
+                $("#txtNombres").val(resp.data.Nombres);
+                $("#txtApellidos").val(resp.data.Apellidos);
+                $("#txtCorreo").val(resp.data.Correo);
+                $("#txtTelefono").val(resp.data.Telefono);
 
-    // ══════════════════════════════════════════════════
-    //  BUSCAR EMPLEADO POR CI / RUC
-    // ══════════════════════════════════════════════════
-    $("#btnBuscarEmpleado").click(function () {
-        var documento = $("#txtDocumentoUsuario").val().trim();
+                // Desactivar campos que no deben modificarse
+                $("#txtDocumento").prop("disabled", true);
+                $("#txtNombres").prop("disabled", true);
+                $("#txtApellidos").prop("disabled", true);
+                $("#txtCorreo").prop("disabled", true);
+                $("#txtTelefono").prop("disabled", true);
 
-        if (!documento) {
-            Swal.fire("Atención", "Ingrese un CI o RUC para buscar.", "warning");
-            return;
-        }
+                // Activar solo los campos que se pueden modificar
+                $("#txtFechaIngreso").prop("disabled", false);
+                $("#ddlEstadoEmpleado").prop("disabled", false);
+                $("#cboTienda").prop("disabled", false);
 
-        $.get('/Empleado/BuscarPersonaPorDocumento', { documento: documento }, function (resp) {
-
-            if (!resp.existe) {
-                Swal.fire("No encontrado", resp.mensaje || "No se encontró la persona.", "warning");
-                desbloquearCamposProtegidos();
-                return;
+                Swal.fire("Info", "Persona encontrada. Complete los datos de empleado.", "info");
+            } else {
+                Swal.fire("Error", resp.mensaje, "warning");
             }
-
-            var data = resp.data;
-
-            // ── Rellenar campos ────────────────────────────
-            $("#txtIdEmpleadoUsuario").val(data.IdEmpleado || 0);
-            $("#txtNombresUsuario").val(data.Nombres || "");
-            $("#txtApellidosUsuario").val(data.Apellidos || "");
-            $("#txtCIRUCUsuario").val(data.Documento || "");   // ← CI/RUC se rellena correctamente
-            $("#txtCorreoUsuario").val(data.Correo || "");     // ← Correo de Persona (solo lectura)
-
-            // ── Preseleccionar tienda si el empleado ya tiene una ──
-            if (data.IdTienda && data.IdTienda > 0) {
-                cargarTiendas(data.IdTienda);
-            }
-
-            // ── Bloquear campos protegidos ─────────────────
-            bloquearCamposProtegidos();
-
-            if (!resp.esEmpleado) {
-                Swal.fire("Info",
-                    "Persona encontrada pero no está registrada como empleado activo.",
-                    "info");
-            }
-        }).fail(function () {
-            Swal.fire("Error", "No se pudo conectar con el servidor.", "error");
         });
     });
 
-    // ══════════════════════════════════════════════════
-    //  HELPERS — bloquear / desbloquear campos
-    // ══════════════════════════════════════════════════
-    function bloquearCamposProtegidos() {
-        $("#txtNombresUsuario, #txtApellidosUsuario, #txtCIRUCUsuario, #txtCorreoUsuario")
-            .prop("readonly", true)
-            .addClass("campo-bloqueado");
-    }
+    // Guardar empleado
+    function GuardarEmpleado() {
+        var fechaIngreso = $("#txtFechaIngreso").val();
+        if (fechaIngreso) {
+            var partes = fechaIngreso.split('-');
+            var fechaIngresada = new Date(partes[0], partes[1] - 1, partes[2]);
+            var hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
 
-    function desbloquearCamposProtegidos() {
-        $("#txtNombresUsuario, #txtApellidosUsuario, #txtCIRUCUsuario, #txtCorreoUsuario")
-            .prop("readonly", false)
-            .removeClass("campo-bloqueado");
-    }
-
-    // ══════════════════════════════════════════════════
-    //  GUARDAR USUARIO
-    // ══════════════════════════════════════════════════
-    $("#btnGuardarUsuario").click(function () {
-        GuardarUsuario();
-    });
-
-    function GuardarUsuario() {
-        var idEmpleado = parseInt($("#txtIdEmpleadoUsuario").val()) || 0;
-        var correo = $("#txtCorreoUsuario").val().trim();
-        var idRol = $("#cboRolUsuario").val();
-        var idTienda = $("#cboTiendaUsuario").val();
-        var activo = $("#ddlEstadoUsuario").val() === "1";
-
-        // ── Validaciones ───────────────────────────────
-        if (idEmpleado <= 0) {
-            Swal.fire("Atención", "Busque y seleccione un empleado primero.", "warning");
-            return;
-        }
-        if (!correo) {
-            Swal.fire("Atención", "El correo es obligatorio.", "warning");
-            return;
-        }
-        if (!idRol) {
-            Swal.fire("Atención", "Seleccione un rol.", "warning");
-            return;
-        }
-        if (!idTienda) {
-            Swal.fire("Atención", "Seleccione una tienda.", "warning");
-            return;
+            if (fechaIngresada < hoy) {
+                Swal.fire("Error", "La fecha de ingreso no puede ser menor que el día actual.", "warning");
+                return;
+            }
         }
 
-        var datos = {
-            IdEmpleado: idEmpleado,
-            Correo: correo,
-            IdRol: parseInt(idRol),
-            IdTienda: parseInt(idTienda),
-            Activo: activo
+        var emp = {
+            IdEmpleado: $("#txtIdEmpleado").val(),
+            IdPersona: $("#txtIdPersona").val(),
+            Documento: $("#txtDocumento").val(),
+            Nombres: $("#txtNombres").val(),
+            Apellidos: $("#txtApellidos").val(),
+            Correo: $("#txtCorreo").val(),
+            Telefono: $("#txtTelefono").val(),
+            FechaIngreso: $("#txtFechaIngreso").val(),
+            Activo: $("#ddlEstadoEmpleado").val() === "1",
+            IdTienda: $("#cboTienda").val()
         };
 
         $.ajax({
-            url: '/Usuario/Guardar',
+            url: '/Empleado/Guardar',
             type: 'POST',
-            data: JSON.stringify(datos),
+            data: JSON.stringify(emp),
             contentType: 'application/json; charset=utf-8',
             success: function (resp) {
                 if (resp.resultado) {
                     Swal.fire("Éxito", resp.mensaje, "success");
-                    $('#FormUsuario').modal('hide');
-                    $('#tbUsuarios').DataTable().ajax.reload();
+                    $('#FormEmpleado').modal('hide');
+                    $('#tbEmpleados').DataTable().ajax.reload();
                 } else {
                     Swal.fire("Error", resp.mensaje, "error");
                 }
-            },
-            error: function () {
-                Swal.fire("Error", "No se pudo conectar con el servidor.", "error");
             }
         });
     }
 
-    // ══════════════════════════════════════════════════
-    //  DATATABLE USUARIOS
-    // ══════════════════════════════════════════════════
-    $('#tbUsuarios').DataTable({
+    // Inicializar DataTable
+    $('#tbEmpleados').DataTable({
         responsive: true,
         autoWidth: false,
-        ajax: { url: '/Usuario/Obtener', type: 'GET', datatype: 'json' },
-        order: [[0, 'asc']],
+        ajax: { url: '/Empleado/Obtener', type: 'GET', datatype: 'json' },
+        order: [[4, 'desc']],
         columns: [
+            { data: 'Documento' },
             { data: 'Nombres' },
             { data: 'Apellidos' },
-            { data: 'Correo' },
+            { data: 'IdTienda', render: function (data) { return data; } },
             {
-                data: 'oRol',
+                data: 'FechaIngreso',
                 render: function (data) {
-                    return data ? data.Descripcion : '';
+                    if (!data) return '';
+                    var timestamp = parseInt(data.replace(/\/Date\((\d+)\)\//, '$1'));
+                    var fecha = new Date(timestamp);
+                    return fecha.toLocaleDateString('es-ES');
                 }
             },
+            { data: 'Correo' },
+            { data: 'Telefono' },
             {
                 data: 'Activo',
                 render: function (data) {
@@ -208,47 +139,94 @@
                 }
             },
             {
-                data: 'IdUsuario',
+                data: 'IdEmpleado',
                 render: function (data, type, row) {
+                    // Botón Editar siempre disponible
+                    let botones = `<button class="btn btn-sm btn-primary mr-1" onclick="abrirPopUpFormEmpleado(${data}, true)" title="Editar">
+                        <i class="fa fa-edit"></i></button>`;
+
+                    // Borrado lógico: toggle Activo/Inactivo según estado actual
                     if (row.Activo) {
-                        return `<button class="btn btn-sm btn-warning" onclick="cambiarEstadoUsuario(${data}, false)">
-                                    <i class="fa fa-toggle-off" title="Desactivar"></i>
-                                </button>`;
+                        botones += `<button class="btn btn-sm btn-danger" onclick="CambiarEstadoEmpleado(${data}, false)" title="Desactivar empleado">
+                            <i class="fa fa-ban"></i></button>`;
                     } else {
-                        return `<button class="btn btn-sm btn-success" onclick="cambiarEstadoUsuario(${data}, true)">
-                                    <i class="fa fa-check" title="Activar"></i>
-                                </button>`;
+                        botones += `<button class="btn btn-sm btn-success" onclick="CambiarEstadoEmpleado(${data}, true)" title="Activar empleado">
+                            <i class="fa fa-check"></i></button>`;
                     }
+
+                    return botones;
                 },
                 orderable: false,
                 searchable: false,
-                width: "80px"
+                width: "100px"
             }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish }
     });
 
-    // ── Cambiar estado Activo/Inactivo ────────────────
-    window.cambiarEstadoUsuario = function (id, activar) {
+    // Cambiar estado Activo/Inactivo (borrado lógico)
+    window.CambiarEstadoEmpleado = function (id, activar) {
+        let accion = activar ? "activar" : "desactivar";
+        let icono = activar ? "question" : "warning";
+        let confirmColor = activar ? "#27ae60" : "#e74c3c";
+        let confirmText = activar ? "Sí, activar" : "Sí, desactivar";
+
         Swal.fire({
             title: '¿Está seguro?',
-            text: `¿Desea ${activar ? 'activar' : 'desactivar'} este usuario?`,
-            icon: 'warning',
+            text: `¿Desea ${accion} este empleado?`,
+            icon: icono,
             showCancelButton: true,
-            confirmButtonText: 'Sí',
-            cancelButtonText: 'No'
+            confirmButtonText: confirmText,
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: confirmColor
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post('/Usuario/CambiarEstado', { id: id, activo: activar }, function (resp) {
+                $.post('/Empleado/CambiarEstado', { id: id, activo: activar }, function (resp) {
                     if (resp.resultado) {
-                        Swal.fire("Éxito", "Usuario actualizado correctamente.", "success");
-                        $('#tbUsuarios').DataTable().ajax.reload();
+                        let msg = activar ? "Empleado activado correctamente." : "Empleado desactivado correctamente.";
+                        Swal.fire("Éxito", msg, "success");
+                        $('#tbEmpleados').DataTable().ajax.reload();
                     } else {
                         Swal.fire("Error", resp.mensaje || "No se pudo actualizar.", "error");
                     }
                 });
             }
         });
+    };
+
+    // Abrir modal para nuevo o editar empleado
+    window.abrirPopUpFormEmpleado = function (idEmpleado, esEditar = false) {
+        $("#formEmpleado")[0].reset();
+        $("#txtIdPersona").val(0);
+        $("#txtIdEmpleado").val(idEmpleado || 0);
+        $("#ddlEstadoEmpleado").val("1");
+
+        if (esEditar && idEmpleado) {
+            $("#divBuscarPersona").hide();
+            $("#FormEmpleado .modal-title").text("Editar Empleado");
+
+            $.get("/Empleado/ObtenerPorId", { id: idEmpleado }, function (data) {
+                if (data) {
+                    $("#txtIdPersona").val(data.IdPersona);
+                    $("#txtDocumento").val(data.Documento);
+                    $("#txtNombres").val(data.Nombres);
+                    $("#txtApellidos").val(data.Apellidos);
+                    $("#txtCorreo").val(data.Correo);
+                    $("#txtTelefono").val(data.Telefono);
+                    $("#ddlEstadoEmpleado").val(data.Activo ? "1" : "0");
+                    cargarTiendas(data.IdTienda);
+                }
+            });
+        } else {
+            $("#divBuscarPersona").show();
+            $("#txtIdPersona").val(0);
+            $("#FormEmpleado .modal-title").text("Nuevo Empleado");
+
+            $("#txtDocumento, #txtNombres, #txtApellidos, #txtCorreo, #txtTelefono").prop("disabled", false);
+            $("#txtFechaIngreso, #ddlEstadoEmpleado, #cboTienda").prop("disabled", false);
+        }
+
+        $("#FormEmpleado").modal("show");
     };
 
 });

@@ -1,34 +1,48 @@
 ﻿using CapaDatos;
 using CapaModelo;
 using System;
-using System.Collections.Generic;
 using System.Web.Mvc;
 using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
     [AuthorizeRol("Categoria", "*")]
-    public class CategoriaController : Controller
+    public class CategoriaController : BaseController
     {
-        // GET: Categoria/Crear
+        /// <summary>
+        /// Lee el usuario autenticado desde Session["Usuario"] y devuelve "Nombres Apellidos".
+        /// Si la sesión no existe devuelve "SISTEMA" como fallback.
+        /// </summary>
+        private string UsuarioActual
+        {
+            get
+            {
+                var usuario = Session["Usuario"] as Usuario;
+                if (usuario == null) return "SISTEMA";
+                return $"{usuario.Nombres} {usuario.Apellidos}".Trim();
+            }
+        }
+
         public ActionResult Crear() => View();
 
-        // GET: Obtener lista para DataTable
         public JsonResult Obtener()
         {
             var lista = CD_Categoria.Instancia.ObtenerCategoria();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
-        // POST: Guardar (crear o modificar)
         [HttpPost]
         public JsonResult Guardar(Categoria objeto)
         {
             if (objeto == null || string.IsNullOrWhiteSpace(objeto.Descripcion))
                 return Json(new { resultado = false, mensaje = "Datos inválidos." });
 
-            // Forzar mayúsculas también en servidor
             objeto.Descripcion = objeto.Descripcion.Trim().ToUpper();
+            objeto.UsuarioModificacion = UsuarioActual;
+
+            // PorcentajeGanancia viene del frontend; si llega negativo lo forzamos a 0
+            if (objeto.PorcentajeGanancia < 0)
+                objeto.PorcentajeGanancia = 0;
 
             try
             {
@@ -44,15 +58,22 @@ namespace VentasWeb.Controllers
             }
         }
 
-        // GET: Eliminar
-        [HttpGet]
-        public JsonResult Eliminar(int id = 0)
+        [HttpPost]
+        public JsonResult CambiarEstado(int id, bool activo)
         {
             if (id <= 0)
-                return Json(new { resultado = false }, JsonRequestBehavior.AllowGet);
+                return Json(new { resultado = false, mensaje = "Id inválido." });
 
-            bool respuesta = CD_Categoria.Instancia.EliminarCategoria(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                bool respuesta = CD_Categoria.Instancia.CambiarEstadoCategoria(id, activo, UsuarioActual);
+                string mensaje = activo ? "Categoría activada." : "Categoría desactivada.";
+                return Json(new { resultado = respuesta, mensaje = mensaje });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = ex.Message });
+            }
         }
     }
 }

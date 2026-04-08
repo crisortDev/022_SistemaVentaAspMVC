@@ -8,7 +8,7 @@ using VentasWeb.Filters;
 namespace VentasWeb.Controllers
 {
     [AuthorizeRol("Persona", "*")] // '*' significa todas las vistas/acciones del controlador
-    public class PersonaController : Controller
+    public class PersonaController : BaseController
     {
         // GET: Persona/Crear
         public ActionResult Crear()

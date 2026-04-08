@@ -21,7 +21,7 @@ namespace CapaDatos
             }
         }
 
-        // Usado por MotivoBajaController y ProductoController
+        // Usado por MotivoBajaController y ProductoController (solo activos)
         public List<MotivoBaja> ObtenerMotivosBaja()
         {
             var lista = new List<MotivoBaja>();
@@ -54,6 +54,39 @@ namespace CapaDatos
             return lista;
         }
 
+        // NUEVO: trae activos e inactivos para la grilla del mantenedor
+        public List<MotivoBaja> ObtenerTodosMotivosBaja()
+        {
+            var lista = new List<MotivoBaja>();
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand(
+                    "SELECT IdMotivoBaja, Descripcion, Activo, FechaRegistro FROM MotivoBaja ORDER BY Descripcion",
+                    oConexion);
+                try
+                {
+                    oConexion.Open();
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    while (dr.Read())
+                    {
+                        lista.Add(new MotivoBaja
+                        {
+                            IdMotivoBaja = Convert.ToInt32(dr["IdMotivoBaja"]),
+                            Descripcion = dr["Descripcion"].ToString(),
+                            Activo = Convert.ToBoolean(dr["Activo"]),
+                            FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"])
+                        });
+                    }
+                    dr.Close();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error ObtenerTodosMotivosBaja: " + ex.Message);
+                }
+            }
+            return lista;
+        }
+
         public bool RegistrarMotivoBaja(MotivoBaja oMotivo)
         {
             bool respuesta = false;
@@ -69,7 +102,7 @@ namespace CapaDatos
                 {
                     oConexion.Open();
                     int existe = Convert.ToInt32(cmdCheck.ExecuteScalar());
-                    if (existe > 0) return false; // ya existe
+                    if (existe > 0) return false;
 
                     SqlCommand cmd = new SqlCommand(
                         "INSERT INTO MotivoBaja (Descripcion, Activo, FechaRegistro) VALUES (@Descripcion, 1, GETDATE())",
@@ -118,35 +151,58 @@ namespace CapaDatos
             return respuesta;
         }
 
-        public bool EliminarMotivoBaja(int idMotivoBaja)
+        // NUEVO: reemplaza EliminarMotivoBaja, permite desactivar Y reactivar
+        public bool CambiarEstadoMotivoBaja(int idMotivoBaja, bool activar)
         {
             bool respuesta = false;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                // Verificar si está en uso en HISTORIAL_MOVIMIENTO antes de eliminar
-                SqlCommand cmdCheck = new SqlCommand(
-                    "SELECT COUNT(1) FROM HISTORIAL_MOVIMIENTO WHERE IdMotivoBaja = @IdMotivoBaja",
-                    oConexion);
-                cmdCheck.Parameters.AddWithValue("@IdMotivoBaja", idMotivoBaja);
+                // Si se quiere desactivar, verificar que no esté en uso en historial
+                if (!activar)
+                {
+                    SqlCommand cmdCheck = new SqlCommand(
+                        "SELECT COUNT(1) FROM HISTORIAL_MOVIMIENTO WHERE IdMotivoBaja = @IdMotivoBaja",
+                        oConexion);
+                    cmdCheck.Parameters.AddWithValue("@IdMotivoBaja", idMotivoBaja);
+
+                    try
+                    {
+                        oConexion.Open();
+                        int enUso = Convert.ToInt32(cmdCheck.ExecuteScalar());
+                        if (enUso > 0) return false; // no desactivar si está en uso
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Error CambiarEstadoMotivoBaja (check): " + ex.Message);
+                        return false;
+                    }
+                }
+                else
+                {
+                    oConexion.Open();
+                }
 
                 try
                 {
-                    oConexion.Open();
-                    int enUso = Convert.ToInt32(cmdCheck.ExecuteScalar());
-                    if (enUso > 0) return false; // no eliminar si está en uso
-
                     SqlCommand cmd = new SqlCommand(
-                        "UPDATE MotivoBaja SET Activo = 0 WHERE IdMotivoBaja = @IdMotivoBaja",
+                        "UPDATE MotivoBaja SET Activo = @Activo WHERE IdMotivoBaja = @IdMotivoBaja",
                         oConexion);
+                    cmd.Parameters.AddWithValue("@Activo", activar ? 1 : 0);
                     cmd.Parameters.AddWithValue("@IdMotivoBaja", idMotivoBaja);
                     respuesta = cmd.ExecuteNonQuery() > 0;
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine("Error EliminarMotivoBaja: " + ex.Message);
+                    System.Diagnostics.Debug.WriteLine("Error CambiarEstadoMotivoBaja: " + ex.Message);
                 }
             }
             return respuesta;
+        }
+
+        // Se mantiene por compatibilidad con código existente
+        public bool EliminarMotivoBaja(int idMotivoBaja)
+        {
+            return CambiarEstadoMotivoBaja(idMotivoBaja, false);
         }
     }
 }

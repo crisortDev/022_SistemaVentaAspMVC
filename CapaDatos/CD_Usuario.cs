@@ -86,13 +86,18 @@ namespace CapaDatos
                             Apellidos = dr["Apellidos"].ToString(),
                             Correo = dr["Correo"].ToString(),
                             Clave = dr["Clave"].ToString(),
-                            IdTienda = Convert.ToInt32(dr["IdTienda"]),
+                            IdTienda = dr["IdTienda"] != DBNull.Value ? Convert.ToInt32(dr["IdTienda"]) : (int?)null,
                             IdRol = Convert.ToInt32(dr["IdRol"]),
                             Activo = Convert.ToBoolean(dr["Activo"]),
+                            // FechaRegistro: necesario para calcular expiración de contraseña
+                            FechaRegistro = dr["FechaRegistro"] != DBNull.Value ? Convert.ToDateTime(dr["FechaRegistro"]) : DateTime.Now,
+                            // IntentosFallidos: CRÍTICO — sin esto el contador siempre arranca en 0
+                            IntentosFallidos = dr["IntentosFallidos"] != DBNull.Value ? Convert.ToInt32(dr["IntentosFallidos"]) : 0,
                             PasswordTemporalHash = dr["PasswordTemporalHash"] != DBNull.Value ? dr["PasswordTemporalHash"].ToString() : null,
                             RequiereCambioPassword = dr["RequiereCambioPassword"] != DBNull.Value && dr["RequiereCambioPassword"].ToString() == "1",
                             PasswordTemporalExpira = dr["PasswordTemporalExpira"] != DBNull.Value ? Convert.ToDateTime(dr["PasswordTemporalExpira"]) : (DateTime?)null,
                             FechaCambioPassword = dr["FechaCambioPassword"] != DBNull.Value ? Convert.ToDateTime(dr["FechaCambioPassword"]) : (DateTime?)null,
+                            FechaUltimoLogin = dr["FechaUltimoLogin"] != DBNull.Value ? Convert.ToDateTime(dr["FechaUltimoLogin"]) : DateTime.MinValue,
                             oRol = new Rol()
                             {
                                 Descripcion = dr["DescripcionRol"] != DBNull.Value ? dr["DescripcionRol"].ToString() : ""
@@ -137,7 +142,9 @@ namespace CapaDatos
                                     Apellidos = usuarioNode.Element("Apellidos").Value,
                                     Correo = usuarioNode.Element("Correo").Value,
                                     Clave = usuarioNode.Element("Clave").Value,
-                                    IdTienda = int.Parse(usuarioNode.Element("IdTienda").Value),
+                                    IdTienda = usuarioNode.Element("IdTienda") != null && !string.IsNullOrEmpty(usuarioNode.Element("IdTienda").Value)
+                                        ? (int?)int.Parse(usuarioNode.Element("IdTienda").Value)
+                                        : null,
                                     IdRol = int.Parse(usuarioNode.Element("IdRol").Value),
                                     Activo = usuarioNode.Element("Activo").Value == "1",
                                     FechaRegistro = DateTime.Parse(usuarioNode.Element("FechaRegistro").Value),
@@ -401,7 +408,7 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Apellidos", oUsuario.Apellidos);
                     cmd.Parameters.AddWithValue("Correo", oUsuario.Correo);
                     cmd.Parameters.AddWithValue("Clave", oUsuario.Clave);
-                    cmd.Parameters.AddWithValue("IdTienda", oUsuario.IdTienda);
+                    cmd.Parameters.AddWithValue("IdTienda", oUsuario.IdTienda.HasValue ? (object)oUsuario.IdTienda.Value : DBNull.Value);
                     cmd.Parameters.AddWithValue("IdRol", oUsuario.IdRol);
                     cmd.Parameters.AddWithValue("Activo", oUsuario.Activo);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
@@ -468,7 +475,7 @@ namespace CapaDatos
 
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                string query = @"UPDATE Usuario SET Clave = @Clave, FechaCambioPassword = GETDATE() WHERE IdUsuario = @IdUsuario"; 
+                string query = @"UPDATE Usuario SET Clave = @Clave, FechaCambioPassword = GETDATE() WHERE IdUsuario = @IdUsuario";
                 using (SqlCommand cmd = new SqlCommand(query, oConexion))
                 {
                     cmd.Parameters.AddWithValue("@Clave", claveEncriptada);
@@ -536,7 +543,7 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Apellidos", oUsuario.Apellidos);
                     cmd.Parameters.AddWithValue("Correo", oUsuario.Correo);
                     cmd.Parameters.AddWithValue("Clave", oUsuario.Clave);
-                    cmd.Parameters.AddWithValue("IdTienda", oUsuario.IdTienda);
+                    cmd.Parameters.AddWithValue("IdTienda", oUsuario.IdTienda.HasValue ? (object)oUsuario.IdTienda.Value : DBNull.Value);
                     cmd.Parameters.AddWithValue("IdRol", oUsuario.IdRol);
                     cmd.Parameters.AddWithValue("IdEmpleado", oUsuario.IdEmpleado);
 
@@ -588,7 +595,50 @@ namespace CapaDatos
 
         public Usuario ObtenerUsuarioPorCorreo(string correo)
         {
-            return ObtenerUsuarios().FirstOrDefault(u => u.Correo == correo);
+            Usuario usuario = null;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand("usp_ObtenerUsuarioPorCorreo", oConexion)
+                { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@Correo", correo);
+
+                try
+                {
+                    oConexion.Open();
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    if (dr.Read())
+                    {
+                        usuario = new Usuario
+                        {
+                            IdUsuario             = Convert.ToInt32(dr["IdUsuario"]),
+                            Nombres               = dr["Nombres"].ToString(),
+                            Apellidos             = dr["Apellidos"].ToString(),
+                            Correo                = dr["Correo"].ToString(),
+                            Clave                 = dr["Clave"].ToString(),
+                            IdTienda              = dr["IdTienda"] != DBNull.Value ? Convert.ToInt32(dr["IdTienda"]) : (int?)null,
+                            IdRol                 = Convert.ToInt32(dr["IdRol"]),
+                            Activo                = Convert.ToBoolean(dr["Activo"]),
+                            FechaRegistro         = dr["FechaRegistro"] != DBNull.Value ? Convert.ToDateTime(dr["FechaRegistro"]) : DateTime.Now,
+                            IntentosFallidos      = dr["IntentosFallidos"] != DBNull.Value ? Convert.ToInt32(dr["IntentosFallidos"]) : 0,
+                            PasswordTemporalHash  = dr["PasswordTemporalHash"] != DBNull.Value ? dr["PasswordTemporalHash"].ToString() : null,
+                            RequiereCambioPassword= dr["RequiereCambioPassword"] != DBNull.Value && dr["RequiereCambioPassword"].ToString() == "1",
+                            PasswordTemporalExpira= dr["PasswordTemporalExpira"] != DBNull.Value ? Convert.ToDateTime(dr["PasswordTemporalExpira"]) : (DateTime?)null,
+                            FechaCambioPassword   = dr["FechaCambioPassword"] != DBNull.Value ? Convert.ToDateTime(dr["FechaCambioPassword"]) : (DateTime?)null,
+                            FechaUltimoLogin      = dr["FechaUltimoLogin"] != DBNull.Value ? Convert.ToDateTime(dr["FechaUltimoLogin"]) : DateTime.MinValue,
+                            oRol = new Rol
+                            {
+                                Descripcion = dr["DescripcionRol"] != DBNull.Value ? dr["DescripcionRol"].ToString() : ""
+                            }
+                        };
+                    }
+                    dr.Close();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("ObtenerUsuarioPorCorreo ERROR: " + ex.Message);
+                }
+            }
+            return usuario;
         }
     }
 }

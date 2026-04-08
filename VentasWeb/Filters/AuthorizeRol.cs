@@ -14,29 +14,28 @@ namespace VentasWeb.Filters
 
         // Mapeo de vistas personalizadas
         private static readonly Dictionary<string, string> mapeoVistas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-{
-    { "Producto|Obtener", "ConsultarPrecioVenta" },
-    { "Rol|Obtener", "ObtenerRol" },
-    { "Permisos|Crear", "Crear" },
-    { "Usuario|Crear", "Usuarios" },
-    { "Categoria|Crear", "Categorias" },
-    { "Producto|Crear", "Productos" },
-    { "Producto|ConsultarPrecioVenta", "Precios y Vigencia" },
-    { "Cliente|Crear", "Clientes" },
-    { "Proveedor|Crear", "Proveedores" },
-    { "Producto|Asignar", "Asignar producto a Tienda" },
-    { "Compra|Crear", "Registrar Compra" },
-    { "Compra|Consultar", "Consultar Compra" },
-    { "Tienda|Crear", "Tiendas" },
-    { "Venta|Crear", "Registrar Venta" },
-    { "Venta|Consultar", "Consultar Venta" },
-    { "Reporte|Producto", "Productos por tienda" },
-    { "Reporte|Ventas", "Ventas" },
-    { "ConsultarCajaCompra|ConsultarCajaCompra", "Caja Compra" },
-    { "ConsultarCajaVenta|ConsultarCajaVenta", "Caja Venta" },
-    { "Usuario|CambioContraseña", "Cambio de Contraseña" } 
-};
-
+        {
+            { "Producto|Obtener",                          "ConsultarPrecioVenta"       },
+            { "Rol|Obtener",                               "ObtenerRol"                 },
+            { "Permisos|Crear",                            "Crear"                      },
+            { "Usuario|Crear",                             "Usuarios"                   },
+            { "Categoria|Crear",                           "Categorias"                 },
+            { "Producto|Crear",                            "Productos"                  },
+            { "Producto|ConsultarPrecioVenta",             "Precios y Vigencia"         },
+            { "Cliente|Crear",                             "Clientes"                   },
+            { "Proveedor|Crear",                           "Proveedores"                },
+            { "Producto|Asignar",                          "Asignar producto a Tienda"  },
+            { "Compra|Crear",                              "Registrar Compra"           },
+            { "Compra|Consultar",                          "Consultar Compra"           },
+            { "Tienda|Crear",                              "Tiendas"                    },
+            { "Venta|Crear",                               "Registrar Venta"            },
+            { "Venta|Consultar",                           "Consultar Venta"            },
+            { "Reporte|Producto",                          "Productos por tienda"       },
+            { "Reporte|Ventas",                            "Ventas"                     },
+            { "ConsultarCajaCompra|ConsultarCajaCompra",   "Caja Compra"                },
+            { "ConsultarCajaVenta|ConsultarCajaVenta",     "Caja Venta"                 },
+            { "Usuario|CambioContraseña",                  "Cambio de Contraseña"       }
+        };
 
         public AuthorizeRolAttribute(string controlador, string vista)
         {
@@ -46,41 +45,50 @@ namespace VentasWeb.Filters
 
         protected override bool AuthorizeCore(HttpContextBase httpContext)
         {
+            // ── Sin sesión: denegar siempre ───────────────────────
             if (httpContext.Session["Usuario"] == null)
                 return false;
 
+            // ── SuperAdmin: acceso total sin validar menú ─────────
+            if (httpContext.Session["EsSuperAdmin"] is bool esSuperAdmin && esSuperAdmin)
+                return true;
+
+            // ── Usuarios normales: validar por menú en sesión ─────
+            // El menú ya fue cargado durante el login — sin llamada extra a BD
             Usuario usuario = (Usuario)httpContext.Session["Usuario"];
-            Usuario usuarioDetalle = CapaDatos.CD_Usuario.Instancia.ObtenerDetalleUsuario(usuario.IdUsuario);
+            var listaMenu = usuario.oListaMenu;
+
+            if (listaMenu == null || !listaMenu.Any())
+                return false;
 
             string controladorValidar = _controlador;
             string vistaValidar = _vista;
 
-            // Mapear vistas si existe en el diccionario
+            // Mapear vista si existe en el diccionario
             string key = $"{controladorValidar}|{vistaValidar}";
             if (mapeoVistas.TryGetValue(key, out string vistaMapeada))
-            {
                 vistaValidar = vistaMapeada;
-            }
 
             bool tienePermiso;
 
             if (vistaValidar == "*")
             {
-                // Permitir cualquier submenú activo del controlador
-                tienePermiso = usuarioDetalle.oListaMenu
-                    .SelectMany(menu => menu.oSubMenu)
+                // Permitir si tiene cualquier submenú activo del controlador
+                tienePermiso = listaMenu
+                    .SelectMany(menu => menu.oSubMenu ?? Enumerable.Empty<SubMenu>())
                     .Any(sm => sm.Controlador.Equals(controladorValidar, StringComparison.OrdinalIgnoreCase)
                                && sm.Activo);
             }
             else
             {
                 // Validar acción específica dentro del submenú
-                tienePermiso = usuarioDetalle.oListaMenu
-                    .SelectMany(menu => menu.oSubMenu)
+                tienePermiso = listaMenu
+                    .SelectMany(menu => menu.oSubMenu ?? Enumerable.Empty<SubMenu>())
                     .Any(sm => sm.Controlador.Equals(controladorValidar, StringComparison.OrdinalIgnoreCase)
                                && sm.Nombre.Equals(vistaValidar, StringComparison.OrdinalIgnoreCase)
                                && sm.Activo);
             }
+
             return tienePermiso;
         }
 

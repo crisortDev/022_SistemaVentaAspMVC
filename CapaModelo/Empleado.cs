@@ -13,7 +13,7 @@ namespace CapaModelo
         public int IdTienda { get; set; }            // FK a Tienda
         public bool Activo { get; set; }
         public DateTime FechaRegistro { get; set; }
-        public DateTime FechaIngreso { get; set; }
+        public DateTime? FechaIngreso { get; set; }
         public string Correo { get; set; }
 
         // Propiedades de navegación opcionales

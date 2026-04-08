@@ -9,7 +9,7 @@ using VentasWeb.Utilidades;
 
 namespace VentasWeb.Controllers
 {
-    public class ProveedorController : Controller
+    public class ProveedorController : BaseController
     {
         // GET: Proveedor
         public ActionResult Crear()

@@ -3,19 +3,18 @@ using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController : BaseController
     {
-        private static Usuario SesionUsuario;
         public ActionResult Index()
         {
-            // Línea 20 probablemente es algo como esto:
-            Usuario usuario = (Usuario)Session["Usuario"]; // ← null si no hay sesión
+            Usuario usuario = (Usuario)Session["Usuario"];
 
             if (usuario == null)
                 return RedirectToAction("Index", "Login");
 
             ViewBag.NombreUsuario = usuario.Nombres + " " + usuario.Apellidos;
             ViewBag.RolUsuario = usuario.oRol?.Descripcion ?? "";
+            ViewBag.EsSuperAdmin = EsSuperAdmin;
 
             return View();
         }
@@ -23,6 +22,8 @@ namespace VentasWeb.Controllers
         public ActionResult Salir()
         {
             Session["Usuario"] = null;
+            Session["EsSuperAdmin"] = null;
+            Session["TiendaActiva"] = null;
             return RedirectToAction("Index", "Login");
         }
         public ActionResult AccesoDenegado()

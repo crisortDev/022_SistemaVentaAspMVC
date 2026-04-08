@@ -10,7 +10,7 @@ using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
 {
-    public class UsuarioController : Controller
+    public class UsuarioController : BaseController
     {
         // ── Constantes leídas desde Web.config ───────────────────
         private static readonly string GmailCorreo = ConfigurationManager.AppSettings["GmailCorreo"];
@@ -100,6 +100,10 @@ namespace VentasWeb.Controllers
                     return Json(new { resultado = false, mensaje = "Debe seleccionar un rol." });
                 if (model.IdTienda <= 0)
                     return Json(new { resultado = false, mensaje = "Debe seleccionar una tienda." });
+
+                // ── Validar permiso por sucursal ──────────────────
+                if (!TienePermiso(model.IdTienda.Value))
+                    return Json(new { resultado = false, mensaje = "No tiene permisos para crear usuarios en esta sucursal." });
 
                 // Completar datos desde el empleado
                 var empleado = CD_Empleado.Instancia.ObtenerEmpleadoPorId(model.IdEmpleado);
