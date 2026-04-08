@@ -1,282 +1,372 @@
-﻿@{
-    ViewBag.Title = "Home Page";
+@{
+    ViewBag.Title = "Inicio";
 }
 
 <style>
+    /* ── Fondo general ─────────────────────────────── */
     .home-wrapper {
-        min-height: calc(100vh - 56px);
-        background: linear-gradient(135deg, #74b9ff 0%, #55efc4 100%);
+        min-height: calc(100vh - 80px);
+        background: var(--corp-bg, #f4f7fb);
+        padding: 2rem 0.5rem 3rem;
+    }
+
+    /* ── Banner superior ───────────────────────────── */
+    .home-banner {
+        background: linear-gradient(100deg, #0c1a35 0%, #1a3566 55%, #2563eb 100%);
+        border-radius: 14px;
+        padding: 2.2rem 2.6rem;
         position: relative;
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        padding: 3rem 1rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(12,26,53,0.22);
     }
 
-        /* Círculos decorativos de fondo */
-        .home-wrapper::before {
-            content: '';
-            position: absolute;
-            width: 600px;
-            height: 600px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.08);
-            top: -200px;
-            right: -150px;
-            pointer-events: none;
-        }
-
-        .home-wrapper::after {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.06);
-            bottom: -100px;
-            left: -100px;
-            pointer-events: none;
-        }
-
-    /* Sección bienvenida */
-    .welcome-section {
-        position: relative;
-        z-index: 2;
-        text-align: center;
-        margin-bottom: 2.5rem;
+    .home-banner::before {
+        content: '';
+        position: absolute;
+        width: 320px;
+        height: 320px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.04);
+        top: -120px;
+        right: -80px;
+        pointer-events: none;
     }
 
-    .welcome-badge {
-        display: inline-block;
-        background: rgba(255,255,255,0.2);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255,255,255,0.35);
-        color: #fff;
-        font-size: 0.78rem;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        padding: 6px 18px;
-        border-radius: 999px;
-        margin-bottom: 1.2rem;
+    .home-banner::after {
+        content: '';
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.05);
+        bottom: -60px;
+        right: 200px;
+        pointer-events: none;
     }
 
-    .welcome-name {
-        font-size: clamp(1.8rem, 4vw, 2.8rem);
-        font-weight: 800;
-        color: #fff;
-        text-shadow: 0 2px 16px rgba(0,0,0,0.12);
-        margin-bottom: 0.5rem;
-        line-height: 1.2;
-    }
-
-    .welcome-rol {
+    .banner-badge {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        background: rgba(0,0,0,0.12);
-        color: rgba(255,255,255,0.92);
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 0.08em;
+        gap: 6px;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.22);
+        color: #93c5fd;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        padding: 5px 16px;
+        padding: 5px 14px;
         border-radius: 999px;
-        margin-bottom: 0.8rem;
-    }
-
-    .welcome-sub {
-        color: rgba(255,255,255,0.82);
-        font-size: 1rem;
-        margin: 0;
-    }
-
-    /* Grid de cards */
-    .cards-grid {
-        position: relative;
-        z-index: 2;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 1.25rem;
-        max-width: 900px;
-        margin: 0 auto;
-        width: 100%;
-    }
-
-    .info-card {
-        background: rgba(255,255,255,0.92);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.6);
-        border-radius: 16px;
-        padding: 1.6rem 1.8rem;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.8) inset;
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
-    }
-
-        .info-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 16px 40px rgba(0,0,0,0.13);
-        }
-
-    .card-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
         margin-bottom: 1rem;
     }
 
-        .card-icon.teal {
-            background: linear-gradient(135deg, #55efc4, #00b894);
-        }
+    .banner-title {
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 0.4rem;
+        line-height: 1.2;
+        position: relative;
+        z-index: 1;
+    }
 
-        .card-icon.blue {
-            background: linear-gradient(135deg, #74b9ff, #0984e3);
-        }
+    .banner-sub {
+        color: rgba(255,255,255,0.65);
+        font-size: 0.9rem;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+    }
 
-        .card-icon.purple {
-            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
-        }
+    .banner-rol {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(37,99,235,0.4);
+        color: #bfdbfe;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        border-radius: 999px;
+        margin-top: 0.7rem;
+    }
 
-    .card-label {
-        font-size: 0.72rem;
+    /* ── Grid de tarjetas ──────────────────────────── */
+    .home-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.2rem;
+        margin-bottom: 2rem;
+    }
+
+    /* ── Tarjeta info ─────────────────────────────── */
+    .home-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.4rem 1.6rem;
+        box-shadow: 0 2px 12px rgba(12,26,53,0.06);
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .home-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--card-color-a, #2563eb), var(--card-color-b, #60a5fa));
+        border-radius: 12px 12px 0 0;
+    }
+
+    .home-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 32px rgba(12,26,53,0.12);
+        border-color: #bfdbfe;
+    }
+
+    .home-card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 0.9rem;
+        color: #fff;
+    }
+
+    .icon-blue   { background: linear-gradient(135deg, #2563eb, #60a5fa); }
+    .icon-navy   { background: linear-gradient(135deg, #0c1a35, #1a3566); }
+    .icon-teal   { background: linear-gradient(135deg, #0891b2, #22d3ee); }
+    .icon-slate  { background: linear-gradient(135deg, #475569, #94a3b8); }
+
+    .home-card-label {
+        font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: #94a3b8;
-        margin-bottom: 4px;
+        margin-bottom: 5px;
     }
 
-    .card-value {
-        font-size: 1.05rem;
+    .home-card-value {
+        font-size: 1rem;
         font-weight: 700;
-        color: #1e293b;
+        color: #0f172a;
         margin: 0;
     }
 
-        .card-value.reloj-text {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #334155;
-        }
+    .home-card-value.sm {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #334155;
+    }
 
-    /* Divider decorativo */
-    .card-divider {
+    .home-divider {
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(0,0,0,0.06), transparent);
-        margin: 1rem 0;
+        background: #f1f5f9;
+        margin: 0.9rem 0;
     }
 
-    /* Footer */
-    .home-footer {
-        position: relative;
-        z-index: 2;
-        text-align: center;
-        margin-top: auto;
-        padding-top: 2.5rem;
-        color: rgba(255,255,255,0.55);
+    /* ── Accesos rápidos ──────────────────────────── */
+    .quick-section-title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .quick-section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 0.85rem;
+    }
+
+    .quick-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 9px;
+        padding: 0.75rem 1rem;
+        color: #1e293b;
         font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.18s;
+        box-shadow: 0 1px 4px rgba(12,26,53,0.05);
     }
 
-    /* Animaciones */
+    .quick-btn i {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .quick-btn:hover {
+        background: #eff6ff;
+        border-color: #93c5fd;
+        color: #1d4ed8;
+        text-decoration: none;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(37,99,235,0.12);
+    }
+
+    .quick-btn:hover i {
+        transform: scale(1.1);
+    }
+
+    /* ── Animaciones ──────────────────────────────── */
     @@keyframes fadeUp {
-        from {
-            opacity: 0;
-            transform: translateY(24px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0);    }
     }
 
-    .anim-1 {
-        animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
-    }
-
-    .anim-2 {
-        animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both;
-    }
-
-    .anim-3 {
-        animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.2s both;
-    }
-
-    .anim-4 {
-        animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.3s both;
-    }
+    .anim-1 { animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.0s both; }
+    .anim-2 { animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.08s both; }
+    .anim-3 { animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.16s both; }
+    .anim-4 { animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.24s both; }
+    .anim-5 { animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.32s both; }
 </style>
 
 <div class="home-wrapper">
+    <div class="container-fluid px-2">
 
-    <!-- Bienvenida -->
-    <div class="welcome-section anim-1">
-        <div class="welcome-badge">Sistema de Gestión</div>
-        <h1 class="welcome-name">Bienvenido, @ViewBag.NombreUsuario</h1>
-        <div class="welcome-rol">
-            <span>⚙</span> @ViewBag.RolUsuario
+        <!-- ── BANNER BIENVENIDA ─────────────────────── -->
+        <div class="home-banner anim-1">
+            <div class="banner-badge">
+                <i class="fas fa-building" style="font-size:.65rem"></i>
+                Sistema de Gestión
+            </div>
+            <h1 class="banner-title">Bienvenido, @ViewBag.NombreUsuario</h1>
+            <p class="banner-sub">CompuSpace &mdash; Panel de administración</p>
+            <div class="banner-rol">
+                <i class="fas fa-shield-alt" style="font-size:.65rem"></i>
+                @ViewBag.RolUsuario
+            </div>
         </div>
-        <p class="welcome-sub"><span style="font-weight:700">CompuSpace</span> — Panel principal</p>
+
+        <!-- ── TARJETAS DE INFORMACIÓN ──────────────── -->
+        <div class="home-cards anim-2">
+
+            <!-- Reloj -->
+            <div class="home-card" style="--card-color-a:#0891b2;--card-color-b:#22d3ee">
+                <div class="home-card-icon icon-teal">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="home-card-label">Fecha y hora actual</div>
+                <p class="home-card-value sm" id="reloj" style="font-size:0.82rem;line-height:1.5"></p>
+            </div>
+
+            <!-- Usuario activo -->
+            <div class="home-card" style="--card-color-a:#2563eb;--card-color-b:#60a5fa">
+                <div class="home-card-icon icon-blue">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="home-card-label">Usuario activo</div>
+                <p class="home-card-value">@ViewBag.NombreUsuario</p>
+                <div class="home-divider"></div>
+                <div class="home-card-label" style="margin-bottom:3px">Rol asignado</div>
+                <p class="home-card-value sm">@ViewBag.RolUsuario</p>
+            </div>
+
+            <!-- Sistema -->
+            <div class="home-card" style="--card-color-a:#0c1a35;--card-color-b:#1a3566">
+                <div class="home-card-icon icon-navy">
+                    <i class="fas fa-store"></i>
+                </div>
+                <div class="home-card-label">Plataforma</div>
+                <p class="home-card-value">CompuSpace</p>
+                <div class="home-divider"></div>
+                <div class="home-card-label" style="margin-bottom:3px">Versión</div>
+                <p class="home-card-value sm">2026 &mdash; Sistema de Ventas</p>
+            </div>
+
+        </div>
+
+        <!-- ── ACCESOS RÁPIDOS ───────────────────────── -->
+        <div class="anim-3">
+            <div class="quick-section-title">
+                <i class="fas fa-bolt" style="color:#f59e0b;font-size:.7rem"></i>
+                Accesos rápidos
+            </div>
+            <div class="quick-grid">
+                <a href="/Venta/Crear" class="quick-btn">
+                    <i class="fas fa-cash-register" style="background:linear-gradient(135deg,#059669,#34d399)"></i>
+                    Nueva Venta
+                </a>
+                <a href="/Compra/Crear" class="quick-btn">
+                    <i class="fas fa-shopping-cart" style="background:linear-gradient(135deg,#2563eb,#60a5fa)"></i>
+                    Nueva Compra
+                </a>
+                <a href="/Producto/Crear" class="quick-btn">
+                    <i class="fas fa-box" style="background:linear-gradient(135deg,#0891b2,#22d3ee)"></i>
+                    Productos
+                </a>
+                <a href="/Inventario/Crear" class="quick-btn">
+                    <i class="fas fa-warehouse" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"></i>
+                    Inventario
+                </a>
+                <a href="/Reporte/Crear" class="quick-btn">
+                    <i class="fas fa-chart-bar" style="background:linear-gradient(135deg,#d97706,#fbbf24)"></i>
+                    Reportes
+                </a>
+                <a href="/Usuario/Crear" class="quick-btn">
+                    <i class="fas fa-users" style="background:linear-gradient(135deg,#0c1a35,#1a3566)"></i>
+                    Usuarios
+                </a>
+            </div>
+        </div>
+
     </div>
-
-    <!-- Cards de info -->
-    <div class="cards-grid">
-
-        <!-- Card reloj -->
-        <div class="info-card anim-2">
-            <div class="card-icon teal">🕐</div>
-            <div class="card-label">Fecha y hora actual</div>
-            <p class="card-value reloj-text" id="reloj"></p>
-        </div>
-
-        <!-- Card usuario -->
-        <div class="info-card anim-3">
-            <div class="card-icon blue">👤</div>
-            <div class="card-label">Usuario activo</div>
-            <p class="card-value">@ViewBag.NombreUsuario</p>
-            <div class="card-divider"></div>
-            <div class="card-label" style="margin-bottom:2px">Rol asignado</div>
-            <p class="card-value" style="font-size:.9rem;color:#475569">@ViewBag.RolUsuario</p>
-        </div>
-
-        <!-- Card sistema -->
-        <div class="info-card anim-4">
-            <div class="card-icon purple">🏪</div>
-            <div class="card-label">Sistema</div>
-            <p class="card-value">CompuSpace</p>
-            <div class="card-divider"></div>
-            <div class="card-label" style="margin-bottom:2px">Versión</div>
-            <p class="card-value" style="font-size:.9rem;color:#475569">2026</p>
-        </div>
-
-    </div>
-
-    <!-- Footer -->
-    <div class="home-footer">
-        &copy; 2026 CompuSpace. Todos los derechos reservados.
-    </div>
-
 </div>
 
 @section scripts{
     <script type="text/javascript">
         function actualizarReloj() {
-            const ahora = new Date();
-            const opciones = {
+            var ahora = new Date();
+            var opciones = {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
+                day: 'numeric'
             };
+            var opcionesHora = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
             var el = document.getElementById('reloj');
-            if (el) el.textContent = ahora.toLocaleDateString('es-PY', opciones);
+            if (el) {
+                el.innerHTML =
+                    '<span style="font-weight:700;color:#0f172a">' +
+                    ahora.toLocaleDateString('es-PY', opciones) +
+                    '</span><br>' +
+                    '<span style="font-size:1.05rem;color:#2563eb;font-weight:800">' +
+                    ahora.toLocaleTimeString('es-PY', opcionesHora) +
+                    '</span>';
+            }
         }
         setInterval(actualizarReloj, 1000);
         actualizarReloj();

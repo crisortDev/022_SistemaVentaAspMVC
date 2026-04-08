@@ -28,163 +28,294 @@
     @RenderSection("estilos", required: false)
 
     <style>
-        /* ── MODALES VER — evita que textos largos (emails, URLs) se salgan ── */
+        /* ══════════════════════════════════════════════════════
+           VARIABLES CORPORATIVAS
+        ══════════════════════════════════════════════════════ */
+        :root {
+            --corp-dark:    #0c1a35;
+            --corp-primary: #1a3566;
+            --corp-blue:    #2563eb;
+            --corp-light:   #dbeafe;
+            --corp-white:   #ffffff;
+            --corp-bg:      #f4f7fb;
+            --corp-border:  #e2e8f0;
+            --corp-text:    #0f172a;
+            --corp-muted:   #64748b;
+            --corp-success: #059669;
+            --corp-danger:  #dc2626;
+            --corp-shadow:  0 4px 24px rgba(26,53,102,0.13);
+        }
+
+        /* ══════════════════════════════════════════════════════
+           MODALES VER — evita overflow de textos largos
+        ══════════════════════════════════════════════════════ */
         .ver-text {
             word-break: break-word;
             overflow-wrap: break-word;
             white-space: normal !important;
         }
 
-        /* ── NAVBAR ─────────────────────────────────────────── */
+        /* ══════════════════════════════════════════════════════
+           NAVBAR CORPORATIVO
+        ══════════════════════════════════════════════════════ */
         .navbar {
-            background: linear-gradient(90deg, #0984e3 0%, #00b4d8 100%) !important;
-            box-shadow: 0 2px 12px rgba(9, 132, 227, 0.3);
-            padding: 0 1.2rem;
-            min-height: 56px;
+            background: linear-gradient(90deg, var(--corp-dark) 0%, var(--corp-primary) 100%) !important;
+            box-shadow: 0 2px 16px rgba(12,26,53,0.45);
+            padding: 0 1.4rem;
+            min-height: 58px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
         }
 
         .navbar-brand img {
-            opacity: 0.95;
-            transition: opacity 0.2s;
+            opacity: 0.96;
+            transition: opacity 0.2s, transform 0.2s;
+            filter: brightness(1.05);
         }
 
         .navbar-brand:hover img {
             opacity: 1;
-        }
-
-        .navbar-brand:hover img {
-            opacity: 1;
+            transform: scale(1.03);
         }
 
         /* Links principales */
         .navbar-nav .nav-link {
-            color: rgba(255,255,255,0.88) !important;
-            font-size: 0.85rem;
+            color: rgba(255,255,255,0.82) !important;
+            font-size: 0.83rem;
             font-weight: 600;
-            letter-spacing: 0.03em;
-            padding: 0.65rem 0.9rem !important;
+            letter-spacing: 0.02em;
+            padding: 0.6rem 0.85rem !important;
             border-radius: 6px;
             transition: background 0.18s, color 0.18s;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
         }
 
             .navbar-nav .nav-link:hover,
             .navbar-nav .nav-item.active .nav-link {
-                background: rgba(255,255,255,0.15) !important;
+                background: rgba(255,255,255,0.1) !important;
                 color: #fff !important;
             }
 
-        /* Dropdown toggle — quitar borde al abrir */
+            .navbar-nav .nav-item.active .nav-link {
+                background: rgba(37,99,235,0.55) !important;
+                color: #fff !important;
+                box-shadow: inset 0 -2px 0 rgba(255,255,255,0.3);
+            }
+
         .navbar-nav .nav-item.dropdown.show .nav-link {
-            background: rgba(255,255,255,0.18) !important;
+            background: rgba(255,255,255,0.12) !important;
             color: #fff !important;
         }
 
-        /* ── DROPDOWN MENU ──────────────────────────────────── */
+        /* ── DROPDOWN MENÚ ─────────────────────────────────── */
         .dropdown-menu.drop-menu {
             background: #fff;
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.06);
-            padding: 6px;
-            min-width: 210px;
-            margin-top: 6px !important;
-            animation: dropIn 0.18s cubic-bezier(0.16,1,0.3,1) both;
+            border: 1px solid var(--corp-border);
+            border-top: 3px solid var(--corp-blue);
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 12px 36px rgba(12,26,53,0.16);
+            padding: 6px 6px 8px;
+            min-width: 220px;
+            margin-top: 0 !important;
+            animation: dropIn 0.16s cubic-bezier(0.16,1,0.3,1) both;
         }
 
         @@keyframes dropIn {
-            from {
-                opacity: 0;
-                transform: translateY(-6px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0);    }
         }
 
         .dropdown-item {
-            border-radius: 6px;
-            font-size: 0.84rem;
+            border-radius: 5px;
+            font-size: 0.83rem;
             font-weight: 500;
-            color: #2d3748;
+            color: var(--corp-text);
             padding: 8px 12px;
             display: flex;
             align-items: center;
-            gap: 9px;
-            transition: background 0.15s, color 0.15s;
+            gap: 10px;
+            transition: background 0.13s, color 0.13s;
+            border-left: 2px solid transparent;
         }
 
             .dropdown-item i {
-                width: 16px;
+                width: 15px;
                 text-align: center;
-                color: #0984e3;
-                font-size: 0.82rem;
+                color: var(--corp-blue);
+                font-size: 0.8rem;
                 flex-shrink: 0;
             }
 
             .dropdown-item:hover {
-                background: #ebf5ff;
-                color: #0984e3;
+                background: var(--corp-light);
+                color: var(--corp-blue);
+                border-left-color: var(--corp-blue);
             }
 
                 .dropdown-item:hover i {
-                    color: #0984e3;
+                    color: var(--corp-blue);
                 }
 
-            /* Separador sutil entre items */
             .dropdown-item + .dropdown-item {
                 border-top: 1px solid #f1f5f9;
             }
 
-        /* ── BOTÓN SALIR ────────────────────────────────────── */
+        /* ── BOTÓN SALIR ───────────────────────────────────── */
         .nav-salir .nav-link {
-            background: rgba(255,255,255,0.12) !important;
-            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(220,38,38,0.15) !important;
+            border: 1px solid rgba(220,38,38,0.35) !important;
             border-radius: 7px !important;
-            color: #fff !important;
-            padding: 0.45rem 1rem !important;
-            font-size: 0.83rem;
+            color: #fca5a5 !important;
+            padding: 0.42rem 1rem !important;
+            font-size: 0.82rem;
+            transition: background 0.18s, color 0.18s, border-color 0.18s !important;
         }
 
             .nav-salir .nav-link:hover {
-                background: rgba(255,255,255,0.22) !important;
-                border-color: rgba(255,255,255,0.4);
+                background: rgba(220,38,38,0.28) !important;
+                border-color: rgba(220,38,38,0.55) !important;
+                color: #fff !important;
             }
 
-        /* ── USUARIO LOGUEADO (derecha) ─────────────────────── */
+        /* ── USUARIO LOGUEADO ─────────────────────────────── */
         .nav-user-info {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 9px;
             color: rgba(255,255,255,0.88);
-            font-size: 0.82rem;
+            font-size: 0.81rem;
             font-weight: 600;
-            padding: 0 0.6rem;
+            padding: 0 0.5rem;
         }
 
         .nav-user-avatar {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-            border: 1.5px solid rgba(255,255,255,0.4);
+            background: linear-gradient(135deg, var(--corp-blue), #60a5fa);
+            border: 2px solid rgba(255,255,255,0.3);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 13px;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .nav-divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(255,255,255,0.18);
+            margin: 0 4px;
+        }
+
+        /* ══════════════════════════════════════════════════════
+           ÁREA DE CONTENIDO — fondo gris claro suave
+        ══════════════════════════════════════════════════════ */
+        body {
+            background: var(--corp-bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            color: var(--corp-text);
+        }
+
+        /* ── Cards Bootstrap mejoradas ─────────────────────── */
+        .card {
+            border: 1px solid var(--corp-border) !important;
+            border-radius: 10px !important;
+            box-shadow: 0 2px 12px rgba(12,26,53,0.07) !important;
+        }
+
+        .card-header.bg-info {
+            background: linear-gradient(90deg, var(--corp-primary) 0%, var(--corp-blue) 100%) !important;
+            border-radius: 9px 9px 0 0 !important;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .card.border-info {
+            border-color: var(--corp-border) !important;
+        }
+
+        /* ── Breadcrumb ─────────────────────────────────────── */
+        .breadcrumb {
+            background: transparent;
+            padding: 0;
+            margin-bottom: 1.2rem;
+            font-size: 0.82rem;
+            color: var(--corp-muted);
+        }
+
+        .breadcrumb-item a {
+            color: var(--corp-blue);
+            text-decoration: none;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--corp-text);
+            font-weight: 600;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: var(--corp-muted);
+        }
+
+        /* ── Botones globales mejorados ─────────────────────── */
+        .btn-primary {
+            background-color: var(--corp-blue) !important;
+            border-color: var(--corp-blue) !important;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        .btn-info {
+            background-color: #0891b2 !important;
+            border-color: #0891b2 !important;
+            color: #fff !important;
+        }
+
+        .btn-info:hover {
+            background-color: #0e7490 !important;
+            border-color: #0e7490 !important;
+        }
+
+        /* ── Modales con header corporativo ────────────────── */
+        .modal-header.bg-info {
+            background: linear-gradient(90deg, var(--corp-primary) 0%, var(--corp-blue) 100%) !important;
+        }
+
+        .modal-content {
+            border: none !important;
+            border-radius: 12px !important;
+            box-shadow: 0 20px 60px rgba(12,26,53,0.2) !important;
+        }
+
+        /* ── DataTable mejorado ─────────────────────────────── */
+        table.dataTable thead th {
+            background: var(--corp-bg);
+            color: var(--corp-text);
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--corp-blue) !important;
+        }
+
+        table.dataTable tbody tr:hover {
+            background: #eff6ff !important;
         }
 
         /* ── FOOTER ─────────────────────────────────────────── */
         footer {
-            border-top: 1px solid #e2e8f0;
-            padding-top: 0.75rem;
-            margin-top: 2rem;
-            color: #94a3b8;
-            font-size: 0.8rem;
+            border-top: 1px solid var(--corp-border);
+            padding-top: 0.8rem;
+            margin-top: 2.5rem;
+            color: var(--corp-muted);
+            font-size: 0.78rem;
         }
     </style>
 </head>
@@ -220,14 +351,15 @@
                 {
                     <li class="nav-item">
                         <span class="nav-user-info">
-                            <span class="nav-user-avatar">👤</span>
+                            <span class="nav-user-avatar">@(usuarioNav.Nombres.Length > 0 ? usuarioNav.Nombres.Substring(0,1).ToUpper() : "U")</span>
                             <span>@usuarioNav.Nombres</span>
                         </span>
                     </li>
+                    <li><span class="nav-divider"></span></li>
                 }
                 <li class="nav-item nav-salir">
                     <a href="@Url.Action("Salir", "Home")" class="nav-link">
-                        <i class="fas fa-sign-out-alt"></i> Salir
+                        <i class="fas fa-sign-out-alt mr-1"></i> Salir
                     </a>
                 </li>
             </ul>

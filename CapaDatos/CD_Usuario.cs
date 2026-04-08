@@ -115,6 +115,23 @@ namespace CapaDatos
             return rptListaUsuario;
         }
 
+        // ── Helpers para parsear XML de FOR XML PATH ──────────────
+        private static string XVal(XElement node, string name)
+        {
+            var el = node?.Element(name);
+            return el != null ? el.Value : null;
+        }
+        private static int? XValInt(XElement node, string name)
+        {
+            var v = XVal(node, name);
+            return !string.IsNullOrWhiteSpace(v) && int.TryParse(v, out int r) ? r : (int?)null;
+        }
+        private static DateTime? XValDate(XElement node, string name)
+        {
+            var v = XVal(node, name);
+            return !string.IsNullOrWhiteSpace(v) && DateTime.TryParse(v, out DateTime d) ? d : (DateTime?)null;
+        }
+
         public Usuario ObtenerDetalleUsuario(int IdUsuario)
         {
             Usuario rptUsuario = null;
@@ -137,20 +154,21 @@ namespace CapaDatos
                             {
                                 rptUsuario = new Usuario
                                 {
-                                    IdUsuario = int.Parse(usuarioNode.Element("IdUsuario").Value),
-                                    Nombres = usuarioNode.Element("Nombres").Value,
-                                    Apellidos = usuarioNode.Element("Apellidos").Value,
-                                    Correo = usuarioNode.Element("Correo").Value,
-                                    Clave = usuarioNode.Element("Clave").Value,
-                                    IdTienda = usuarioNode.Element("IdTienda") != null && !string.IsNullOrEmpty(usuarioNode.Element("IdTienda").Value)
-                                        ? (int?)int.Parse(usuarioNode.Element("IdTienda").Value)
-                                        : null,
-                                    IdRol = int.Parse(usuarioNode.Element("IdRol").Value),
-                                    Activo = usuarioNode.Element("Activo").Value == "1",
-                                    FechaRegistro = DateTime.Parse(usuarioNode.Element("FechaRegistro").Value),
-                                    PasswordTemporalHash = usuarioNode.Element("PasswordTemporalHash") != null ? usuarioNode.Element("PasswordTemporalHash").Value : "",
-                                    PasswordTemporalExpira = usuarioNode.Element("PasswordTemporalExpira") != null ? DateTime.Parse(usuarioNode.Element("PasswordTemporalExpira").Value) : DateTime.MinValue,
-                                    RequiereCambioPassword = usuarioNode.Element("RequiereCambioPassword") != null && usuarioNode.Element("RequiereCambioPassword").Value == "1"
+                                    IdUsuario          = int.Parse(usuarioNode.Element("IdUsuario").Value),
+                                    Nombres            = XVal(usuarioNode, "Nombres"),
+                                    Apellidos          = XVal(usuarioNode, "Apellidos"),
+                                    Correo             = XVal(usuarioNode, "Correo"),
+                                    Clave              = XVal(usuarioNode, "Clave"),
+                                    IdTienda           = XValInt(usuarioNode, "IdTienda"),
+                                    IdRol              = int.Parse(usuarioNode.Element("IdRol").Value),
+                                    Activo             = XVal(usuarioNode, "Activo") == "1",
+                                    FechaRegistro      = XValDate(usuarioNode, "FechaRegistro") ?? DateTime.Now,
+                                    PasswordTemporalHash   = XVal(usuarioNode, "PasswordTemporalHash"),
+                                    PasswordTemporalExpira = XValDate(usuarioNode, "PasswordTemporalExpira"),
+                                    RequiereCambioPassword = XVal(usuarioNode, "RequiereCambioPassword") == "1",
+                                    IntentosFallidos   = XValInt(usuarioNode, "IntentosFallidos") ?? 0,
+                                    FechaCambioPassword    = XValDate(usuarioNode, "FechaCambioPassword"),
+                                    FechaUltimoLogin   = XValDate(usuarioNode, "FechaUltimoLogin") ?? DateTime.MinValue
                                 };
 
                                 // Tienda
@@ -159,13 +177,13 @@ namespace CapaDatos
                                 {
                                     rptUsuario.oTienda = new Tienda
                                     {
-                                        IdTienda = int.Parse(tiendaNode.Element("IdTienda").Value),
-                                        Nombre = tiendaNode.Element("Nombre").Value,
-                                        RUC = tiendaNode.Element("RUC").Value,
-                                        Direccion = tiendaNode.Element("Direccion").Value,
-                                        Telefono = tiendaNode.Element("Telefono").Value,
-                                        Activo = tiendaNode.Element("Activo").Value == "1",
-                                        FechaRegistro = DateTime.Parse(tiendaNode.Element("FechaRegistro").Value)
+                                        IdTienda      = XValInt(tiendaNode, "IdTienda") ?? 0,
+                                        Nombre        = XVal(tiendaNode, "Nombre"),
+                                        RUC           = XVal(tiendaNode, "RUC"),
+                                        Direccion     = XVal(tiendaNode, "Direccion"),
+                                        Telefono      = XVal(tiendaNode, "Telefono"),
+                                        Activo        = XVal(tiendaNode, "Activo") == "1",
+                                        FechaRegistro = XValDate(tiendaNode, "FechaRegistro") ?? DateTime.Now
                                     };
                                 }
 
@@ -175,10 +193,10 @@ namespace CapaDatos
                                 {
                                     rptUsuario.oRol = new Rol
                                     {
-                                        IdRol = int.Parse(rolNode.Element("IdRol").Value),
-                                        Descripcion = rolNode.Element("Descripcion").Value,
-                                        Activo = rolNode.Element("Activo").Value == "1",
-                                        FechaRegistro = DateTime.Parse(rolNode.Element("FechaRegistro").Value)
+                                        IdRol         = XValInt(rolNode, "IdRol") ?? 0,
+                                        Descripcion   = XVal(rolNode, "Descripcion"),
+                                        Activo        = XVal(rolNode, "Activo") == "1",
+                                        FechaRegistro = XValDate(rolNode, "FechaRegistro") ?? DateTime.Now
                                     };
                                 }
 
@@ -218,7 +236,11 @@ namespace CapaDatos
                         dr.Close();
                     }
                 }
-                catch { rptUsuario = null; }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("ObtenerDetalleUsuario ERROR: " + ex.Message + " | " + ex.StackTrace);
+                    rptUsuario = null;
+                }
             }
             return rptUsuario;
         }
