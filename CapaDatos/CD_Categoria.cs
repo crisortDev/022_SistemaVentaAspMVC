@@ -22,6 +22,8 @@ namespace CapaDatos
         }
 
         // ── Obtener todas las categorías ──────────────────────────
+        // Retorna lista vacía (nunca null) para evitar NullReferenceException en DataTables.
+        // Lanza excepción hacia arriba para que el controller pueda loguearla y reportarla.
         public List<Categoria> ObtenerCategoria()
         {
             List<Categoria> lista = new List<Categoria>();
@@ -30,31 +32,27 @@ namespace CapaDatos
                 SqlCommand cmd = new SqlCommand("usp_ObtenerCategorias", oConexion)
                 { CommandType = CommandType.StoredProcedure };
 
-                try
+                oConexion.Open();
+                SqlDataReader dr = cmd.ExecuteReader();
+                while (dr.Read())
                 {
-                    oConexion.Open();
-                    SqlDataReader dr = cmd.ExecuteReader();
-                    while (dr.Read())
+                    lista.Add(new Categoria
                     {
-                        lista.Add(new Categoria
-                        {
-                            IdCategoria = Convert.ToInt32(dr["IdCategoria"]),
-                            Descripcion = dr["Descripcion"].ToString(),
-                            Activo = Convert.ToBoolean(dr["Activo"]),
-                            PorcentajeGanancia = dr["PorcentajeGanancia"] != DBNull.Value
-                                                       ? Convert.ToDecimal(dr["PorcentajeGanancia"])
-                                                       : 0,
-                            FechaModificacion = dr["FechaModificacion"] != DBNull.Value
-                                                       ? (DateTime?)Convert.ToDateTime(dr["FechaModificacion"])
-                                                       : null,
-                            UsuarioModificacion = dr["UsuarioModificacion"] != DBNull.Value
-                                                       ? dr["UsuarioModificacion"].ToString()
-                                                       : null
-                        });
-                    }
-                    dr.Close();
+                        IdCategoria = Convert.ToInt32(dr["IdCategoria"]),
+                        Descripcion = dr["Descripcion"].ToString(),
+                        Activo = Convert.ToBoolean(dr["Activo"]),
+                        PorcentajeGanancia = dr["PorcentajeGanancia"] != DBNull.Value
+                                                   ? Convert.ToDecimal(dr["PorcentajeGanancia"])
+                                                   : 0,
+                        FechaModificacion = dr["FechaModificacion"] != DBNull.Value
+                                                   ? (DateTime?)Convert.ToDateTime(dr["FechaModificacion"])
+                                                   : null,
+                        UsuarioModificacion = dr["UsuarioModificacion"] != DBNull.Value
+                                                   ? dr["UsuarioModificacion"].ToString()
+                                                   : null
+                    });
                 }
-                catch { lista = null; }
+                dr.Close();
             }
             return lista;
         }

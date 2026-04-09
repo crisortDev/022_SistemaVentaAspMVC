@@ -9,9 +9,11 @@ using System.Web;
 using System.Web.Mvc;
 using System.Xml.Linq;
 using System.Xml.Serialization;
+using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
+    [AuthorizeRol("Compra", "*")]
     public class CompraController : BaseController
     {
         public ActionResult Crear()

@@ -134,34 +134,12 @@ namespace CapaDatos
         }
 
         // ── Precio Venta ──────────────────────────────────────────
+        // BUG FIX: Este método usaba nombres de columna distintos (FechaInicioVigencia/FechaFinVigencia)
+        // al SP real que devuelve FechaInicio/FechaFin. Unificado con ObtenerHistorialPreciosVentaPorProducto.
+        // Mantenemos el método por compatibilidad pero delega al método correcto.
         public List<PrecioVenta> ObtenerPorProducto(int idProducto)
         {
-            List<PrecioVenta> lista = new List<PrecioVenta>();
-            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
-            {
-                SqlCommand cmd = new SqlCommand("usp_ObtenerHistorialPreciosVentaPorProducto", oConexion);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("IdProducto", idProducto);
-                try
-                {
-                    oConexion.Open();
-                    SqlDataReader dr = cmd.ExecuteReader();
-                    while (dr.Read())
-                    {
-                        lista.Add(new PrecioVenta()
-                        {
-                            IdPrecioVenta = Convert.ToInt32(dr["IdPrecioVenta"]),
-                            IdProducto = Convert.ToInt32(dr["IdProducto"]),
-                            PrecioUnidadVenta = Convert.ToDecimal(dr["PrecioVenta"]),
-                            FechaInicioVigencia = Convert.ToDateTime(dr["FechaInicioVigencia"]),
-                            FechaFinVigencia = dr["FechaFinVigencia"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(dr["FechaFinVigencia"])
-                        });
-                    }
-                    dr.Close();
-                    return lista;
-                }
-                catch { return null; }
-            }
+            return ObtenerHistorialPreciosVentaPorProducto(idProducto);
         }
 
         public bool RegistrarPrecioVenta(PrecioVenta precio)

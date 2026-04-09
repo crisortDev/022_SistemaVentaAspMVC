@@ -94,6 +94,28 @@ namespace VentasWeb.Filters
 
         protected override void HandleUnauthorizedRequest(AuthorizationContext filterContext)
         {
+            // ── Auditoría: registrar intento de acceso denegado ───
+            try
+            {
+                var session  = filterContext.HttpContext.Session;
+                var request  = filterContext.HttpContext.Request;
+                var usuario  = session["Usuario"] as CapaModelo.Usuario;
+                string user  = usuario != null
+                    ? $"{usuario.Correo} (IdUsuario={usuario.IdUsuario})"
+                    : "Sin sesión";
+                string url   = request.Url?.PathAndQuery ?? "desconocida";
+                string ip    = request.UserHostAddress ?? "IP desconocida";
+                string msg   = $"[ACCESO DENEGADO] {DateTime.Now:yyyy-MM-dd HH:mm:ss} | " +
+                               $"Usuario: {user} | URL: {url} | IP: {ip} | " +
+                               $"Controlador: {_controlador} | Vista: {_vista}";
+
+                System.Diagnostics.Trace.TraceWarning(msg);
+            }
+            catch
+            {
+                // El log nunca debe interrumpir el flujo de la aplicación
+            }
+
             if (filterContext.HttpContext.Request.IsAjaxRequest())
             {
                 filterContext.Result = new JsonResult

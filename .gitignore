@@ -48,6 +48,11 @@ app.publish/
 *.userprefs
 *.dbproj.schemaview
 
+# Credenciales y secretos — NO subir al repositorio
+**/appSettings.secret.config
+**/connectionStrings.config
+**/*.secret.config
+
 # Frontend
 **/node_modules/
 dist/

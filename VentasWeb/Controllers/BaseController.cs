@@ -16,16 +16,18 @@ namespace VentasWeb.Controllers
 
         /// <summary>
         /// Retorna true si el usuario logueado es SuperAdmin (acceso global).
+        /// Usa pattern matching seguro para evitar excepciones por tipo incorrecto en sesión.
         /// </summary>
         protected bool EsSuperAdmin =>
-            Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+            Session["EsSuperAdmin"] is bool val && val;
 
         /// <summary>
         /// Retorna el IdTienda activo en sesión.
         /// 0 significa acceso global (SuperAdmin).
+        /// Usa pattern matching seguro para evitar excepciones por tipo incorrecto en sesión.
         /// </summary>
         protected int TiendaActiva =>
-            Session["TiendaActiva"] != null ? (int)Session["TiendaActiva"] : 0;
+            Session["TiendaActiva"] is int tienda ? tienda : 0;
 
         /// <summary>
         /// Retorna el usuario logueado desde sesión, o null si no hay sesión.

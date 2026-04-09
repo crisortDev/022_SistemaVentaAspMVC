@@ -5,9 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
+using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
+    [AuthorizeRol("Producto", "*")]
     public class ProductoController : BaseController
     {
         private readonly CD_Producto _productoService = CD_Producto.Instancia;
@@ -46,6 +48,12 @@ namespace VentasWeb.Controllers
         {
             try
             {
+                // ── Seguridad: si no es SuperAdmin, forzar su propia tienda ──
+                // Evita que un usuario normal pase IdTienda=0 y obtenga
+                // productos de todas las sucursales.
+                if (!EsSuperAdmin)
+                    IdTienda = TiendaActiva;
+
                 var productos = _productoService.ObtenerProducto()
                     .Where(x => x.Activo == true).ToList();
 

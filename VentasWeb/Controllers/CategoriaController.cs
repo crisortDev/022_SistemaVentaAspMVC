@@ -27,8 +27,24 @@ namespace VentasWeb.Controllers
 
         public JsonResult Obtener()
         {
-            var lista = CD_Categoria.Instancia.ObtenerCategoria();
-            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                var lista = CD_Categoria.Instancia.ObtenerCategoria();
+                // lista nunca es null ahora — CD_Categoria lanza excepción si hay error
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Loguear el error real para diagnóstico
+                System.Diagnostics.Trace.TraceError(
+                    $"[CategoriaController.Obtener] {DateTime.Now:yyyy-MM-dd HH:mm:ss} | Error: {ex.Message} | Inner: {ex.InnerException?.Message}");
+
+                // Devolver lista vacía + mensaje de error para que DataTables no crashee
+                // y el desarrollador vea el mensaje en la consola del navegador
+                return Json(
+                    new { data = new System.Collections.Generic.List<object>(), error = ex.Message },
+                    JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpPost]

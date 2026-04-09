@@ -84,14 +84,15 @@ namespace CapaDatos
                             XDocument doc = XDocument.Load(dr);
                             if (doc.Element("DETALLE_VENTA") != null)
                             {
+                                // FIX: Cambiado float.Parse → decimal.Parse para precisión monetaria correcta
                                 rptDetalleVenta = (from dato in doc.Elements("DETALLE_VENTA")
                                                    select new Venta()
                                                    {
                                                        TipoDocumento = dato.Element("TipoDocumento").Value,
                                                        Codigo = dato.Element("Codigo").Value,
-                                                       TotalCosto = float.Parse(dato.Element("TotalCosto").Value, NuevaCultura),
-                                                       ImporteRecibido = float.Parse(dato.Element("ImporteRecibido").Value, NuevaCultura),
-                                                       ImporteCambio = float.Parse(dato.Element("ImporteCambio").Value, NuevaCultura),
+                                                       TotalCosto = decimal.Parse(dato.Element("TotalCosto").Value, NuevaCultura),
+                                                       ImporteRecibido = decimal.Parse(dato.Element("ImporteRecibido").Value, NuevaCultura),
+                                                       ImporteCambio = decimal.Parse(dato.Element("ImporteCambio").Value, NuevaCultura),
                                                        FechaRegistro = dato.Element("FechaRegistro").Value,
                                                        NumeroFactura = dato.Element("NumeroFactura").Value,
                                                        NumeroTimbrado = dato.Element("NumeroTimbrado").Value,
@@ -118,14 +119,15 @@ namespace CapaDatos
                                                                 NumeroDocumento = dato.Element("NumeroDocumento").Value,
                                                                 Telefono = dato.Element("Telefono").Value
                                                             }).FirstOrDefault();
+                                // FIX: Cambiado float.Parse → decimal.Parse para precisión monetaria correcta
                                 rptDetalleVenta.oListaDetalleVenta = (from producto in doc.Element("DETALLE_VENTA").Element("DETALLE_PRODUCTO").Elements("PRODUCTO")
                                                                       select new DetalleVenta()
                                                                       {
                                                                           Cantidad = int.Parse(producto.Element("Cantidad").Value),
                                                                           NombreProducto = producto.Element("NombreProducto").Value,
-                                                                          PrecioUnidad = float.Parse(producto.Element("PrecioUnidad").Value, NuevaCultura),
-                                                                          ImporteTotal = float.Parse(producto.Element("ImporteTotal").Value, NuevaCultura),
-                                                                          ImporteTotalIvaIncluido = float.Parse(producto.Element("ImporteTotalIvaIncluido").Value, NuevaCultura) // Nuevo campo agregado
+                                                                          PrecioUnidad = decimal.Parse(producto.Element("PrecioUnidad").Value, NuevaCultura),
+                                                                          ImporteTotal = decimal.Parse(producto.Element("ImporteTotal").Value, NuevaCultura),
+                                                                          ImporteTotalIvaIncluido = decimal.Parse(producto.Element("ImporteTotalIvaIncluido").Value, NuevaCultura)
                                                                       }).ToList();
                             }
                             else
@@ -176,8 +178,9 @@ namespace CapaDatos
                             FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"].ToString()).ToString("dd/MM/yyyy"),
                             VFechaRegistro = Convert.ToDateTime(dr["FechaRegistro"].ToString()),
                             oCliente = new Cliente() { NumeroDocumento = dr["NumeroDocumento"].ToString(), Nombre = dr["Nombre"].ToString() },
-                            TotalCosto = float.Parse(dr["TotalCosto"].ToString()),
-                            ImporteTotalIvaIncluido = float.Parse(dr["ImporteIvaIncluido"].ToString())
+                            // FIX: Cambiado float.Parse → decimal.Parse para precisión monetaria correcta
+                            TotalCosto = decimal.Parse(dr["TotalCosto"].ToString()),
+                            ImporteTotalIvaIncluido = decimal.Parse(dr["ImporteIvaIncluido"].ToString())
                         });
                     }
                     dr.Close();

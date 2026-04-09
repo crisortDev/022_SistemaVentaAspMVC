@@ -3,9 +3,11 @@ using CapaModelo;
 using System;
 using System.Collections.Generic;
 using System.Web.Mvc;
+using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
+    [AuthorizeRol("Inventario", "*")]
     public class InventarioController : BaseController
     {
         // GET: Inventario/Traslado

@@ -7,9 +7,11 @@ using System.Data;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
+    [AuthorizeRol("Reporte", "*")]
     public class ReporteController : BaseController
     {
         // GET: Reporte

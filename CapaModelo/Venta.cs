@@ -11,17 +11,18 @@ namespace CapaModelo
         public int IdVenta { get; set; }
         public string TipoDocumento { get; set; }
         public string Codigo { get; set; }
-        public float TotalCosto { get; set; }
+        // FIX: Cambiado de float a decimal para evitar pérdida de precisión en montos monetarios.
+        public decimal TotalCosto { get; set; }
         public string TextoTotalCosto { get; set; }
-        public float ImporteRecibido { get; set; }
+        public decimal ImporteRecibido { get; set; }
         public string TextoImporteRecibido { get; set; }
-        public float ImporteCambio { get; set; }
+        public decimal ImporteCambio { get; set; }
         public string TextoImporteCambio { get; set; }
         public string FechaRegistro { get; set; }
         public string NumeroFactura { get; set; }
         public string NumeroTimbrado { get; set; }
         public string VencimientoTimbrado { get; set; }
-        public float ImporteTotalIvaIncluido { get; set; }
+        public decimal ImporteTotalIvaIncluido { get; set; }
         public DateTime VFechaRegistro { get; set; }
         public Usuario oUsuario { get; set; }
         public Tienda oTienda { get; set; }
