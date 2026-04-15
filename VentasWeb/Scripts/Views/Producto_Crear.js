@@ -44,7 +44,7 @@ function cargarCategorias() {
             hideLoading();
         },
         error: function () {
-            swal("Error", "No se pudieron cargar las categorías", "error");
+            Swal.fire("Error","No se pudieron cargar las categorías", "error");
             hideLoading();
         }
     });
@@ -58,7 +58,7 @@ function inicializarDataTable() {
             type: "GET",
             beforeSend: function () { showLoading(); },
             complete: function () { hideLoading(); },
-            error: function () { swal("Error", "No se pudieron cargar los productos", "error"); }
+            error: function () { Swal.fire("Error","No se pudieron cargar los productos", "error"); }
         },
         columns: [
             { data: "Codigo" },
@@ -135,7 +135,7 @@ function verProducto(jsonString) {
             : '<span class="badge badge-danger">Inactivo</span>');
         $('#VerModal').modal('show');
     } catch (e) {
-        swal("Error", "No se pudo cargar el detalle", "error");
+        Swal.fire("Error","No se pudo cargar el detalle", "error");
     }
 }
 
@@ -162,7 +162,7 @@ function abrirPopUpForm(jsonString) {
         $(".form-control").removeClass("is-invalid");
         $('#FormModal').modal('show');
     } catch (e) {
-        swal("Error", "No se pudo cargar el formulario", "error");
+        Swal.fire("Error","No se pudo cargar el formulario", "error");
     }
 }
 
@@ -175,7 +175,7 @@ function Guardar() {
                 IdProducto: parseInt($("#txtid").val()) || 0,
                 Nombre: $("#txtNombre").val(),
                 Descripcion: $("#txtDescripcion").val(),
-                IdCategoria: $("#cboCategoria").val(),
+                IdCategoria: parseInt($("#cboCategoria").val()) || 0,
                 Activo: $("#cboEstado").val() === "1"
                 // CAMBIO: PrecioVenta eliminado del formulario
             }
@@ -189,16 +189,16 @@ function Guardar() {
             contentType: "application/json; charset=utf-8",
             success: function (data) {
                 if (data.resultado) {
-                    swal("Éxito", "Producto guardado correctamente", "success");
+                    Swal.fire("Éxito", "Producto guardado correctamente", "success");
                     tabladata.ajax.reload();
                     $('#FormModal').modal('hide');
                 } else {
-                    swal("Error", data.mensaje || "No se pudo guardar el producto", "error");
+                    Swal.fire("Error",data.mensaje || "No se pudo guardar el producto", "error");
                 }
                 hideLoading();
             },
             error: function () {
-                swal("Error", "Ocurrió un error al guardar", "error");
+                Swal.fire("Error","Ocurrió un error al guardar", "error");
                 hideLoading();
             }
         });

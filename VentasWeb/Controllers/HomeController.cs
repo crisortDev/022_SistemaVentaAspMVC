@@ -16,6 +16,26 @@ namespace VentasWeb.Controllers
             ViewBag.RolUsuario = usuario.oRol?.Descripcion ?? "";
             ViewBag.EsSuperAdmin = EsSuperAdmin;
 
+            // Construir set de controladores a los que el usuario tiene acceso
+            // basado en su oListaMenu (ya filtrado por permisos en BD)
+            var controladores = new System.Collections.Generic.HashSet<string>(
+                System.StringComparer.OrdinalIgnoreCase);
+
+            if (usuario.oListaMenu != null)
+            {
+                foreach (var menu in usuario.oListaMenu)
+                {
+                    if (menu.oSubMenu == null) continue;
+                    foreach (var sub in menu.oSubMenu)
+                    {
+                        if (sub.Activo && !string.IsNullOrEmpty(sub.Controlador))
+                            controladores.Add(sub.Controlador.Trim());
+                    }
+                }
+            }
+
+            ViewBag.Controladores = controladores;
+
             return View();
         }
 

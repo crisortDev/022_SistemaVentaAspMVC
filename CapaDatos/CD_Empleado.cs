@@ -107,32 +107,42 @@ namespace CapaDatos
         // Modificar empleado desde la app
         public bool ModificarDesdeApp(Empleado emp)
         {
-            bool resultado = false;
-            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            try
             {
-                SqlCommand cmd = new SqlCommand(
-                    "UPDATE Empleado SET " +
-                    "Nombres = @Nombres, " +
-                    "Apellidos = @Apellidos, " +
-                    "IdTienda = @IdTienda, " +
-                    "Activo = @Activo, " +
-                    "FechaIngreso = @FechaIngreso " +
-                    "WHERE IdEmpleado = @IdEmpleado", oConexion);
+                bool resultado = false;
+                using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+                {
+                    SqlCommand cmd = new SqlCommand(
+                        "UPDATE Empleado SET " +
+                        "Nombres = @Nombres, " +
+                        "Apellidos = @Apellidos, " +
+                        "IdTienda = @IdTienda, " +
+                        "Activo = @Activo, " +
+                        "FechaIngreso = @FechaIngreso " +
+                        "WHERE IdEmpleado = @IdEmpleado", oConexion);
 
-                cmd.Parameters.AddWithValue("@Nombres", emp.Nombres);
-                cmd.Parameters.AddWithValue("@Apellidos", emp.Apellidos);
-                cmd.Parameters.AddWithValue("@IdTienda", emp.IdTienda);
-                cmd.Parameters.AddWithValue("@Activo", emp.Activo);
-                cmd.Parameters.AddWithValue("@FechaIngreso",        // ← fix
-                    emp.FechaIngreso != DateTime.MinValue
-                        ? (object)emp.FechaIngreso
-                        : (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@IdEmpleado", emp.IdEmpleado);
+                    cmd.Parameters.AddWithValue("@Nombres", emp.Nombres ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@Apellidos", emp.Apellidos ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@IdTienda", emp.IdTienda);
+                    cmd.Parameters.AddWithValue("@Activo", emp.Activo);
+                    // FechaIngreso es DateTime? — usar HasValue para tipos nullable
+                    cmd.Parameters.AddWithValue("@FechaIngreso",
+                        emp.FechaIngreso.HasValue
+                            ? (object)emp.FechaIngreso.Value
+                            : (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@IdEmpleado", emp.IdEmpleado);
 
-                oConexion.Open();
-                resultado = cmd.ExecuteNonQuery() > 0;
+                    oConexion.Open();
+                    resultado = cmd.ExecuteNonQuery() > 0;
+                }
+                return resultado;
             }
-            return resultado;
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+           
         }
 
 
@@ -173,8 +183,10 @@ namespace CapaDatos
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 string query = @"
-            SELECT e.IdEmpleado, e.IdPersona, e.IdTienda, e.Activo, e.FechaRegistro,
-                   p.Documento AS CI, p.Nombres, p.Apellidos, p.Correo, p.Telefono
+            SELECT e.IdEmpleado, e.IdPersona, e.IdTienda, e.Activo, e.FechaRegistro, e.FechaIngreso,
+                   p.Documento AS CI,
+                   e.Nombres, e.Apellidos,
+                   p.Correo, p.Telefono
             FROM Empleado e
             INNER JOIN Persona p ON e.IdPersona = p.IdPersona
             WHERE e.IdEmpleado = @IdEmpleado";
@@ -197,7 +209,8 @@ namespace CapaDatos
                         Telefono = dr["Telefono"].ToString(),
                         IdTienda = Convert.ToInt32(dr["IdTienda"]),
                         Activo = Convert.ToBoolean(dr["Activo"]),
-                        FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"])
+                        FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"]),
+                        FechaIngreso = dr["FechaIngreso"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(dr["FechaIngreso"])
                     };
                 }
                 dr.Close();
@@ -236,7 +249,9 @@ namespace CapaDatos
             {
                 SqlCommand cmd = new SqlCommand(@"
             SELECT e.IdEmpleado, e.IdTienda, e.Activo, e.FechaRegistro, e.FechaIngreso,
-                   p.IdPersona, p.Documento, p.Nombres, p.Apellidos, p.Correo, p.Telefono
+                   p.IdPersona, p.Documento,
+                   e.Nombres, e.Apellidos,
+                   p.Correo, p.Telefono
             FROM Empleado e
             INNER JOIN Persona p ON e.IdPersona = p.IdPersona
             ORDER BY e.IdEmpleado DESC", oConexion);
@@ -361,11 +376,16 @@ namespace CapaDatos
         {
             try
             {
-                return ModificarDesdeApp(emp); // usa tu método ya existente
+                bool resultado = ModificarDesdeApp(emp);
+                if (!resultado)
+                {
+                    throw new Exception("No se pudo actualizar el empleado. Verifica que el IdEmpleado existe.");
+                }
+                return resultado;
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                throw new Exception("Error al actualizar empleado: " + ex.Message, ex);
             }
         }
         // En CD_Empleado

@@ -7,9 +7,11 @@ using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web.Mvc;
+using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
+    [AuthorizeRol("Usuario", "*")]
     public class UsuarioController : BaseController
     {
         // ── Constantes leídas desde Web.config ───────────────────
@@ -22,10 +24,20 @@ namespace VentasWeb.Controllers
 
         // ── GET: DataTable ────────────────────────────────────────
         // Clave: _ObtenerUsuarios → Usuario/Obtener
+        [HttpGet]
         public ActionResult Obtener()
         {
-            var lista = CD_Usuario.Instancia.ObtenerUsuarios();
-            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                var lista = CD_Usuario.Instancia.ObtenerUsuarios();
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceError(
+                    $"[UsuarioController.Obtener] {DateTime.Now:yyyy-MM-dd HH:mm:ss} | Error: {ex.Message}");
+                return Json(new { data = new System.Collections.Generic.List<object>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         // ── GET: Buscar empleado por CI/RUC ───────────────────────
@@ -150,6 +162,38 @@ namespace VentasWeb.Controllers
             }
         }
 
+        // ── POST: Desbloquear usuario bloqueado por intentos fallidos ─
+        // Clave: _DesbloquearUsuario → Usuario/DesbloquearUsuario
+        [HttpPost]
+        public ActionResult DesbloquearUsuario(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                    return Json(new { resultado = false, mensaje = "Id de usuario inválido." });
+
+                // Obtener datos del usuario para enviar el correo
+                var lista = CD_Usuario.Instancia.ObtenerUsuarios();
+                var usuario = lista.Find(u => u.IdUsuario == id);
+                if (usuario == null)
+                    return Json(new { resultado = false, mensaje = "No se encontró el usuario." });
+
+                // Resetear intentos + generar contraseña temporal (24 hs)
+                string claveTemp = CD_Usuario.Instancia.DesbloquearUsuario(id);
+
+                // Enviar correo al usuario desbloqueado
+                string asunto = $"Cuenta desbloqueada — {NombreSistema}";
+                string html = ConstruirCorreoDesbloqueo(usuario.Nombres, usuario.Correo, claveTemp);
+                EnviarCorreo(usuario.Correo, asunto, html);
+
+                return Json(new { resultado = true, mensaje = $"Usuario desbloqueado. Se envió una contraseña temporal a {usuario.Correo}." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = "Ocurrió un error: " + ex.Message });
+            }
+        }
+
         // ── POST: Activar / Desactivar usuario ────────────────────
         // Clave: _CambiarEstadoUsuario → Usuario/CambiarEstadoUsuario
         [HttpPost]
@@ -234,6 +278,40 @@ namespace VentasWeb.Controllers
             {
                 smtp.Send(message);
             }
+        }
+
+        private string ConstruirCorreoDesbloqueo(string nombres, string correo, string claveTemp)
+        {
+            return $@"
+            <div style='font-family:Arial,sans-serif;max-width:500px;margin:auto;border:1px solid #dee2e6;border-radius:8px;overflow:hidden'>
+                <div style='background:#dc3545;padding:20px;text-align:center'>
+                    <h2 style='color:#fff;margin:0'>{NombreSistema}</h2>
+                </div>
+                <div style='padding:30px'>
+                    <p>Hola <strong>{nombres}</strong>,</p>
+                    <p>Tu cuenta fue <strong>desbloqueada</strong> por un administrador tras detectarse intentos fallidos de acceso.</p>
+                    <table style='width:100%;border-collapse:collapse;margin:20px 0'>
+                        <tr>
+                            <td style='padding:8px;background:#f8f9fa;font-weight:bold;width:40%'>Usuario (correo)</td>
+                            <td style='padding:8px;border-bottom:1px solid #dee2e6'>{correo}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding:8px;background:#f8f9fa;font-weight:bold'>Contraseña temporal</td>
+                            <td style='padding:8px;font-size:22px;font-weight:bold;letter-spacing:4px;color:#dc3545'>{claveTemp}</td>
+                        </tr>
+                    </table>
+                    <div style='background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:12px;margin-top:10px'>
+                        <strong>⚠ Importante:</strong> Esta contraseña expira en <strong>24 horas</strong>.
+                        Al ingresar se te pedirá que la cambies por una nueva.
+                    </div>
+                    <p style='margin-top:16px;font-size:13px;color:#6c757d'>
+                        Si no reconocés estos intentos de acceso, te recomendamos cambiar tu contraseña y contactar al administrador.
+                    </p>
+                </div>
+                <div style='background:#f8f9fa;padding:15px;text-align:center;font-size:12px;color:#6c757d'>
+                    Este es un correo automático, por favor no respondas.
+                </div>
+            </div>";
         }
 
         private string ConstruirCorreoBienvenida(string nombres, string correo, string claveTemp)

@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
+    [AuthorizeRol("Tienda", "*")]
     public class TiendaController : BaseController
     {
         // GET: Tienda
@@ -19,14 +21,23 @@ namespace VentasWeb.Controllers
         [HttpGet]
         public JsonResult Obtener()
         {
-            List<Tienda> lista = CD_Tienda.Instancia.ObtenerTiendas();
-            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                List<Tienda> lista = CD_Tienda.Instancia.ObtenerTiendas();
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceError(
+                    $"[TiendaController.Obtener] {DateTime.Now:yyyy-MM-dd HH:mm:ss} | Error: {ex.Message}");
+                return Json(new { data = new List<Tienda>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpPost]
         public JsonResult Guardar(Tienda objeto)
         {
-            // ── Solo SuperAdmin puede crear o modificar tiendas ───
+            // Solo SuperAdmin puede crear o modificar tiendas
             if (!EsSuperAdmin)
                 return Json(new { resultado = false, mensaje = "Solo el administrador global puede gestionar tiendas." });
 
@@ -52,9 +63,10 @@ namespace VentasWeb.Controllers
             return Json(lista, JsonRequestBehavior.AllowGet);
         }
 
-        [HttpGet]
+        [HttpPost]
         public JsonResult Eliminar(int id = 0)
         {
+            // Solo SuperAdmin puede eliminar tiendas
             if (!EsSuperAdmin)
                 return Json(new { resultado = false, mensaje = "Solo el administrador global puede eliminar tiendas." }, JsonRequestBehavior.AllowGet);
 

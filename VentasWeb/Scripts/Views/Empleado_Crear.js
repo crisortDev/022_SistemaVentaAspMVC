@@ -231,12 +231,14 @@
 
             $.get("/Empleado/ObtenerPorId", { id: idEmpleado }, function (data) {
                 if (data) {
+                    $("#txtIdEmpleado").val(data.IdEmpleado);  // ← CRÍTICO: Asegurar que IdEmpleado se establece
                     $("#txtIdPersona").val(data.IdPersona);
                     $("#txtDocumento").val(data.Documento);
                     $("#txtNombres").val(data.Nombres);
                     $("#txtApellidos").val(data.Apellidos);
                     $("#txtCorreo").val(data.Correo);
                     $("#txtTelefono").val(data.Telefono);
+                    $("#txtFechaIngreso").val(data.FechaIngreso ? data.FechaIngreso.split('T')[0] : '');  // Formato YYYY-MM-DD
                     $("#ddlEstadoEmpleado").val(data.Activo ? "1" : "0");
                     cargarTiendas(data.IdTienda);
                 }

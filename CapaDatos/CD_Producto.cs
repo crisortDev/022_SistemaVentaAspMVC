@@ -73,7 +73,6 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("Nombre", oProducto.Nombre);
                     cmd.Parameters.AddWithValue("Descripcion", oProducto.Descripcion);
                     cmd.Parameters.AddWithValue("IdCategoria", oProducto.IdCategoria);
-                    cmd.Parameters.AddWithValue("PrecioVenta", oProducto.PrecioVenta);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
                     oConexion.Open();
@@ -92,14 +91,11 @@ namespace CapaDatos
             {
                 try
                 {
-                    SqlCommand cmd = new SqlCommand("usp_ModificarProducto", oConexion);
+                    SqlCommand cmd = new SqlCommand("usp_RegistrarProducto", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("IdProducto", oProducto.IdProducto);
                     cmd.Parameters.AddWithValue("Nombre", oProducto.Nombre);
                     cmd.Parameters.AddWithValue("Descripcion", oProducto.Descripcion);
                     cmd.Parameters.AddWithValue("IdCategoria", oProducto.IdCategoria);
-                    cmd.Parameters.AddWithValue("Activo", oProducto.Activo);
-                    cmd.Parameters.AddWithValue("PrecioVenta", oProducto.PrecioVenta);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
                     oConexion.Open();
@@ -107,6 +103,9 @@ namespace CapaDatos
                     respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
                 }
                 catch { respuesta = false; }
+
+
+
             }
             return respuesta;
         }

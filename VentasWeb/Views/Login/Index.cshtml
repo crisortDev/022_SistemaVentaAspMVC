@@ -89,7 +89,7 @@
             position: relative;
             z-index: 10;
             width: 100%;
-            max-width: 460px;
+            max-width: 520px;
             padding: 1rem;
         }
 
@@ -175,7 +175,27 @@
 
         /* Cuerpo del formulario */
         .card-body-custom {
-            padding: 32px 36px 28px;
+            padding: 32px 36px 48px;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+
+        .card-body-custom::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .card-body-custom::-webkit-scrollbar-track {
+            background: var(--field-bg);
+            border-radius: 3px;
+        }
+
+        .card-body-custom::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .card-body-custom::-webkit-scrollbar-thumb:hover {
+            background: var(--muted);
         }
 
         /* Campos */

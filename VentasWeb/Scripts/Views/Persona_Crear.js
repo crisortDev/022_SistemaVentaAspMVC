@@ -74,19 +74,12 @@
         ajustarCamposPorTipoPersona();
     });
 
-    // ── Teléfono: mantener prefijo +595 ───────────────────
-    $("#txtTelefono").on("input", function () {
-        var val = $(this).val();
-        if (!val.startsWith("+595")) {
-            $(this).val("+595" + val.replace(/^\+?5?9?5?/, ''));
-        }
-    }).on("keydown", function (e) {
-        // Impedir borrar el prefijo +595 (4 chars)
-        var pos = this.selectionStart;
-        if ((e.key === "Backspace" || e.key === "Delete") && pos <= 4) {
-            e.preventDefault();
-        }
-    });
+    // ── Teléfono: campo flexible para múltiples formatos ────
+    // El campo ahora acepta:
+    // - Números locales: 021XXXXXX, 0XXX-XXXXXX, 0XXXXXXXXX
+    // - Números internacionales: +595XXXXXXXXX
+    // - Campo vacío = teléfono opcional
+    // Nota: Sin forzar prefijo +595 para permitir ediciones fluidas
 
     // ── Hint dinámico según tipo documento ─────────────
     $("#cboTipoDocumento").on("change", function () {
@@ -164,7 +157,7 @@ function CambiarEstado(id, activar) {
 function abrirPopUpForm(idPersona) {
     limpiarErrores();
     $("#form")[0].reset();
-    $("#txtTelefono").val("+595");
+    $("#txtTelefono").val("");
 
     if (idPersona == null) {
         // ── NUEVO ─────────────────────────────────────────
@@ -247,26 +240,29 @@ function ajustarCamposPorTipoPersona() {
 function GuardarPersona() {
     limpiarErrores();
     var esValido = true;
+    var esEdicion = parseInt($("#txtid").val()) > 0;  // true si es edición
     var tipo = $("input[name='tipoPersona']:checked").val();
     var tipoDoc = $("#cboTipoDocumento").val();
     var doc = $("#txtDocumento").val().trim();
     var correo = $("#txtCorreo").val().trim();
     var tel = $("#txtTelefono").val().trim();
 
-    // Documento obligatorio
-    if (!doc) {
-        marcarError("txtDocumento", "El documento es obligatorio.");
-        esValido = false;
-    } else {
-        // Validar formato CI: solo números, 6-8 dígitos
-        if (tipoDoc === "CI" && !/^\d{6,8}$/.test(doc)) {
-            marcarError("txtDocumento", "CI debe tener entre 6 y 8 dígitos numéricos.");
+    // Documento: en edición es readonly → no se valida el formato (ya fue validado al crear)
+    if (!esEdicion) {
+        if (!doc) {
+            marcarError("txtDocumento", "El documento es obligatorio.");
             esValido = false;
-        }
-        // Validar formato RUC: números-dígito (ej: 80012345-1)
-        if (tipoDoc === "RUC" && !/^\d{6,8}-\d$/.test(doc)) {
-            marcarError("txtDocumento", "RUC debe tener formato XXXXXXXX-X (ej: 80012345-1).");
-            esValido = false;
+        } else {
+            // Validar formato CI: solo números, 6-8 dígitos
+            if (tipoDoc === "CI" && !/^\d{6,8}$/.test(doc)) {
+                marcarError("txtDocumento", "CI debe tener entre 6 y 8 dígitos numéricos.");
+                esValido = false;
+            }
+            // Validar formato RUC: números-dígito (ej: 80012345-1)
+            if (tipoDoc === "RUC" && !/^\d{6,8}-\d$/.test(doc)) {
+                marcarError("txtDocumento", "RUC debe tener formato XXXXXXXX-X (ej: 80012345-1).");
+                esValido = false;
+            }
         }
     }
 
@@ -293,10 +289,17 @@ function GuardarPersona() {
         esValido = false;
     }
 
-    // Teléfono — si se ingresó más que el prefijo, validar formato
-    if (tel && tel !== "+595" && !/^\+595\d{6,10}$/.test(tel.replace(/\s/g, ''))) {
-        marcarError("txtTelefono", "Teléfono inválido. Formato: +595XXXXXXXXX");
-        esValido = false;
+    // Teléfono — campo opcional, pero si se ingresa debe tener formato válido
+    if (tel) {
+        var telLimpio = tel.replace(/\s|-/g, ''); // Remover espacios y guiones
+        // Acepta:
+        // - Internacional: +595XXXXXXXXX (10-13 dígitos con +)
+        // - Local: 021XXXXXX o 0XXXXXXXXX (9-10 dígitos sin +)
+        var formatoValido = /^(\+595\d{6,10}|0\d{8,10})$/.test(telLimpio);
+        if (!formatoValido) {
+            marcarError("txtTelefono", "Formato inválido. Ej: +595991234567 o 021123456");
+            esValido = false;
+        }
     }
 
     if (!esValido) return;
@@ -307,7 +310,7 @@ function GuardarPersona() {
         Nombres: $("#txtNombres").val().trim(),
         Apellidos: $("#txtApellidos").val().trim(),
         Correo: correo,
-        Telefono: tel === "+595" ? "" : tel,
+        Telefono: tel.trim(), // Guardar tal como está, validación ya pasó
         Calle1: $("#txtCallePrincipal").val().trim(),
         Calle2: $("#txtCalleSecundaria").val().trim(),
         Ciudad: $("#txtCiudad").val().trim(),

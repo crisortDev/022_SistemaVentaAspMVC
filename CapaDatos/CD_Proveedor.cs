@@ -70,7 +70,7 @@ namespace CapaDatos
                 }
                 catch (Exception ex)
                 {
-                    rptListaProveedor = null;
+                    rptListaProveedor = new List<Proveedor>();
                     return rptListaProveedor;
                 }
             }
@@ -78,32 +78,31 @@ namespace CapaDatos
 
         public bool RegistrarProveedor(Proveedor oProveedor)
         {
-            bool respuesta = true;
+            bool respuesta = false;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
                 {
                     SqlCommand cmd = new SqlCommand("usp_RegistrarProveedor", oConexion);
-                    cmd.Parameters.AddWithValue("Ruc", oProveedor.Ruc);
-                    cmd.Parameters.AddWithValue("RazonSocial", oProveedor.RazonSocial);
-                    cmd.Parameters.AddWithValue("Telefono", oProveedor.Telefono);
-                    cmd.Parameters.AddWithValue("Correo", oProveedor.Correo);
-                    cmd.Parameters.AddWithValue("Direccion", oProveedor.Direccion);
-                    cmd.Parameters.AddWithValue("@Ciudad", oProveedor.Ciudad); // Manejo de valor nulo
-                    cmd.Parameters.AddWithValue("@Barrio", oProveedor.Barrio);
-                    cmd.Parameters.AddWithValue("@Calle", oProveedor.Calle);
-                    cmd.Parameters.AddWithValue("@Referencia", oProveedor.Referencia);
-                    cmd.Parameters.AddWithValue("@Geolocalizacion", oProveedor.Geolocalizacion); // Manejo de valor nulo
-
-                    cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Ruc",             oProveedor.Ruc);
+                    cmd.Parameters.AddWithValue("@RazonSocial",     oProveedor.RazonSocial);
+                    cmd.Parameters.AddWithValue("@Telefono",        oProveedor.Telefono);
+                    cmd.Parameters.AddWithValue("@Correo",          oProveedor.Correo);
+                    cmd.Parameters.AddWithValue("@Direccion",       oProveedor.Direccion);
+                    cmd.Parameters.AddWithValue("@Ciudad",          (object)oProveedor.Ciudad          ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Barrio",          (object)oProveedor.Barrio          ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Calle",           (object)oProveedor.Calle           ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Referencia",      (object)oProveedor.Referencia      ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Geolocalizacion", (object)oProveedor.Geolocalizacion ?? DBNull.Value);
+                    // BUG FIX: se registraba como "@Resultado" pero se leía como "Resultado" → KeyNotFoundException
+                    // Unificado: ambos usan "@Resultado" con el prefijo @
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
                     oConexion.Open();
-
                     cmd.ExecuteNonQuery();
 
-                    respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
-
+                    respuesta = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
                 }
                 catch (Exception ex)
                 {
@@ -116,68 +115,155 @@ namespace CapaDatos
 
         public bool ModificarProveedor(Proveedor oProveedor)
         {
-            bool respuesta = true;
+            bool respuesta = false;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
                 {
                     SqlCommand cmd = new SqlCommand("usp_ModificarProveedor", oConexion);
-                    cmd.Parameters.AddWithValue("IdProveedor", oProveedor.IdProveedor);
-                    cmd.Parameters.AddWithValue("Ruc", oProveedor.Ruc);
-                    cmd.Parameters.AddWithValue("RazonSocial", oProveedor.RazonSocial);
-                    cmd.Parameters.AddWithValue("Telefono", oProveedor.Telefono);
-                    cmd.Parameters.AddWithValue("Correo", oProveedor.Correo);
-                    cmd.Parameters.AddWithValue("Direccion", oProveedor.Direccion);
-                    cmd.Parameters.AddWithValue("Activo", oProveedor.Activo);
-                    cmd.Parameters.AddWithValue("@Barrio", oProveedor.Barrio);
-                    cmd.Parameters.AddWithValue("@Calle", oProveedor.Calle);
-                    cmd.Parameters.AddWithValue("@Referencia", oProveedor.Referencia);
-                    cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
+                    // BUG FIX: parámetros unificados con prefijo @ consistente
+                    cmd.Parameters.AddWithValue("@IdProveedor",    oProveedor.IdProveedor);
+                    cmd.Parameters.AddWithValue("@Ruc",            oProveedor.Ruc);
+                    cmd.Parameters.AddWithValue("@RazonSocial",    oProveedor.RazonSocial);
+                    cmd.Parameters.AddWithValue("@Telefono",       oProveedor.Telefono);
+                    cmd.Parameters.AddWithValue("@Correo",         oProveedor.Correo);
+                    cmd.Parameters.AddWithValue("@Direccion",      oProveedor.Direccion);
+                    cmd.Parameters.AddWithValue("@Activo",         oProveedor.Activo);
+                    cmd.Parameters.AddWithValue("@Ciudad",         (object)oProveedor.Ciudad          ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Barrio",         (object)oProveedor.Barrio          ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Calle",          (object)oProveedor.Calle           ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Referencia",     (object)oProveedor.Referencia      ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Geolocalizacion",(object)oProveedor.Geolocalizacion ?? DBNull.Value);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
                     oConexion.Open();
-
                     cmd.ExecuteNonQuery();
 
-                    respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
-
+                    respuesta = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
                 }
                 catch (Exception ex)
                 {
                     respuesta = false;
                 }
-
             }
-
             return respuesta;
-
         }
 
-        public bool EliminarProveedor(int IdProveedor)
+        public bool VerificarRucExistente(string ruc)
         {
-            bool respuesta = true;
+            bool existe = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_VerificarRucProveedor", oConexion);
+                    cmd.Parameters.AddWithValue("@Ruc", ruc);
+                    cmd.Parameters.Add("@Existe", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+                    existe = Convert.ToBoolean(cmd.Parameters["@Existe"].Value);
+                }
+                catch { existe = false; }
+            }
+            return existe;
+        }
+
+        public bool ReactivarProveedor(int IdProveedor)
+        {
+            bool respuesta = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_ReactivarProveedor", oConexion);
+                    cmd.Parameters.AddWithValue("@IdProveedor", IdProveedor);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+                    respuesta = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                }
+                catch { respuesta = false; }
+            }
+            return respuesta;
+        }
+
+        public bool TieneCompras(int IdProveedor)
+        {
+            bool resultado = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_ProveedorTieneCompras", oConexion);
+                    cmd.Parameters.AddWithValue("@IdProveedor", IdProveedor);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+                    resultado = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                }
+                catch
+                {
+                    resultado = false;
+                }
+            }
+            return resultado;
+        }
+
+        public bool DesactivarProveedor(int IdProveedor)
+        {
+            bool respuesta = false;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_DesactivarProveedor", oConexion);
+                    cmd.Parameters.AddWithValue("@IdProveedor", IdProveedor);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+                    respuesta = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                }
+                catch
+                {
+                    respuesta = false;
+                }
+            }
+            return respuesta;
+        }
+
+        public (bool resultado, string mensaje) EliminarProveedor(int IdProveedor)
+        {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
                 {
                     SqlCommand cmd = new SqlCommand("usp_EliminarProveedor", oConexion);
-                    cmd.Parameters.AddWithValue("IdProveedor", IdProveedor);
-                    cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.Parameters.AddWithValue("@IdProveedor", IdProveedor);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 300).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
 
                     oConexion.Open();
-
                     cmd.ExecuteNonQuery();
 
-                    respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
-
+                    bool ok = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    string msg = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "Error desconocido.";
+                    return (ok, msg);
                 }
                 catch (Exception ex)
                 {
-                    respuesta = false;
+                    return (false, "Error al conectar con la base de datos: " + ex.Message);
                 }
             }
-            return respuesta;
         }
 
     }

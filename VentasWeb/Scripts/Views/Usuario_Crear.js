@@ -61,20 +61,30 @@
                 },
                 {
                     data: 'Activo',
-                    render: function (data) {
-                        return data
-                            ? '<span class="badge badge-success">Activo</span>'
-                            : '<span class="badge badge-danger">Inactivo</span>';
+                    render: function (data, type, row) {
+                        var bloqueado = row.IntentosFallidos >= 5;
+                        if (!data)
+                            return '<span class="badge badge-danger">Inactivo</span>';
+                        if (bloqueado)
+                            return '<span class="badge badge-warning"><i class="fa fa-lock"></i> Bloqueado</span>';
+                        return '<span class="badge badge-success">Activo</span>';
                     }
                 },
                 {
                     data: 'IdUsuario',
                     render: function (data, type, row) {
+                        var bloqueado = row.IntentosFallidos >= 5;
                         var btnVer = '<button class="btn btn-sm btn-info mr-1" onclick=\'verUsuario(' + JSON.stringify(row) + ')\' title="Ver detalle"><i class="fa fa-eye"></i></button>';
-                        var btnEstado = row.Activo
-                            ? '<button class="btn btn-sm btn-warning" onclick="CambiarEstado(' + data + ',false)" title="Desactivar"><i class="fa fa-toggle-off"></i></button>'
-                            : '<button class="btn btn-sm btn-success" onclick="CambiarEstado(' + data + ',true)"  title="Activar"><i class="fa fa-check"></i></button>';
-                        return btnVer + btnEstado;
+                        var btnAccion;
+                        if (bloqueado) {
+                            // Botón desbloquear (naranja con candado abierto)
+                            btnAccion = '<button class="btn btn-sm btn-warning" onclick="DesbloquearUsuario(' + data + ')" title="Desbloquear y enviar contraseña temporal"><i class="fa fa-unlock"></i></button>';
+                        } else if (row.Activo) {
+                            btnAccion = '<button class="btn btn-sm btn-secondary" onclick="CambiarEstado(' + data + ',false)" title="Desactivar"><i class="fa fa-toggle-off"></i></button>';
+                        } else {
+                            btnAccion = '<button class="btn btn-sm btn-success" onclick="CambiarEstado(' + data + ',true)" title="Activar"><i class="fa fa-check"></i></button>';
+                        }
+                        return btnVer + btnAccion;
                     },
                     orderable: false,
                     searchable: false,
@@ -196,10 +206,45 @@
         $("#verApellidos").text(json.Apellidos);
         $("#verCorreo").text(json.Correo);
         $("#verRol").text((json.oRol && json.oRol.Descripcion) ? json.oRol.Descripcion : '—');
-        $("#verEstado").html(json.Activo
-            ? '<span class="badge badge-success">Activo</span>'
-            : '<span class="badge badge-danger">Inactivo</span>');
+
+        var bloqueado = json.IntentosFallidos >= 5;
+        var badgeEstado;
+        if (!json.Activo)
+            badgeEstado = '<span class="badge badge-danger">Inactivo</span>';
+        else if (bloqueado)
+            badgeEstado = '<span class="badge badge-warning"><i class="fa fa-lock"></i> Bloqueado (' + json.IntentosFallidos + ' intentos fallidos)</span>';
+        else
+            badgeEstado = '<span class="badge badge-success">Activo</span>';
+        $("#verEstado").html(badgeEstado);
         $('#VerModal').modal('show');
+    };
+
+    // ══════════════════════════════════════════════════
+    //  DESBLOQUEAR — _DesbloquearUsuario → Usuario/DesbloquearUsuario
+    // ══════════════════════════════════════════════════
+    window.DesbloquearUsuario = function (id) {
+        Swal.fire({
+            title: '¿Desbloquear usuario?',
+            text: 'Se resetearán los intentos fallidos y se enviará una contraseña temporal al correo del usuario.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#fd7e14',
+            confirmButtonText: 'Sí, desbloquear',
+            cancelButtonText: 'Cancelar'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                $.post($.MisUrls.url._DesbloquearUsuario, { id: id }, function (resp) {
+                    if (resp.resultado) {
+                        Swal.fire("¡Desbloqueado!", resp.mensaje, "success");
+                        $('#tbUsuarios').DataTable().ajax.reload();
+                    } else {
+                        Swal.fire("Error", resp.mensaje || "No se pudo desbloquear.", "error");
+                    }
+                }).fail(function () {
+                    Swal.fire("Error", "No se pudo conectar con el servidor.", "error");
+                });
+            }
+        });
     };
 
     // ══════════════════════════════════════════════════

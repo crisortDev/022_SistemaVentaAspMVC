@@ -293,44 +293,100 @@ namespace CapaDatos
             {
                 using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
                 {
-                    string query = @"
-        UPDATE Persona SET
-            Nombres = @Nombres,
-            Apellidos = @Apellidos,
-            RazonSocial = @RazonSocial,
-            TipoDocumento = @TipoDocumento,
-            Documento = @Documento,
-            Correo = @Correo,
-            Telefono = @Telefono,
-            Calle1 = @Calle1,
-            Calle2 = @Calle2,
-            Activo = @Activo
-        WHERE IdPersona = @IdPersona";
-
-                    using (SqlCommand cmd = new SqlCommand(query, oConexion))
+                    oConexion.Open();
+                    using (SqlTransaction tran = oConexion.BeginTransaction())
                     {
-                        cmd.Parameters.AddWithValue("@IdPersona", p.IdPersona);
-                        cmd.Parameters.AddWithValue("@Nombres", (object)p.Nombres ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@Apellidos", (object)p.Apellidos ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@RazonSocial", (object)p.RazonSocial ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@TipoDocumento", (object)p.TipoDocumento ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@Documento", (object)p.Documento ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@Correo", (object)p.Correo ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@Telefono", (object)p.Telefono ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@Calle1", (object)p.Calle1 ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@Calle2", (object)p.Calle2 ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@Activo", p.Activo);
+                        try
+                        {
+                            // ── 1. Actualizar Persona ─────────────────────────────
+                            string queryPersona = @"
+                UPDATE Persona SET
+                    Nombres        = @Nombres,
+                    Apellidos      = @Apellidos,
+                    RazonSocial    = @RazonSocial,
+                    TipoDocumento  = @TipoDocumento,
+                    Documento      = @Documento,
+                    Correo         = @Correo,
+                    Telefono       = @Telefono,
+                    Calle1         = @Calle1,
+                    Calle2         = @Calle2,
+                    Activo         = @Activo
+                WHERE IdPersona = @IdPersona";
 
-                        oConexion.Open();
-                        int filas = cmd.ExecuteNonQuery();
+                            using (SqlCommand cmd = new SqlCommand(queryPersona, oConexion, tran))
+                            {
+                                cmd.Parameters.AddWithValue("@IdPersona",     p.IdPersona);
+                                cmd.Parameters.AddWithValue("@Nombres",       (object)p.Nombres      ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@Apellidos",     (object)p.Apellidos    ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@RazonSocial",   (object)p.RazonSocial  ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@TipoDocumento", (object)p.TipoDocumento ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@Documento",     (object)p.Documento    ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@Correo",        (object)p.Correo       ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@Telefono",      (object)p.Telefono     ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@Calle1",        (object)p.Calle1       ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@Calle2",        (object)p.Calle2       ?? DBNull.Value);
+                                cmd.Parameters.AddWithValue("@Activo",        p.Activo);
 
-                        return (filas > 0, filas > 0 ? "Persona actualizada correctamente." : "No se pudo actualizar la persona.");
+                                int filas = cmd.ExecuteNonQuery();
+                                if (filas == 0)
+                                {
+                                    tran.Rollback();
+                                    return (false, "No se pudo actualizar la persona.");
+                                }
+                            }
+
+                            // ── 2. Propagar Nombres/Apellidos en cascada: Persona → Empleado → Usuario ──
+                            // Regla: cambiar en Persona impacta hacia abajo en toda la jerarquía.
+                            //        Cambiar en Empleado o Usuario NO impacta hacia arriba.
+                            if (!string.IsNullOrEmpty(p.Nombres) || !string.IsNullOrEmpty(p.Apellidos))
+                            {
+                                // 2a. Propagar a Empleado
+                                string queryEmpleado = @"
+                UPDATE Empleado SET
+                    Nombres   = @Nombres,
+                    Apellidos = @Apellidos
+                WHERE IdPersona = @IdPersona";
+
+                                using (SqlCommand cmdEmp = new SqlCommand(queryEmpleado, oConexion, tran))
+                                {
+                                    cmdEmp.Parameters.AddWithValue("@IdPersona", p.IdPersona);
+                                    cmdEmp.Parameters.AddWithValue("@Nombres",   (object)p.Nombres   ?? DBNull.Value);
+                                    cmdEmp.Parameters.AddWithValue("@Apellidos", (object)p.Apellidos ?? DBNull.Value);
+                                    cmdEmp.ExecuteNonQuery(); // No falla si no existe empleado vinculado
+                                }
+
+                                // 2b. Propagar a Usuario (a través de Empleado)
+                                string queryUsuario = @"
+                UPDATE U SET
+                    U.Nombres   = @Nombres,
+                    U.Apellidos = @Apellidos
+                FROM Usuario U
+                INNER JOIN Empleado E ON U.IdEmpleado = E.IdEmpleado
+                WHERE E.IdPersona = @IdPersona";
+
+                                using (SqlCommand cmdUsr = new SqlCommand(queryUsuario, oConexion, tran))
+                                {
+                                    cmdUsr.Parameters.AddWithValue("@IdPersona", p.IdPersona);
+                                    cmdUsr.Parameters.AddWithValue("@Nombres",   (object)p.Nombres   ?? DBNull.Value);
+                                    cmdUsr.Parameters.AddWithValue("@Apellidos", (object)p.Apellidos ?? DBNull.Value);
+                                    cmdUsr.ExecuteNonQuery(); // No falla si no existe usuario vinculado
+                                }
+                            }
+
+                            tran.Commit();
+                            return (true, "Persona actualizada correctamente.");
+                        }
+                        catch (Exception ex)
+                        {
+                            tran.Rollback();
+                            return (false, "Error al actualizar persona: " + ex.Message);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                return (false, "Error al actualizar persona: " + ex.Message);
+                return (false, "Error de conexión: " + ex.Message);
             }
         }
 

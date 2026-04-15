@@ -99,33 +99,38 @@
                 <form id="form">
                     <input id="txtid" value="0" type="hidden" />
                     <div class="form-group row">
-                        <label for="txtRuc" class="col-sm-2 col-form-label col-form-label-sm">RUC <span class="error"></span></label>
+                        <label for="txtRuc" class="col-sm-2 col-form-label col-form-label-sm">RUC <span class="text-danger">*</span></label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtRuc" name="RUC" />
+                            <input type="text" class="form-control form-control-sm model" id="txtRuc" name="RUC"
+                                   maxlength="20" placeholder="Ej: 80012345-6" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="txtRazonSocial" class="col-sm-2 col-form-label col-form-label-sm">Razón Social <span class="error"></span></label>
+                        <label for="txtRazonSocial" class="col-sm-2 col-form-label col-form-label-sm">Razón Social <span class="text-danger">*</span></label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtRazonSocial" name="RazonSocial" />
+                            <input type="text" class="form-control form-control-sm model" id="txtRazonSocial" name="RazonSocial"
+                                   maxlength="200" placeholder="Nombre legal de la empresa" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="txtTelefono" class="col-sm-2 col-form-label col-form-label-sm">Teléfono <span class="error"></span></label>
+                        <label for="txtTelefono" class="col-sm-2 col-form-label col-form-label-sm">Teléfono <span class="text-danger">*</span></label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtTelefono" name="Telefono" />
+                            <input type="text" class="form-control form-control-sm model" id="txtTelefono" name="Telefono"
+                                   maxlength="20" placeholder="Ej: 0981123456" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="txtCorreo" class="col-sm-2 col-form-label col-form-label-sm">Correo <span class="error"></span></label>
+                        <label for="txtCorreo" class="col-sm-2 col-form-label col-form-label-sm">Correo <span class="text-danger">*</span></label>
                         <div class="col-sm-10">
-                            <input type="email" class="form-control form-control-sm model" id="txtCorreo" name="Correo" />
+                            <input type="email" class="form-control form-control-sm model" id="txtCorreo" name="Correo"
+                                   maxlength="100" placeholder="ejemplo@empresa.com" />
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="txtDireccion" class="col-sm-2 col-form-label col-form-label-sm">Dirección <span class="error"></span></label>
+                        <label for="txtDireccion" class="col-sm-2 col-form-label col-form-label-sm">Dirección <span class="text-danger">*</span></label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtDireccion" name="Direccion" />
+                            <input type="text" class="form-control form-control-sm model" id="txtDireccion" name="Direccion"
+                                   maxlength="200" placeholder="Dirección principal del proveedor" />
                         </div>
                     </div>
                     <div class="form-group row">
@@ -138,27 +143,31 @@
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="txtCiudad" class="col-sm-2 col-form-label col-form-label-sm">Ciudad <span class="error"></span></label>
+                        <label for="txtCiudad" class="col-sm-2 col-form-label col-form-label-sm">Ciudad <span class="text-danger">*</span></label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtCiudad" name="Ciudad" />
+                            <input type="text" class="form-control form-control-sm model" id="txtCiudad" name="Ciudad"
+                                   maxlength="100" placeholder="Ej: Asunción" />
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="txtBarrio" class="col-sm-2 col-form-label col-form-label-sm">Barrio</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtBarrio" name="Barrio" />
+                            <input type="text" class="form-control form-control-sm model" id="txtBarrio" name="Barrio"
+                                   maxlength="100" placeholder="Opcional" />
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="txtCalle" class="col-sm-2 col-form-label col-form-label-sm">Calle</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtCalle" name="Calle" />
+                            <input type="text" class="form-control form-control-sm model" id="txtCalle" name="Calle"
+                                   maxlength="100" placeholder="Opcional" />
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="txtReferencia" class="col-sm-2 col-form-label col-form-label-sm">Referencia</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control form-control-sm model" id="txtReferencia" name="Referencia" />
+                            <input type="text" class="form-control form-control-sm model" id="txtReferencia" name="Referencia"
+                                   maxlength="200" placeholder="Opcional - punto de referencia" />
                         </div>
                     </div>
                     <div class="form-group row">
@@ -183,52 +192,51 @@
 
 @section estilos{
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css" />
     <style>
-        /* ── Columna izquierda fija (RUC) ── */
-        table.dataTable thead th.dtfc-fixed-left,
-        table.dataTable tbody td.dtfc-fixed-left {
-            position: sticky !important;
+        /* ── Columna izquierda fija (RUC) usando sticky nativo ── */
+        #tbdata thead th:first-child,
+        #tbdata tbody td:first-child {
+            position: sticky;
             left: 0;
-            z-index: 3 !important;
-            background-color: #fff !important;
+            z-index: 3;
+            background-color: #fff;
         }
 
-        table.dataTable.table-striped tbody tr:nth-child(odd) td.dtfc-fixed-left {
-            background-color: #f9f9f9 !important;
+        #tbdata.table-striped tbody tr:nth-child(odd) td:first-child {
+            background-color: #f9f9f9;
         }
 
-        table.dataTable thead th.dtfc-fixed-left {
+        #tbdata thead th:first-child {
             background-color: #17a2b8 !important;
             color: #fff !important;
-            z-index: 4 !important;
+            z-index: 4;
         }
 
         /* ── Columna derecha fija (Acciones) ── */
-        table.dataTable thead th.dtfc-fixed-right,
-        table.dataTable tbody td.dtfc-fixed-right {
-            position: sticky !important;
+        #tbdata thead th:last-child,
+        #tbdata tbody td:last-child {
+            position: sticky;
             right: 0;
-            z-index: 3 !important;
-            background-color: #fff !important;
+            z-index: 3;
+            background-color: #fff;
         }
 
-        table.dataTable.table-striped tbody tr:nth-child(odd) td.dtfc-fixed-right {
-            background-color: #f9f9f9 !important;
+        #tbdata.table-striped tbody tr:nth-child(odd) td:last-child {
+            background-color: #f9f9f9;
         }
 
-        table.dataTable thead th.dtfc-fixed-right {
+        #tbdata thead th:last-child {
             background-color: #17a2b8 !important;
             color: #fff !important;
-            z-index: 4 !important;
+            z-index: 4;
         }
 
         /* ── Sombras decorativas ── */
-        table.dataTable tbody td.dtfc-fixed-left {
+        #tbdata tbody td:first-child {
             box-shadow: 3px 0 6px rgba(0,0,0,0.07);
         }
 
-        table.dataTable tbody td.dtfc-fixed-right {
+        #tbdata tbody td:last-child {
             box-shadow: -3px 0 6px rgba(0,0,0,0.07);
         }
 
@@ -236,11 +244,20 @@
         .dataTables_scrollBody {
             overflow-x: auto !important;
         }
+
+        /* ── RUC bloqueado en modo edición ── */
+        #txtRuc[readonly] {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
     </style>
 }
 
 @section scripts{
     <script src="https://unpkg.com/leaflet/dist/leaflet.js" crossorigin=""></script>
-    <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+    <script>
+        // Permiso de eliminación física — solo SuperAdmin; inyectado server-side
+        window.esSuperAdmin = @(ViewBag.EsSuperAdmin == true ? "true" : "false");
+    </script>
     <script src="@Url.Content("~/Scripts/Views/Proveedor_Crear.js")?v=@DateTime.Now.Ticks" type="text/javascript"></script>
 }

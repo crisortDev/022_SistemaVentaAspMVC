@@ -615,6 +615,39 @@ namespace CapaDatos
             return passwordTemporal; // texto plano para enviar por correo
         }
 
+        /// <summary>
+        /// Desbloquea un usuario bloqueado por intentos fallidos:
+        /// - Resetea IntentosFallidos a 0
+        /// - Genera una contraseña temporal válida por 24 horas
+        /// - Marca RequiereCambioPassword = true
+        /// Retorna la contraseña temporal en texto plano para enviarla por correo.
+        /// </summary>
+        public string DesbloquearUsuario(int idUsuario)
+        {
+            string passwordTemporal = GenerarPasswordTemporal(10);
+            string hash = GetSHA256(passwordTemporal);
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                string query = @"UPDATE Usuario SET
+                    IntentosFallidos       = 0,
+                    PasswordTemporalHash   = @Hash,
+                    PasswordTemporalExpira = @Expira,
+                    RequiereCambioPassword = 1
+                WHERE IdUsuario = @IdUsuario";
+
+                using (SqlCommand cmd = new SqlCommand(query, oConexion))
+                {
+                    cmd.Parameters.AddWithValue("@Hash", hash);
+                    cmd.Parameters.AddWithValue("@Expira", DateTime.Now.AddHours(24));
+                    cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            return passwordTemporal; // texto plano para enviar por correo
+        }
+
         public Usuario ObtenerUsuarioPorCorreo(string correo)
         {
             Usuario usuario = null;

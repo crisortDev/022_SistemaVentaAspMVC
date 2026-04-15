@@ -309,39 +309,66 @@
 
         </div>
 
-        <!-- ── ACCESOS RÁPIDOS ───────────────────────── -->
-        <div class="anim-3">
-            <div class="quick-section-title">
-                <i class="fas fa-bolt" style="color:#f59e0b;font-size:.7rem"></i>
-                Accesos rápidos
+        <!-- ── ACCESOS RÁPIDOS (filtrados por permisos del usuario) ── -->
+        @{
+            var ctrl = ViewBag.Controladores as System.Collections.Generic.HashSet<string>
+                       ?? new System.Collections.Generic.HashSet<string>();
+            bool esSuperAdmin = ViewBag.EsSuperAdmin == true;
+            bool tieneAcceso(string c) => esSuperAdmin || ctrl.Contains(c);
+        }
+        @if (esSuperAdmin || ctrl.Count > 0)
+        {
+            <div class="anim-3">
+                <div class="quick-section-title">
+                    <i class="fas fa-bolt" style="color:#f59e0b;font-size:.7rem"></i>
+                    Accesos rápidos
+                </div>
+                <div class="quick-grid">
+                    @if (tieneAcceso("Venta"))
+                    {
+                        <a href="/Venta/Crear" class="quick-btn">
+                            <i class="fas fa-cash-register" style="background:linear-gradient(135deg,#059669,#34d399)"></i>
+                            Nueva Venta
+                        </a>
+                    }
+                    @if (tieneAcceso("Compra"))
+                    {
+                        <a href="/Compra/Crear" class="quick-btn">
+                            <i class="fas fa-shopping-cart" style="background:linear-gradient(135deg,#2563eb,#60a5fa)"></i>
+                            Nueva Compra
+                        </a>
+                    }
+                    @if (tieneAcceso("Producto"))
+                    {
+                        <a href="/Producto/Crear" class="quick-btn">
+                            <i class="fas fa-box" style="background:linear-gradient(135deg,#0891b2,#22d3ee)"></i>
+                            Productos
+                        </a>
+                    }
+                    @if (tieneAcceso("Inventario"))
+                    {
+                        <a href="/Inventario/Crear" class="quick-btn">
+                            <i class="fas fa-warehouse" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"></i>
+                            Inventario
+                        </a>
+                    }
+                    @if (tieneAcceso("Reporte"))
+                    {
+                        <a href="/Reporte/Crear" class="quick-btn">
+                            <i class="fas fa-chart-bar" style="background:linear-gradient(135deg,#d97706,#fbbf24)"></i>
+                            Reportes
+                        </a>
+                    }
+                    @if (tieneAcceso("Usuario"))
+                    {
+                        <a href="/Usuario/Crear" class="quick-btn">
+                            <i class="fas fa-users" style="background:linear-gradient(135deg,#0c1a35,#1a3566)"></i>
+                            Usuarios
+                        </a>
+                    }
+                </div>
             </div>
-            <div class="quick-grid">
-                <a href="/Venta/Crear" class="quick-btn">
-                    <i class="fas fa-cash-register" style="background:linear-gradient(135deg,#059669,#34d399)"></i>
-                    Nueva Venta
-                </a>
-                <a href="/Compra/Crear" class="quick-btn">
-                    <i class="fas fa-shopping-cart" style="background:linear-gradient(135deg,#2563eb,#60a5fa)"></i>
-                    Nueva Compra
-                </a>
-                <a href="/Producto/Crear" class="quick-btn">
-                    <i class="fas fa-box" style="background:linear-gradient(135deg,#0891b2,#22d3ee)"></i>
-                    Productos
-                </a>
-                <a href="/Inventario/Crear" class="quick-btn">
-                    <i class="fas fa-warehouse" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"></i>
-                    Inventario
-                </a>
-                <a href="/Reporte/Crear" class="quick-btn">
-                    <i class="fas fa-chart-bar" style="background:linear-gradient(135deg,#d97706,#fbbf24)"></i>
-                    Reportes
-                </a>
-                <a href="/Usuario/Crear" class="quick-btn">
-                    <i class="fas fa-users" style="background:linear-gradient(135deg,#0c1a35,#1a3566)"></i>
-                    Usuarios
-                </a>
-            </div>
-        </div>
+        }
 
     </div>
 </div>
