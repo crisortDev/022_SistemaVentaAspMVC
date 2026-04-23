@@ -74,8 +74,8 @@ namespace VentasWeb.Controllers
         [HttpPost]
         public JsonResult GuardarRolConPermisos(RolPermiso modelo)
         {
-            bool resultado = CD_Rol.Instancia.RegistrarRolConPermisos(modelo);
-            return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            var respuesta = CD_Rol.Instancia.RegistrarRolConPermisos(modelo);
+            return Json(new { resultado = respuesta.resultado, mensaje = respuesta.mensaje }, JsonRequestBehavior.AllowGet);
         }
         [HttpGet]
         public JsonResult ListPermisosDisponibles()

@@ -165,9 +165,10 @@ namespace CapaDatos
 
             return (resultado, mensaje);
         }
-        public bool RegistrarRolConPermisos(RolPermiso modelo)
+        public (bool resultado, string mensaje) RegistrarRolConPermisos(RolPermiso modelo)
         {
             bool resultado = false;
+            string mensaje = "";
 
             using (SqlConnection cn = new SqlConnection(Conexion.CN))
             {
@@ -208,15 +209,17 @@ namespace CapaDatos
 
                     tx.Commit();
                     resultado = true;
+                    mensaje = "Rol y permisos registrados correctamente";
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     tx.Rollback();
                     resultado = false;
+                    mensaje = ex.Message;
                 }
             }
 
-            return resultado;
+            return (resultado, mensaje);
         }
     }
 }

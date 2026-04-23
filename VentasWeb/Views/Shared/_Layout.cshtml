@@ -559,6 +559,8 @@
 
     <script>
         // ── Interceptor global AJAX ───────────────────────────────
+        // COMENTADO: Interfería con otras llamadas AJAX
+        /*
         $(document).ajaxComplete(function (event, xhr, settings) {
             try {
                 var contentType = xhr.getResponseHeader("Content-Type") || "";
@@ -590,6 +592,7 @@
                 // No es JSON o ya fue manejado — ignorar silenciosamente
             }
         });
+        */
     </script>
 </body>
 </html>

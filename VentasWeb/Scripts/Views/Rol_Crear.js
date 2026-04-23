@@ -74,22 +74,56 @@
             type: "POST",
             data: JSON.stringify(modelo),
             contentType: "application/json; charset=utf-8",
-            success: function (resp) {
-                if (resp.resultado) {
-                    swal("Éxito", "Rol y permisos guardados correctamente.", "success");
-                    // Limpiar formulario
-                    $("#txtDescripcionRol").val("");
-                    $(".permisoCheck").prop("checked", false);
-                    $("#chkTodos").prop("checked", false);
-                    actualizarContador();
-                    // Recargar selector de roles del panel derecho
-                    cargarRoles();
-                } else {
-                    swal("Error", "No se pudo guardar el rol.", "error");
+            dataType: "text",
+            success: function (respText) {
+                try {
+                    var resultado = JSON.parse(respText);
+
+                    if (resultado && resultado.resultado === true) {
+                        Swal.fire({
+                            title: '¡Éxito!',
+                            text: resultado.mensaje || "Rol y permisos guardados correctamente.",
+                            icon: 'success',
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#2563eb'
+                        }).then(function () {
+                            // Limpiar formulario
+                            $("#txtDescripcionRol").val("");
+                            $(".permisoCheck").prop("checked", false);
+                            $("#chkTodos").prop("checked", false);
+                            actualizarContador();
+                            // Recargar selector de roles
+                            cargarRoles();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: (resultado && resultado.mensaje) || "No se pudo guardar el rol.",
+                            icon: 'error',
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#dc2626'
+                        });
+                    }
+                } catch (parseError) {
+                    console.error("Error:", parseError);
+                    Swal.fire({
+                        title: 'Error',
+                        text: "Error al procesar la respuesta del servidor.",
+                        icon: 'error',
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#dc2626'
+                    });
                 }
             },
-            error: function () {
-                swal("Error", "Error en la petición.", "error");
+            error: function (xhr, status, error) {
+                console.error("Error AJAX:", error);
+                Swal.fire({
+                    title: 'Error de Conexión',
+                    text: "Error en la petición: " + error,
+                    icon: 'error',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#dc2626'
+                });
             }
         });
     });
