@@ -1,0 +1,284 @@
+@{
+    ViewBag.Title = "Registrar Orden de Compra";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Compras</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Registrar Orden de Compra</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <input type="hidden" id="hdnIdUsuario" value="@ViewBag.IdUsuario" />
+    <div class="col-sm-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                Registrar Orden de Compra
+            </div>
+            <div class="card-body p-2">
+                <div class="row">
+
+                    <!-- Proveedor -->
+                    <div class="col-sm-6">
+                        <div class="card border-info">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-info">Proveedor</h6>
+                                <div class="row align-items-end">
+                                    <input id="txtIdProveedor" type="hidden" value="0" />
+                                    <div class="col-sm-4">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">RUC:</label>
+                                            <input type="text" class="form-control form-control-sm" readonly id="txtRucProveedor">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">Razón Social:</label>
+                                            <input type="text" class="form-control form-control-sm" readonly id="txtRazonSocialProveedor">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <div class="form-group mb-0">
+                                            <button type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProveedor()">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tienda -->
+                    <div class="col-sm-6">
+                        <div class="card border-info">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-info">Tienda Destino</h6>
+                                <div class="row align-items-end">
+                                    <input id="txtIdTienda" type="hidden" value="0" />
+                                    <div class="col-sm-4">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">RUC:</label>
+                                            <input type="text" class="form-control form-control-sm" readonly id="txtRucTienda">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">Nombre:</label>
+                                            <input type="text" class="form-control form-control-sm" readonly id="txtNombreTienda">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3" id="divBtnBuscarTienda">
+                                        <div class="form-group mb-0">
+                                            <button type="button" class="btn btn-sm btn-success btn-block" onclick="buscarTienda()">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Cabecera: fecha de entrega + observación -->
+                <div class="row mt-2">
+                    <div class="col-sm-3">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Fecha Entrega Estimada:</label>
+                            <input type="text" class="form-control form-control-sm" id="txtFechaEntrega" autocomplete="off" placeholder="dd/mm/aaaa">
+                        </div>
+                    </div>
+                    <div class="col-sm-9">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Observación:</label>
+                            <input type="text" class="form-control form-control-sm" id="txtObservacion" maxlength="500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalle producto -->
+                <div class="row mt-2">
+                    <div class="col-sm-12">
+                        <div class="card border-info">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-info">Detalle Producto</h6>
+                                <div class="row align-items-end">
+                                    <input id="txtIdProducto" type="hidden" value="0" />
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">Código:</label>
+                                            <input type="text" class="form-control form-control-sm" id="txtCodigoProducto" autocomplete="off">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">Nombre:</label>
+                                            <input type="text" class="form-control form-control-sm" readonly id="txtNombreProducto">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm invisible">.</label>
+                                            <button type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProducto()">
+                                                <i class="fas fa-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">IVA %:</label>
+                                            <input type="text" class="form-control form-control-sm" id="txtIvaPorcentaje" value="10">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">Precio Unitario:</label>
+                                            <input type="text" class="form-control form-control-sm" id="txtPrecioUnitario" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm">Cantidad:</label>
+                                            <input type="text" class="form-control form-control-sm" id="txtCantidad" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <div class="form-group mb-0">
+                                            <label class="col-form-label col-form-label-sm invisible">.</label>
+                                            <button type="button" id="btnAgregarItem" class="btn btn-primary btn-sm btn-block">
+                                                <i class="fas fa-plus"></i> Agregar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- Detalle ítems -->
+                <div class="row mt-2">
+                    <div class="col-sm-12">
+                        <div class="table-responsive-sm">
+                            <table id="tbDetalle" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Código</th>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unit.</th>
+                                        <th>IVA %</th>
+                                        <th>Total Línea</th>
+                                        <th>Total c/IVA</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="3" style="text-align:right;">Totales:</th>
+                                        <th id="tfCantidad">0</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th id="tfTotal">0</th>
+                                        <th id="tfTotalIva">0</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card-footer bg-white border-info">
+                <button id="btnGuardarOrden" class="btn btn-primary btn-sm float-right">
+                    <i class="fas fa-save"></i> Guardar Orden de Compra
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PROVEEDOR -->
+<div class="modal fade" id="modalProveedor" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Seleccionar Proveedor</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="tbProveedor" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th><th>RUC</th><th>Razón Social</th><th>Dirección</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TIENDA (solo SuperAdmin) -->
+<div class="modal fade" id="modalTienda" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Seleccionar Tienda</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="tbTienda" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th><th>RUC</th><th>Nombre</th><th>Dirección</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="modal fade" id="modalProducto" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Seleccionar Producto</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="tbProducto" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th><th>Código</th><th>Nombre</th><th>Descripción</th><th>Categoría</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/OrdenCompra_Crear.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

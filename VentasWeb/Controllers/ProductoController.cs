@@ -27,7 +27,8 @@ namespace VentasWeb.Controllers
 
         public ActionResult Crear() => View();
 
-        public ActionResult Asignar() => View();
+        // DESACTIVADO: La asignación de productos a tienda se realiza desde "Registrar Orden de Compra"
+        // public ActionResult Asignar() => View();
 
         [HttpGet]
         public JsonResult Obtener()
@@ -55,16 +56,25 @@ namespace VentasWeb.Controllers
                     IdTienda = TiendaActiva;
 
                 var productos = _productoService.ObtenerProducto()
-                    .Where(x => x.Activo == true).ToList();
+                    ?.Where(x => x.Activo == true)
+                    .ToList() ?? new List<Producto>();
 
                 if (IdTienda != 0)
                 {
                     var productosTienda = _productoTiendaService.ObtenerProductoTienda()
-                        .Where(x => x.oTienda.IdTienda == IdTienda).ToList();
+                        ?.Where(x => x.oTienda != null && x.oTienda.IdTienda == IdTienda)
+                        .ToList() ?? new List<ProductoTienda>();
 
-                    productos = (from p in productos
-                                 join pt in productosTienda on p.IdProducto equals pt.oProducto.IdProducto
-                                 select p).ToList();
+                    if (productosTienda.Any())
+                    {
+                        productos = (from p in productos
+                                     join pt in productosTienda on p.IdProducto equals pt.oProducto.IdProducto
+                                     select p).ToList();
+                    }
+                    else
+                    {
+                        productos = new List<Producto>();
+                    }
                 }
 
                 return Json(new { data = productos }, JsonRequestBehavior.AllowGet);

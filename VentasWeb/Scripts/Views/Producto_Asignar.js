@@ -1,4 +1,10 @@
-﻿var tabladata;
+﻿/*
+    SCRIPT DESACTIVADO - 26/04/2026
+    La asignación de productos a tienda se realiza desde "Registrar Orden de Compra"
+    Este archivo se mantiene para referencia histórica pero no se carga en la aplicación
+*/
+
+var tabladata;
 var tablatienda;
 var tablaproducto;
 

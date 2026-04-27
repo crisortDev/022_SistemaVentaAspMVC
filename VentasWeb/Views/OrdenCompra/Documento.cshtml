@@ -1,0 +1,207 @@
+@model CapaModelo.OrdenCompra
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Orden de Compra</title>
+    @Styles.Render("~/Content/PluginsCSS")
+    <style type="text/css">
+        .btn:not(:disabled):not(.disabled) { cursor: pointer; }
+        .btn-secondary { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+        .btn { display: inline-block; font-weight: 400; text-align: center; white-space: nowrap;
+               vertical-align: middle; user-select: none; border: 1px solid transparent;
+               padding: .375rem .75rem; font-size: 1rem; line-height: 1.5; border-radius: .25rem; }
+        .badge-estado { padding: 3px 10px; color: #fff; font-weight: bold; border-radius: 4px; }
+        .e-Pendiente  { background: #ffc107; color: #000; }
+        .e-Aprobada   { background: #28a745; }
+        .e-Rechazada  { background: #dc3545; }
+        .e-Facturada  { background: #17a2b8; }
+        .e-Cerrada    { background: #6c757d; }
+        .e-Anulada    { background: #343a40; }
+    </style>
+</head>
+<body>
+    <div style="font-size: 11px; text-align: right;">
+        <center>
+            <button type="button" id="Imprimir" class="btn btn-secondary" onclick="imprSelec('seleccion')">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </center>
+        <br />
+    </div>
+    <div id="seleccion">
+        <center>
+            <table style="width: 680px; border:2px solid #17a2b8; padding: 10px;">
+                <tr>
+                    <td>
+                        <table id="cabezera">
+                            <tr>
+                                <td style="width:140px">
+                                    <img src="@Url.Content("~/Imagenes/tienda.png")" alt="" height="70">
+                                </td>
+                                <td style="width:340px">
+                                    <table style="width:100%">
+                                        <tr><td><label style="font-size:20px;font-weight:bold;text-align:center;width:100%;display:block">MI TIENDA ONLINE COMPU SPACE</label></td></tr>
+                                        <tr><td><label style="text-align:center;width:100%;display:block">test@gmmail.com</label></td></tr>
+                                    </table>
+                                </td>
+                                <td style="width:180px;">
+                                    <table style="height: 90px; width:100%; font-weight: bold; border:2px solid #17a2b8;">
+                                        <tbody>
+                                            <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
+                                                <td align="center">ORDEN DE COMPRA</td>
+                                            </tr>
+                                            <tr><td align="center">@Html.DisplayTextFor(m => m.NumeroOrden)</td></tr>
+                                            <tr><td align="center">Fecha: @Html.DisplayTextFor(m => m.FechaOrden)</td></tr>
+                                            <tr><td align="center">Entrega: @Html.DisplayTextFor(m => m.FechaEntregaEstimada)</td></tr>
+                                            <tr>
+                                                <td align="center">
+                                                    <span class="badge-estado e-@Model.Estado">@Html.DisplayTextFor(m => m.Estado)</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr style="height: 15px;"><td><br></td></tr>
+
+                <tr>
+                    <td>
+                        <table style="width: 100%;">
+                            <tbody>
+                                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
+                                    <td style="padding:4px" colspan="4"><u>Proveedor</u></td>
+                                </tr>
+                                <tr>
+                                    <td width="50">RUC:</td>
+                                    <td style="border-bottom: 1px solid black;"><center>@(Model.oProveedor?.Ruc)</center></td>
+                                    <td width="100">Razón Social:</td>
+                                    <td style="border-bottom: 1px solid black;"><center>@(Model.oProveedor?.RazonSocial)</center></td>
+                                </tr>
+                                <tr>
+                                    <td>Teléfono:</td>
+                                    <td style="border-bottom: 1px solid black;"><center>@(Model.oProveedor?.Telefono)</center></td>
+                                    <td>Correo:</td>
+                                    <td style="border-bottom: 1px solid black;"><center>@(Model.oProveedor?.Correo)</center></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr><td><hr /></td></tr>
+
+                <tr>
+                    <td>
+                        <table style="width: 100%;">
+                            <tbody>
+                                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
+                                    <td style="padding:4px" colspan="4"><u>Tienda Destino</u></td>
+                                </tr>
+                                <tr>
+                                    <td width="50">RUC:</td>
+                                    <td style="border-bottom: 1px solid black;"><center>@(Model.oTienda?.RUC)</center></td>
+                                    <td width="100">Nombre:</td>
+                                    <td style="border-bottom: 1px solid black;"><center>@(Model.oTienda?.Nombre)</center></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr><td><hr /></td></tr>
+
+                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
+                    <td style="padding:4px"><u>Detalle de Productos</u></td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <table id="tbDetalle" border="1" style="width: 100%;">
+                            <thead>
+                                <tr bgcolor="#D9D9D9">
+                                    <th style="width: 12%;">Cantidad</th>
+                                    <th style="width: 12%;">Facturado</th>
+                                    <th style="width: 40%;">Concepto</th>
+                                    <th style="width: 18%;">P. Unit.</th>
+                                    <th style="width: 18%;">Total c/IVA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.oListaDetalle != null)
+                                {
+                                    foreach (var item in Model.oListaDetalle)
+                                    {
+                                        <tr>
+                                            <td align="center">@item.Cantidad</td>
+                                            <td align="center">@item.CantidadFacturada</td>
+                                            <td>@(item.oProducto?.Nombre)</td>
+                                            <td align="right">@item.PrecioUnitario</td>
+                                            <td align="right">@item.TotalLineaIva</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="right">
+                        <table style="font-weight: bold; width: 220px;">
+                            <tbody>
+                                <tr>
+                                    <td>Total Estimado:</td>
+                                    <td style="border:1px solid black;">@Html.DisplayTextFor(m => m.TotalEstimado)</td>
+                                </tr>
+                                <tr>
+                                    <td>Total c/IVA:</td>
+                                    <td style="border:1px solid black;">@Html.DisplayTextFor(m => m.TotalEstimadoIva)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Observacion))
+                {
+                    <tr>
+                        <td>
+                            <hr />
+                            <b>Observación:</b> @Model.Observacion
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Estado == "Rechazada" && !string.IsNullOrWhiteSpace(Model.MotivoRechazo))
+                {
+                    <tr>
+                        <td>
+                            <hr />
+                            <b style="color:#dc3545">Motivo de Rechazo:</b> @Model.MotivoRechazo
+                        </td>
+                    </tr>
+                }
+            </table>
+        </center>
+    </div>
+    @Scripts.Render("~/Content/PluginsJS")
+    <script>
+        function imprSelec(nombre) {
+            var printContents = document.getElementById(nombre).innerHTML;
+            var originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+        }
+    </script>
+</body>
+</html>

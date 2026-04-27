@@ -2,6 +2,14 @@
 var tablatienda;
 var tablaproducto;
 
+// ═══════════════════════════════════════════════════════
+//  UTILIDADES
+// ═══════════════════════════════════════════════════════
+
+function lenguajeDataTable() {
+    return { "url": $.MisUrls.url.Url_datatable_spanish };
+}
+
 // Extensión jQuery para inputFilter (previene entrada inválida)
 $.fn.inputFilter = function (inputFilter) {
     return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function () {
@@ -164,7 +172,21 @@ function inicializarDataTables() {
         "ajax": {
             "url": `${$.MisUrls.url._ObtenerProductosPorTienda}?IdTienda=0`,
             "type": "GET",
-            "datatype": "json"
+            "datatype": "json",
+            "dataSrc": function(json) {
+                // Manejar respuestas en diferentes formatos
+                if (json && json.data) {
+                    return json.data;
+                } else if (Array.isArray(json)) {
+                    return json;
+                } else {
+                    console.warn("Formato de respuesta inesperado:", json);
+                    return [];
+                }
+            },
+            "error": function(xhr, status, error) {
+                console.error("Error al cargar productos:", error, xhr);
+            }
         },
         "columns": [
             {
@@ -225,10 +247,6 @@ function inicializarDataTables() {
     });
 
     configurarFiltrosEntrada();
-}
-
-function lenguajeDataTable() {
-    return { "url": $.MisUrls.url.Url_datatable_spanish };
 }
 
 function configurarFiltrosEntrada() {

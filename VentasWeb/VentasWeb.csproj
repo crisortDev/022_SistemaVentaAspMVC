@@ -137,6 +137,7 @@
     <Compile Include="Controllers\ClienteController.cs" />
     <Compile Include="Controllers\ConsultarCajaCompraController.cs" />
     <Compile Include="Controllers\CompraController.cs" />
+    <Compile Include="Controllers\OrdenCompraController.cs" />
     <Compile Include="Controllers\EmpleadoController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LoginController.cs" />
@@ -2028,6 +2029,9 @@
     <Content Include="Scripts\Views\ConsultarCompraCaja.js" />
     <Content Include="Scripts\Views\Compra_Consultar.js" />
     <Content Include="Scripts\Views\Compra_Crear.js" />
+    <Content Include="Scripts\Views\OrdenCompra_Crear.js" />
+    <Content Include="Scripts\Views\OrdenCompra_Consultar.js" />
+    <Content Include="Scripts\Views\OrdenCompra_Aprobaciones.js" />
     <Content Include="Scripts\Views\Precio_Venta.js" />
     <Content Include="Scripts\Views\Producto_Asignar.js" />
     <Content Include="Scripts\Views\Producto_Crear.js" />
@@ -2084,6 +2088,10 @@
     <Content Include="Views\Venta\Crear.cshtml" />
     <Content Include="Views\Venta\Consultar.cshtml" />
     <Content Include="Views\Compra\Documento.cshtml" />
+    <Content Include="Views\OrdenCompra\Crear.cshtml" />
+    <Content Include="Views\OrdenCompra\Consultar.cshtml" />
+    <Content Include="Views\OrdenCompra\Aprobaciones.cshtml" />
+    <Content Include="Views\OrdenCompra\Documento.cshtml" />
     <Content Include="Views\Venta\Documento.cshtml" />
     <Content Include="Views\Cliente\Crear.cshtml" />
     <Content Include="Views\ConsultarCajaCompra\ConsultarCajaCompra.cshtml" />
