@@ -1,6 +1,7 @@
 ﻿var tablaproveedor;
 var tablatienda;
 var tablaproducto;
+var tablaordencompra;
 
 // ═══════════════════════════════════════════════════════
 //  UTILIDADES
@@ -106,6 +107,63 @@ function inicializarDataTables() {
             { "data": "Direccion" }
         ],
         "language": lenguajeDataTable()
+    });
+
+    // DataTable Órdenes de Compra (Aprobadas)
+    tablaordencompra = $('#tbOrdenCompra').DataTable({
+        "ajax": {
+            "url": $.MisUrls.url._ObtenerOrdenesCompraAprobadas,
+            "type": "GET",
+            "datatype": "json",
+            "data": function (d) {
+                // Filtrar por proveedor seleccionado
+                d.idproveedor = $("#txtIdProveedor").val() || 0;
+            }
+        },
+        "columns": [
+            {
+                "data": null,
+                "render": function (data, type, row) {
+                    return `
+                <button class="btn btn-sm btn-success seleccionar-ordencompra"
+                        data-id="${row.IdOrdenCompra}"
+                        data-numero="${row.NumeroOrden}"
+                        data-estado="${row.Estado}"
+                        data-observacion="${row.Observacion || ''}"
+                        data-detalle="${JSON.stringify(row).replace(/"/g, '&quot;')}">
+                    <i class="fas fa-check"></i>
+                </button>`;
+                },
+                "orderable": false,
+                "searchable": false,
+                "width": "60px"
+            },
+            { "data": "NumeroOrden" },
+            { "data": "oProveedor", "render": function (data) { return data ? data.RazonSocial : ""; } },
+            { "data": "oTienda", "render": function (data) { return data ? data.Nombre : ""; } },
+            { "data": "FechaOrden" },
+            { "data": "TotalEstimado", "render": function (data) { return formatearMonedaGs(Math.round(data)); } },
+            { "data": "Estado" }
+        ],
+        "language": lenguajeDataTable()
+    });
+
+    // Evento para seleccionar Orden de Compra
+    $(document).on('click', '.seleccionar-ordencompra', function () {
+        const id = $(this).data('id');
+        const numero = $(this).data('numero');
+        const estado = $(this).data('estado');
+        const observacion = $(this).data('observacion');
+
+        $("#txtIdOrdenCompra").val(id);
+        $("#txtNumeroOrden").val(numero);
+        $("#txtEstadoOrden").val(estado);
+        $("#txtObservacionOrden").val(observacion);
+
+        // 🆕 CARGAR AUTOMÁTICAMENTE LOS PRODUCTOS DE LA ORDEN
+        cargarProductosDeOrdenCompra(id);
+
+        $('#modalOrdenCompra').modal('hide');
     });
 
     // DataTable Tiendas — solo inicializa si es SuperAdmin
@@ -335,67 +393,17 @@ function actualizarProductosPorTienda(idTienda) {
     ).load();
 }
 
-// Gestión de compra
-$('#btnAgregarCompra').on('click', agregarProductoALista);
+// 🆕 NUEVA LÓGICA: Productos cargados automáticamente desde Orden de Compra
+// (Ver funciones al final del archivo)
 
-function agregarProductoALista() {
-    const camposRequeridos = validarCamposRequeridos();
-    if (!camposRequeridos.validos) {
-        mostrarError(camposRequeridos.mensaje);
-        return;
+// 🆕 EVENTO: Rehabilitar Tienda cuando se limpia la OC
+$(document).on('change', '#txtIdOrdenCompra', function() {
+    if (!$(this).val()) {
+        // Si se vacía la OC, habilitar nuevamente la Tienda
+        $("#txtIdTienda").val("").prop('disabled', false);
+        console.log('✅ Tienda rehabilitada (OC vacía)');
     }
-
-    const productoExistente = buscarProductoEnLista();
-    if (productoExistente) {
-        mostrarError("El producto ya existe en la lista");
-        return;
-    }
-
-    agregarFilaProducto();
-    limpiarCamposProducto();
-}
-
-function validarCamposRequeridos() {
-    const campos = [
-        { id: "#txtIdProveedor", nombre: "Proveedor" },
-        { id: "#txtIdTienda", nombre: "Tienda" },
-        { id: "#txtIdProducto", nombre: "Producto" },
-        { id: "#txtCantidadProducto", nombre: "Cantidad" },
-        { id: "#txtPrecioCompraProducto", nombre: "Precio Compra" }
-    ];
-
-    for (let campo of campos) {
-        const valor = $(campo.id).val();
-        if (!valor || valor === "0" || (typeof valor === "string" && !valor.trim())) {
-            return { validos: false, mensaje: `${campo.nombre} es requerido` };
-        }
-    }
-    return { validos: true };
-}
-
-function agregarFilaProducto() {
-    const cantidad = parseFloat($("#txtCantidadProducto").val()) || 0;
-    const precioUnidad = parseFloat($("#txtPrecioCompraProducto").val()) || 0;
-    const ivaPorcentaje = parseFloat($("#txtIvaPorcentaje").val()) || 0;
-
-    const totalSinIva = cantidad * precioUnidad;
-    const totalConIva = totalSinIva * (1 + ivaPorcentaje / 100);
-
-    const fila = `
-        <tr>
-            <td><button class="btn btn-danger btn-sm">Eliminar</button></td>
-            <td class="codigoproducto" data-idproducto="${$("#txtIdProducto").val()}">
-                ${$("#txtCodigoProducto").val()}
-            </td>
-            <td>${$("#txtNombreProducto").val()}</td>
-            <td class="cantidad">${cantidad}</td>
-            <td class="preciocompra">${formatearMonedaGs(Math.round(precioUnidad))}</td>
-            <td class="totalcompra">${formatearMonedaGs(Math.round(totalSinIva))}</td>
-            <td class="totalcompraiva">${formatearMonedaGs(Math.round(totalConIva))}</td>
-        </tr>`;
-    $("#tbCompra tbody").append(fila);
-    actualizarTotalesCompra();
-}
+});
 
 $('#btnTerminarGuardarCompra').on('click', guardarCompra);
 
@@ -404,6 +412,15 @@ async function guardarCompra() {
 
     try {
         const xmlData = construirXMLCompra();
+
+        // ── LOG DE DIAGNÓSTICO ────────────────────────────────
+        console.log('=== DIAGNÓSTICO DE COMPRA ===');
+        console.log('IdOrdenCompra en campo:', $("#txtIdOrdenCompra").val());
+        console.log('NumeroOrden en campo:', $("#txtNumeroOrden").val());
+        console.log('XML completo:', xmlData);
+        console.log('==============================');
+        // ──────────────────────────────────────────────────────
+
         const response = await enviarCompraAlServidor(xmlData);
 
         if (response.resultado) {
@@ -418,36 +435,61 @@ async function guardarCompra() {
     }
 }
 
+// 🆕 VALIDAR LISTA DE PRODUCTOS DESDE TABLA tbProductosOrden
 function validarListaProductos() {
-    const filas = $("#tbCompra tbody tr");
-    if (filas.length === 0) {
-        mostrarError("Debe agregar al menos un producto a la lista de compra.");
+    let hayCantidades = false;
+
+    $("#tbProductosOrdenBody tr").each(function () {
+        const cantidad = parseInt($(this).find('.cantidad-facturar').val()) || 0;
+        if (cantidad > 0) {
+            hayCantidades = true;
+            return false; // break
+        }
+    });
+
+    if (!hayCantidades) {
+        mostrarError("Debe ingresar la cantidad a facturar para al menos un producto.");
         return false;
     }
     return true;
 }
 
+// 🆕 CONSTRUIR XML DESDE TABLA tbProductosOrden
 function construirXMLCompra() {
     let totalCosto = 0;
     let detalleXML = "";
 
-    $("#tbCompra tbody tr").each(function () {
-        const $tds = $(this).find('td');
-        const idProducto = $tds.eq(1).data('idproducto');
-        const cantidad = parseInt($tds.eq(3).text());
-        const precioCompra = parseMonedaGs($tds.eq(4).text());
-        const totalSinIva = parseMonedaGs($tds.eq(5).text());
-        const totalConIva = parseMonedaGs($tds.eq(6).text());
+    // Iterar sobre la tabla de productos de la orden
+    $("#tbProductosOrdenBody tr").each(function () {
+        const $row = $(this);
+        const idDetalleOrdenCompra = $row.data('id-detalle');
+        const idProducto = parseInt($row.find('.cantidad-facturar').data('id-producto')) || 0;
+        const cantidad = parseInt($row.find('.cantidad-facturar').val()) || 0;
+        const precio = parseFloat($row.find('.cantidad-facturar').data('precio'));
+        const iva = parseFloat($row.find('.cantidad-facturar').data('iva'));
+
+        // Saltar si no hay cantidad
+        if (cantidad === 0) return;
+
+        // Validación defensiva: nunca enviar undefined/0 como IdProducto
+        if (!idProducto || idProducto <= 0) {
+            console.error("Fila sin IdProducto válido:", $row);
+            throw new Error("Hay productos sin identificador. Recargue la orden de compra.");
+        }
+
+        const totalSinIva = cantidad * precio;
+        const totalConIva = totalSinIva * (1 + iva / 100);
 
         totalCosto += totalSinIva;
 
         detalleXML += `
             <DETALLE>
+                <IdDetalleOrdenCompra>${idDetalleOrdenCompra}</IdDetalleOrdenCompra>
                 <IdProducto>${idProducto}</IdProducto>
                 <Cantidad>${cantidad}</Cantidad>
-                <PrecioUnidadCompra>${precioCompra}</PrecioUnidadCompra>
-                <PrecioUnidadCompraConIva>${totalConIva / cantidad}</PrecioUnidadCompraConIva>
-                <PrecioUnidadVenta>0</PrecioUnidadVenta>
+                <PrecioUnitarioCompra>${precio}</PrecioUnitarioCompra>
+                <PrecioUnitarioCompraConIva>${Math.round(totalConIva / cantidad)}</PrecioUnitarioCompraConIva>
+                <PrecioUnitarioVenta>0</PrecioUnitarioVenta>
                 <TotalCosto>${totalSinIva}</TotalCosto>
             </DETALLE>`;
     });
@@ -457,6 +499,7 @@ function construirXMLCompra() {
             <COMPRA>
                 <IdUsuario>${obtenerIdUsuario()}</IdUsuario>
                 <IdProveedor>${$("#txtIdProveedor").val()}</IdProveedor>
+                <IdOrdenCompra>${$("#txtIdOrdenCompra").val()}</IdOrdenCompra>
                 <IdTienda>${$("#txtIdTienda").val()}</IdTienda>
                 <NumeroFactura>${$("#txtNumeroFactura").val()}</NumeroFactura>
                 <NumeroTimbrado>${$("#txtNumeroTimbrado").val()}</NumeroTimbrado>
@@ -488,11 +531,19 @@ function manejarErrorServidor(response) {
 }
 
 function mostrarError(mensaje) {
-    swal("Error", mensaje, "error");
+    Swal.fire({
+        title: "Error",
+        text: mensaje,
+        icon: "error"
+    });
 }
 
 function mostrarExito(mensaje) {
-    swal("Éxito", mensaje, "success");
+    Swal.fire({
+        title: "Éxito",
+        text: mensaje,
+        icon: "success"
+    });
 }
 
 function cargarHistorialPrecioCompra(idProducto) {
@@ -539,6 +590,15 @@ function buscarTienda() {
 function buscarProducto() {
     $('#modalProducto').modal('show');
     tablaproducto.ajax.reload();
+}
+
+function buscarOrdenCompra() {
+    if ($("#txtIdProveedor").val() === "0" || !$("#txtIdProveedor").val()) {
+        mostrarError("Debe seleccionar un proveedor primero");
+        return;
+    }
+    $('#modalOrdenCompra').modal('show');
+    tablaordencompra.ajax.reload();
 }
 
 function buscarProductoEnLista() {
@@ -589,4 +649,140 @@ function actualizarTotalesCompra() {
     $("#totalPrecioUnidadCompra").text(formatearMonedaGs(Math.round(totalPrecioUnidadCompra)));
     $("#totalPrecioTotalCompra").text(formatearMonedaGs(Math.round(totalPrecioTotalCompra)));
     $("#totalPrecioTotalCompraIVA").text(formatearMonedaGs(Math.round(totalPrecioTotalCompraIVA)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  🆕 NUEVAS FUNCIONES PARA AUTO-CARGA DE PRODUCTOS DESDE ORDEN DE COMPRA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function cargarProductosDeOrdenCompra(idOrdenCompra) {
+    try {
+        const response = await $.ajax({
+            url: `${$.MisUrls.url._ObtenerDetalleOrdenCompra}?idordencompra=${idOrdenCompra}`,
+            type: "GET",
+            dataType: "json"
+        });
+
+        if (response.resultado && response.data) {
+            const oc = response.data;
+
+            // 🆕 AUTO-LLENAR Y DESHABILITAR LA TIENDA DESDE LA OC
+            if (oc.oTienda && oc.oTienda.IdTienda) {
+                $("#txtIdTienda").val(oc.oTienda.IdTienda);
+                $("#txtRucTienda").val(oc.oTienda.RUC);
+                $("#txtNombreTienda").val(oc.oTienda.Nombre);
+                $("#txtIdTienda").prop('disabled', true);
+                console.log(`✅ Tienda auto-llenada: ${oc.oTienda.IdTienda} - ${oc.oTienda.Nombre} (desde OC)`);
+            }
+
+            // Limpiar tabla anterior
+            $("#tbProductosOrdenBody").empty();
+
+            if (!oc.oListaDetalle || oc.oListaDetalle.length === 0) {
+                mostrarError("La orden de compra no tiene productos");
+                return;
+            }
+
+            // Cargar cada detalle
+            oc.oListaDetalle.forEach(detalle => {
+                const disponible = detalle.Cantidad - detalle.CantidadFacturada;
+                // El IdProducto vive dentro del objeto oProducto del modelo DetalleOrdenCompra
+                const idProducto = detalle.oProducto ? detalle.oProducto.IdProducto : 0;
+                const nombreProducto = detalle.oProducto ? detalle.oProducto.Nombre : 'Producto ' + idProducto;
+                const fila = `
+                    <tr data-id-detalle="${detalle.IdDetalleOrdenCompra}">
+                        <td>${nombreProducto}</td>
+                        <td class="text-center">${detalle.Cantidad}</td>
+                        <td class="text-center">${detalle.CantidadFacturada}</td>
+                        <td class="text-center disponible">${disponible}</td>
+                        <td class="text-center">
+                            <input type="number"
+                                   class="form-control form-control-sm cantidad-facturar"
+                                   max="${disponible}"
+                                   min="0"
+                                   value="0"
+                                   ${disponible <= 0 ? 'disabled' : ''}
+                                   data-precio="${detalle.PrecioUnitario}"
+                                   data-iva="${detalle.IvaPorcentaje}"
+                                   data-id-producto="${idProducto}"
+                                   data-id-detalle-oc="${detalle.IdDetalleOrdenCompra}">
+                        </td>
+                        <td class="text-right">${formatearMonedaGs(Math.round(detalle.PrecioUnitario))}</td>
+                        <td class="text-right total-linea">0 Gs.</td>
+                    </tr>
+                `;
+                $("#tbProductosOrdenBody").append(fila);
+            });
+
+            // Agregar evento para calcular totales cuando cambian cantidades
+            attachEventosCantidades();
+            mostrarExito("Productos cargados desde la orden");
+        } else {
+            mostrarError(response.mensaje || "Error cargando productos de la orden");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        mostrarError("Error al obtener los productos de la orden");
+    }
+}
+
+function attachEventosCantidades() {
+    // Remover eventos anteriores para evitar duplicados
+    $(document).off('input', '.cantidad-facturar');
+
+    $(document).on('input', '.cantidad-facturar', function () {
+        const $input = $(this);
+        let cantidad = parseFloat($input.val()) || 0;
+        const precio = parseFloat($input.data('precio'));
+        const iva = parseFloat($input.data('iva')) || 10;
+        const max = parseFloat($input.attr('max'));
+
+        // Validar máximo
+        if (cantidad > max) {
+            cantidad = max;
+            $input.val(max);
+            mostrarError(`Máximo disponible: ${max}`);
+        }
+
+        // Validar mínimo
+        if (cantidad < 0) {
+            cantidad = 0;
+            $input.val(0);
+        }
+
+        // Calcular total de la línea
+        const totalSinIva = cantidad * precio;
+        const totalConIva = totalSinIva * (1 + iva / 100);
+
+        $input.closest('tr').find('.total-linea').text(
+            formatearMonedaGs(Math.round(totalConIva))
+        );
+
+        actualizarTotalesGenerales();
+    });
+}
+
+function actualizarTotalesGenerales() {
+    let totalGeneral = 0;
+    let totalIvaGeneral = 0;
+    let cantidadTotal = 0;
+
+    $("#tbProductosOrdenBody tr").each(function () {
+        const cantidad = parseFloat($(this).find('.cantidad-facturar').val()) || 0;
+        const precio = parseFloat($(this).find('.cantidad-facturar').data('precio')) || 0;
+        const iva = parseFloat($(this).find('.cantidad-facturar').data('iva')) || 10;
+
+        const totalSinIva = cantidad * precio;
+        const totalIva = totalSinIva * (iva / 100);
+        const totalConIva = totalSinIva + totalIva;
+
+        cantidadTotal += cantidad;
+        totalIvaGeneral += totalIva;
+        totalGeneral += totalConIva;
+    });
+
+    $("#totalCantidad").text(cantidadTotal);
+    $("#totalCompra").text(formatearMonedaGs(Math.round(totalGeneral - totalIvaGeneral)));
+    $("#totalIva").text(formatearMonedaGs(Math.round(totalIvaGeneral)));
+    $("#totalCompraFinal").text(formatearMonedaGs(Math.round(totalGeneral)));
 }

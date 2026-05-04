@@ -35,8 +35,6 @@ namespace CapaDatos
 
         public bool RegistrarCompra(string Detalle)
         {
-
-
             bool respuesta = true;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -62,6 +60,153 @@ namespace CapaDatos
             return respuesta;
         }
 
+        /// <summary>
+        /// Registra una compra y retorna el IdCompra generado
+        /// El SP usp_RegistrarCompra inserta la compra y retorna @Resultado = 1 si éxito
+        /// Luego obtenemos el IdCompra con SELECT TOP 1
+        /// </summary>
+        public int RegistrarCompraRetornarId(string Detalle)
+        {
+            int idCompra = 0;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    // ── PASO 1: Ejecutar el SP para registrar la compra ──────────────
+                    SqlCommand cmd = new SqlCommand("usp_RegistrarCompra", oConexion);
+                    cmd.Parameters.Add("@Detalle", SqlDbType.Xml).Value = Detalle;
+
+                    SqlParameter pResultado = new SqlParameter("@Resultado", SqlDbType.Bit);
+                    pResultado.Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add(pResultado);
+
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+
+                    bool resultado = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value ?? false);
+
+                    System.Diagnostics.Debug.WriteLine($"SP usp_RegistrarCompra retornó: {resultado}");
+
+                    if (resultado)
+                    {
+                        // ── PASO 2: Si el SP tuvo éxito, obtener el IdCompra ────────
+                        // La compra acaba de insertarse, así que obtenemos el último IdCompra
+                        SqlCommand cmdId = new SqlCommand(
+                            "SELECT TOP 1 IdCompra FROM COMPRA ORDER BY IdCompra DESC",
+                            oConexion
+                        );
+                        object resultId = cmdId.ExecuteScalar();
+
+                        if (resultId != null && int.TryParse(resultId.ToString(), out int id))
+                        {
+                            idCompra = id;
+                            System.Diagnostics.Debug.WriteLine($"✅ Compra registrada exitosamente. IdCompra: {idCompra}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ El SP tuvo éxito pero no se pudo obtener el IdCompra");
+                            idCompra = 0;
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ El SP retornó false. La compra NO se registró.");
+                        idCompra = 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error en RegistrarCompraRetornarId: {ex.Message}\nStack: {ex.StackTrace}");
+                    idCompra = 0;
+                }
+            }
+            return idCompra;
+        }
+
+        /// <summary>
+        /// Vincula una compra registrada con una Orden de Compra
+        /// </summary>
+        public bool VincularCompraConOrdenCompra(int idCompra, int idOrdenCompra, out string mensaje)
+        {
+            mensaje = string.Empty;
+            bool respuesta = false;
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_VincularCompraOrdenCompra", oConexion);
+                    cmd.Parameters.AddWithValue("@IdCompra", idCompra);
+                    cmd.Parameters.AddWithValue("@IdOrdenCompra", idOrdenCompra);
+
+                    SqlParameter pResultado = new SqlParameter("@Resultado", SqlDbType.Bit);
+                    pResultado.Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add(pResultado);
+
+                    SqlParameter pMensaje = new SqlParameter("@Mensaje", SqlDbType.NVarChar, 500);
+                    pMensaje.Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add(pMensaje);
+
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+
+                    respuesta = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value ?? false);
+                    mensaje = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "Operación completada";
+                }
+                catch (Exception ex)
+                {
+                    respuesta = false;
+                    mensaje = "Error: " + ex.Message;
+                }
+            }
+            return respuesta;
+        }
+
+        // 🆕 NUEVO MÉTODO: Actualizar CantidadFacturada en DetalleOrdenCompra
+        public bool ActualizarCantidadFacturada(int idDetalleOrdenCompra, int cantidadAgregar, out string mensaje)
+        {
+            mensaje = "";
+            try
+            {
+                using (SqlConnection conexion = new SqlConnection(Conexion.CN))
+                {
+                    string query = @"
+                        UPDATE [DetalleOrdenCompra]
+                        SET [CantidadFacturada] = [CantidadFacturada] + @cantidadAgregar
+                        WHERE [IdDetalleOrdenCompra] = @idDetalleOrdenCompra
+                        AND ([CantidadFacturada] + @cantidadAgregar) <= [Cantidad]";
+
+                    using (SqlCommand comando = new SqlCommand(query, conexion))
+                    {
+                        comando.Parameters.AddWithValue("@idDetalleOrdenCompra", idDetalleOrdenCompra);
+                        comando.Parameters.AddWithValue("@cantidadAgregar", cantidadAgregar);
+
+                        conexion.Open();
+                        int filasAfectadas = comando.ExecuteNonQuery();
+
+                        if (filasAfectadas > 0)
+                        {
+                            mensaje = "CantidadFacturada actualizada correctamente";
+                            return true;
+                        }
+                        else
+                        {
+                            mensaje = "No se pudo actualizar. Verifique que la cantidad no exceda la cantidad ordenada.";
+                            return false;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                mensaje = ex.Message;
+                return false;
+            }
+        }
 
         public Compra ObtenerDetalleCompra(int IdCompra)
         {

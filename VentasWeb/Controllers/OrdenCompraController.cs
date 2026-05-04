@@ -75,6 +75,24 @@ namespace VentasWeb.Controllers
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
+
+        [HttpGet]
+        public JsonResult ObtenerDetalleOrdenCompra(int idordencompra)
+        {
+            try
+            {
+                OrdenCompra oc = CD_OrdenCompra.Instancia.ObtenerDetalleOrdenCompra(idordencompra);
+                if (oc == null)
+                    return Json(new { resultado = false, mensaje = "Orden no encontrada." }, JsonRequestBehavior.AllowGet);
+
+                return Json(new { resultado = true, data = oc }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // ============================================================
         //  LISTAR
         // ============================================================
@@ -249,13 +267,20 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpGet]
-        public JsonResult ObtenerOrdenesAprobadas(int idproveedor, int idtienda)
+        public JsonResult ObtenerOrdenesAprobadas(int idproveedor = 0, int idtienda = 0)
         {
-            if (!EsSuperAdmin)
-                idtienda = TiendaActiva;
+            try
+            {
+                if (!EsSuperAdmin)
+                    idtienda = TiendaActiva;
 
-            var lista = CD_OrdenCompra.Instancia.ObtenerOrdenesAprobadasPorProveedor(idproveedor, idtienda);
-            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+                var lista = CD_OrdenCompra.Instancia.ObtenerOrdenesAprobadasPorProveedor(idproveedor, idtienda);
+                return Json(new { data = lista ?? new List<OrdenCompra>() }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { data = new List<OrdenCompra>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         // ============================================================

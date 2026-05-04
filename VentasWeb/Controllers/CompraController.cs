@@ -8,6 +8,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using System.Xml.Serialization;
 using VentasWeb.Filters;
 
@@ -101,8 +102,91 @@ namespace VentasWeb.Controllers
                 switch (codigoResultado)
                 {
                     case 1:
-                        bool registroExitoso = CD_Compra.Instancia.RegistrarCompra(xml);
-                        return Json(new { resultado = registroExitoso });
+                        // ── Registrar la compra y obtener su ID ──────────────────
+                        int idCompra = CD_Compra.Instancia.RegistrarCompraRetornarId(xml);
+
+                        if (idCompra > 0)
+                        {
+                            // ── Extraer IdOrdenCompra y detalles del XML ────────────────────
+                            try
+                            {
+                                XDocument xDoc = XDocument.Parse(xml);
+                                XElement compraElement = xDoc.Element("DETALLE")?.Element("COMPRA");
+
+                                if (compraElement != null)
+                                {
+                                    int idOrdenCompra = 0;
+                                    XElement idOCElement = compraElement.Element("IdOrdenCompra");
+
+                                    if (idOCElement != null && int.TryParse(idOCElement.Value, out int oc))
+                                    {
+                                        idOrdenCompra = oc;
+                                    }
+
+                                    // ── Si existe Orden de Compra, procesar ──────────────
+                                    if (idOrdenCompra > 0)
+                                    {
+                                        // 🆕 ACTUALIZAR CantidadFacturada en DetalleOrdenCompra
+                                        var detalles = xDoc.XPathSelectElements("//DETALLE_COMPRA/DETALLE");
+                                        foreach (var detalle in detalles)
+                                        {
+                                            int idDetalleOrdenCompra = 0;
+                                            int cantidadFacturada = 0;
+
+                                            // Extraer IdDetalleOrdenCompra y Cantidad
+                                            if (int.TryParse(detalle.Element("IdDetalleOrdenCompra")?.Value, out int ocDetailId))
+                                                idDetalleOrdenCompra = ocDetailId;
+
+                                            if (int.TryParse(detalle.Element("Cantidad")?.Value, out int qty))
+                                                cantidadFacturada = qty;
+
+                                            // Actualizar en BD
+                                            if (idDetalleOrdenCompra > 0 && cantidadFacturada > 0)
+                                            {
+                                                bool actualizado = CD_Compra.Instancia.ActualizarCantidadFacturada(
+                                                    idDetalleOrdenCompra,
+                                                    cantidadFacturada,
+                                                    out string mensajeActualizacion
+                                                );
+
+                                                if (!actualizado)
+                                                {
+                                                    System.Diagnostics.Debug.WriteLine(
+                                                        $"Advertencia: No se pudo actualizar CantidadFacturada para detalle {idDetalleOrdenCompra}: {mensajeActualizacion}"
+                                                    );
+                                                }
+                                            }
+                                        }
+
+                                        // ── Vincular Compra con Orden de Compra ────────────────
+                                        bool vinculoExitoso = CD_Compra.Instancia.VincularCompraConOrdenCompra(
+                                            idCompra,
+                                            idOrdenCompra,
+                                            out string mensajeVinculo
+                                        );
+
+                                        if (!vinculoExitoso)
+                                        {
+                                            System.Diagnostics.Debug.WriteLine(
+                                                $"Advertencia: No se pudo vincular Compra {idCompra} con OC {idOrdenCompra}: {mensajeVinculo}"
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception exVinculo)
+                            {
+                                System.Diagnostics.Debug.WriteLine(
+                                    $"Error al procesar vinculación: {exVinculo.Message}"
+                                );
+                            }
+
+                            return Json(new { resultado = true, idCompra = idCompra });
+                        }
+                        else
+                        {
+                            return Json(new { resultado = false, error = "No se pudo obtener el ID de la compra registrada." });
+                        }
 
                     case 0:
                     case 3:

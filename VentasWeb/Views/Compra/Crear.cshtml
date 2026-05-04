@@ -92,6 +92,78 @@
                         </div>
                     </div>
 
+                    <!-- Detalle Orden de Compra -->
+                    <div class="col-sm-6">
+                        <div class="card border-info">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-info">Orden de Compra Base <span class="text-danger">*</span></h6>
+                                <div class="row align-items-end">
+                                    <input id="txtIdOrdenCompra" type="hidden" value="0" />
+                                    <div class="col-sm-4">
+                                        <div class="form-group mb-0">
+                                            <label for="txtNumeroOrden" class="col-form-label col-form-label-sm">N° Orden:</label>
+                                            <input type="text" class="form-control form-control-sm model" readonly id="txtNumeroOrden" name="NumeroOrden">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="form-group mb-0">
+                                            <label for="txtEstadoOrden" class="col-form-label col-form-label-sm">Estado:</label>
+                                            <input type="text" class="form-control form-control-sm model" readonly id="txtEstadoOrden" name="EstadoOrden">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="form-group mb-0">
+                                            <button id="btnBuscarOrdenCompra" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarOrdenCompra()">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-12 mt-2">
+                                        <div class="form-group mb-0">
+                                            <label for="txtObservacionOrden" class="col-form-label col-form-label-sm">Observación:</label>
+                                            <textarea class="form-control form-control-sm model" readonly id="txtObservacionOrden" name="ObservacionOrden" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 🆕 NUEVA SECCIÓN: PRODUCTOS DE LA ORDEN -->
+                    <div class="col-sm-12">
+                        <div class="card border-info">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-info">Productos de la Orden (Auto-cargados)</h6>
+                                <div class="table-responsive-sm">
+                                    <table id="tbProductosOrden" class="table table-striped table-bordered table-sm" style="width:100%">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 25%;">Producto</th>
+                                                <th style="width: 12%; text-align: center;">Ordenado</th>
+                                                <th style="width: 12%; text-align: center;">Facturado</th>
+                                                <th style="width: 12%; text-align: center;">Disponible</th>
+                                                <th style="width: 14%; text-align: center;">A Facturar</th>
+                                                <th style="width: 12%; text-align: right;">Precio Unit.</th>
+                                                <th style="width: 13%; text-align: right;">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbProductosOrdenBody">
+                                            <!-- Se carga automáticamente con JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> Los productos se cargan automáticamente al seleccionar una orden de compra aprobada.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Fila Tienda (segunda fila) -->
+                <div class="row mt-2">
+
                     <!-- Detalle Tienda -->
                     <div class="col-sm-6">
                         <div class="card border-info">
@@ -126,124 +198,40 @@
 
                 </div>
 
-                <!-- Detalle Producto -->
-                <div class="row mt-2">
+
+                <!-- Resumen de totales -->
+                <div class="row mt-3">
                     <div class="col-sm-12">
-                        <div class="card border-info">
-                            <div class="card-body p-2">
-                                <h6 class="card-title mb-1 text-info">Detalle Producto</h6>
-                                <div class="row">
-                                    <input id="txtIdProducto" type="hidden" value="0" />
-                                    <div class="col-sm-2">
-                                        <div class="form-group mb-0">
-                                            <label for="txtCodigoProducto" class="col-form-label col-form-label-sm">Codigo:</label>
-                                            <input type="text" class="form-control form-control-sm model" id="txtCodigoProducto" name="Codigo" autocomplete="off">
-                                        </div>
+                        <h6 class="text-info mb-2">📊 Resumen Total de Compra</h6>
+                        <div class="card border-secondary">
+                            <div class="card-body p-3">
+                                <div class="row text-center">
+                                    <div class="col-sm-3">
+                                        <h6 class="text-muted mb-1">Cantidad Total</h6>
+                                        <h4 class="text-primary mb-0">
+                                            <span id="totalCantidad">0</span> unidades
+                                        </h4>
                                     </div>
-                                    <div class="col-sm-2">
-                                        <div class="form-group mb-0">
-                                            <label for="txtNombreProducto" class="col-form-label col-form-label-sm">Nombre:</label>
-                                            <input type="text" class="form-control form-control-sm model" readonly id="txtNombreProducto" name="Nombre">
-                                        </div>
+                                    <div class="col-sm-3">
+                                        <h6 class="text-muted mb-1">Subtotal</h6>
+                                        <h4 class="text-primary mb-0">
+                                            <span id="totalCompra">0</span> Gs.
+                                        </h4>
                                     </div>
-                                    <div class="col-sm-2">
-                                        <div class="form-group mb-0">
-                                            <label class="col-form-label col-form-label-sm invisible">Buscar:</label>
-                                            <button id="btnBuscarProducto" type="button" class="btn btn-sm btn-success btn-block" onclick="buscarProducto()">
-                                                <i class="fas fa-search"></i> Buscar
-                                            </button>
-                                        </div>
+                                    <div class="col-sm-3">
+                                        <h6 class="text-muted mb-1">IVA Total</h6>
+                                        <h4 class="text-warning mb-0">
+                                            <span id="totalIva">0</span> Gs.
+                                        </h4>
                                     </div>
-                                    <div class="col-sm-1">
-                                        <div class="form-group mb-0">
-                                            <label for="txtIvaPorcentaje" class="col-form-label col-form-label-sm">IVA %:</label>
-                                            <input type="text" class="form-control form-control-sm model" id="txtIvaPorcentaje" name="IvaPorcentaje" value="10">
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <div class="form-group mb-0">
-                                            <label for="txtPrecioCompraConIva" class="col-form-label col-form-label-sm">P. Compra c/IVA:</label>
-                                            <input type="text" class="form-control form-control-sm model" id="txtPrecioCompraConIva" name="PrecioCompraConIva" readonly>
-                                        </div>
-                                    </div>
-
-                                    <!-- Histórico de Precios -->
-                                    <div class="col-auto mt-2">
-                                        <div class="card border-secondary" style="display: inline-block;">
-                                            <div class="card-body p-2">
-                                                <h6 class="card-title mb-1 text-secondary">Histórico de Precios de Compra</h6>
-                                                <div class="historial-precio-wrapper">
-                                                    <table id="tbHistorialPrecio" class="table table-sm table-bordered table-striped mb-0">
-                                                        <thead>
-                                                            <tr>
-                                                                <th style="width: 100px;">Fecha</th>
-                                                                <th style="width: 130px;">Precio Gs.</th>
-                                                                <th style="width: 250px;">Observaciones</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody></tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-sm-1">
-                                        <div class="form-group mb-0">
-                                            <label for="txtCantidadProducto" class="col-form-label col-form-label-sm">Cantidad:</label>
-                                            <input type="text" class="form-control form-control-sm model" id="txtCantidadProducto" name="Cantidad" value="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <div class="form-group mb-0">
-                                            <label for="txtPrecioCompraProducto" class="col-form-label col-form-label-sm">P. Compra:</label>
-                                            <input type="text" class="form-control form-control-sm model" id="txtPrecioCompraProducto" name="PrecioCompra" value="0">
-                                        </div>
+                                    <div class="col-sm-3">
+                                        <h6 class="text-muted mb-1">TOTAL CON IVA</h6>
+                                        <h3 class="text-success mb-0" style="font-weight: bold;">
+                                            <span id="totalCompraFinal">0</span> Gs.
+                                        </h3>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Botón agregar -->
-                <div class="row mt-2">
-                    <div class="col-sm-12">
-                        <button id="btnAgregarCompra" class="btn btn-primary btn-sm float-right">
-                            <i class="fas fa-plus"></i> Agregar a compra
-                        </button>
-                    </div>
-                </div>
-
-                <hr />
-
-                <!-- Tabla de compras agregadas -->
-                <div class="row mt-3">
-                    <div class="col-sm-12">
-                        <div class="table-responsive-sm">
-                            <table id="tbCompra" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Código Producto</th>
-                                        <th>Nombre Producto</th>
-                                        <th>Cantidad</th>
-                                        <th>Precio Unidad Compra</th>
-                                        <th>Precio Total Compra</th>
-                                        <th>Precio Total Compra c/IVA</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                                <tfoot>
-                                    <tr>
-                                        <th colspan="3" style="text-align:right;">Totales:</th>
-                                        <th id="totalCantidad">0</th>
-                                        <th id="totalPrecioUnidadCompra">0</th>
-                                        <th id="totalPrecioTotalCompra">0</th>
-                                        <th id="totalPrecioTotalCompraIVA">0</th>
-                                    </tr>
-                                </tfoot>
-                            </table>
                         </div>
                     </div>
                 </div>
@@ -341,6 +329,36 @@
     </div>
 </div>
 
+<!-- MODAL ORDEN DE COMPRA -->
+<div class="modal fade" id="modalOrdenCompra" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Seleccionar Orden de Compra Aprobada</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="tbOrdenCompra" class="table table-striped table-bordered nowrap table-sm" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>N° Orden</th>
+                            <th>Proveedor</th>
+                            <th>Tienda</th>
+                            <th>Fecha Orden</th>
+                            <th>Total Estimado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts{
     <script type="text/javascript">
         $.MisUrls = { url: {} };
@@ -354,7 +372,9 @@
             _ObtenerProductosPorTienda: '@Url.Action("ObtenerPorTienda", "Producto")',
             _ObtenerProductos: '@Url.Action("Obtener", "Producto")',
             _GuardarCompra: '@Url.Action("Guardar", "Compra")',
-            _ObtenerHistorialPrecio: '@Url.Action("ObtenerHistorialPrecio", "Compra")'
+            _ObtenerHistorialPrecio: '@Url.Action("ObtenerHistorialPrecio", "Compra")',
+            _ObtenerOrdenesCompraAprobadas: '@Url.Action("ObtenerOrdenesAprobadas", "OrdenCompra")',
+            _ObtenerDetalleOrdenCompra: '@Url.Action("ObtenerDetalleOrdenCompra", "OrdenCompra")'
         });
     </script>
 
