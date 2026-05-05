@@ -278,10 +278,12 @@ function formatNum(n) {
 // ═══════════════════════════════════════════════════════
 
 function guardarOrden() {
-    var idProveedor = parseInt($("#txtIdProveedor").val()) || 0;
-    var idTienda    = parseInt($("#txtIdTienda").val()) || 0;
-    var fechaEntrega= $("#txtFechaEntrega").val().trim();
-    var observacion = $("#txtObservacion").val().trim();
+    var idProveedor      = parseInt($("#txtIdProveedor").val()) || 0;
+    var idTienda         = parseInt($("#txtIdTienda").val()) || 0;
+    var fechaEntrega     = $("#txtFechaEntrega").val().trim();
+    var observacion      = $("#txtObservacion").val().trim();
+    var idCategoriaOC    = parseInt($("#cboCategoria").val()) || 0;
+    var fechaTopeEntrega = $("#txtFechaTopeEntrega").val().trim();
 
     if (idProveedor <= 0) { Swal.fire({title: "Mensaje", text: "Debe seleccionar un proveedor", icon: "warning"}); return; }
     if (idTienda <= 0)    { Swal.fire({title: "Mensaje", text: "Debe seleccionar una tienda", icon: "warning"}); return; }
@@ -318,11 +320,13 @@ function guardarOrden() {
             type: "POST",
             dataType: "json",
             data: {
-                idproveedor: idProveedor,
-                idtienda:    idTienda,
-                fechaentrega: fechaEntrega,
-                observacion: observacion,
-                detalle:     detalle
+                idproveedor:      idProveedor,
+                idtienda:         idTienda,
+                fechaentrega:     fechaEntrega,
+                observacion:      observacion,
+                idcategoriaoc:    idCategoriaOC,
+                fechatopeentrega: fechaTopeEntrega,
+                detalle:          detalle
             },
             traditional: false,
             beforeSend: function () { $("body").LoadingOverlay("show"); },

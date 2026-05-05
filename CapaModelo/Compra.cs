@@ -25,5 +25,23 @@ namespace CapaModelo
         public string TipoComprobante { get; set; }
         public bool Activo { get; set; }
         public DateTime FechaRegistro { get; set; }
+
+        // ── Campos de recepción / revisión ────────────────────
+        /// <summary>FK a ORDEN_COMPRA origen (0 si no aplica).</summary>
+        public int IdOrdenCompra { get; set; }
+
+        /// <summary>Fecha real de la factura del proveedor.</summary>
+        public string FechaFactura { get; set; }
+
+        /// <summary>Fecha real en que llegó la mercadería.</summary>
+        public string FechaEntrega { get; set; }
+
+        /// <summary>
+        /// Pendiente | Recibida | Confirmada | Anulada
+        /// </summary>
+        public string Estado { get; set; }
+
+        /// <summary>Monto de la NC aplicada (null si no hubo NC).</summary>
+        public decimal? MontoNotaCredito { get; set; }
     }
 }

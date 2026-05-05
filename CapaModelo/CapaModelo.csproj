@@ -81,6 +81,10 @@
     <Compile Include="Usuario.cs" />
     <Compile Include="ValidaStockMaximo.cs" />
     <Compile Include="Venta.cs" />
+    <Compile Include="CategoriaOC.cs" />
+    <Compile Include="MotivoNotaCredito.cs" />
+    <Compile Include="MotivoRechazoOC.cs" />
+    <Compile Include="OrdenPago.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

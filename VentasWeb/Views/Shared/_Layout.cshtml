@@ -497,6 +497,23 @@
             _OC_ObtenerAprobadas:   '@Url.Action("ObtenerOrdenesAprobadas", "OrdenCompra")'
         });
 
+        // ---- COMPRA — RECEPCION ----
+        $.MisUrls.urls({
+            _Compra_Recepcion:          '@Url.Action("Recepcion",             "Compra")',
+            _Compra_LineasRecepcion:    '@Url.Action("ObtenerLineasRecepcion","Compra")',
+            _Compra_RegistrarRecepcion: '@Url.Action("RegistrarRecepcion",    "Compra")',
+            _Compra_Confirmar:          '@Url.Action("ConfirmarCompra",       "Compra")',
+            _Compra_NotaCredito:        '@Url.Action("GenerarNotaCredito",    "Compra")',
+            _Compra_GenerarOP:          '@Url.Action("GenerarOP",             "Compra")'
+        });
+
+        // ---- ORDEN PAGO ----
+        $.MisUrls.urls({
+            _OP_Obtener:   '@Url.Action("Obtener",   "OrdenPago")',
+            _OP_Documento: '@Url.Action("Documento", "OrdenPago")',
+            _OP_Consultar: '@Url.Action("Consultar", "OrdenPago")'
+        });
+
         // ---- VENTA ----
         $.MisUrls.urls({
             _ObtenerUsuario: '@Url.Action("ObtenerUsuario", "Venta")',

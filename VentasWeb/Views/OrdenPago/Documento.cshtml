@@ -1,0 +1,212 @@
+@model CapaModelo.OrdenPago
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Orden de Pago</title>
+    @Styles.Render("~/Content/PluginsCSS")
+    <style type="text/css">
+        body { font-size: 11px; }
+        .btn-secondary {
+            color: #fff;
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            cursor: pointer;
+            border: 1px solid transparent;
+            padding: .375rem .75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: .25rem;
+        }
+        @@media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align:right; margin-bottom:8px;">
+        <center>
+            <button type="button" class="btn btn-secondary" onclick="javascript:imprSelec('seleccion')">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </center>
+        <br />
+    </div>
+
+    <div id="seleccion">
+        <center>
+            <table style="width:650px; border:2px solid #17a2b8; padding:10px;">
+                <tr>
+                    <td>
+                        @* Cabecera empresa  *@
+                        <table id="cabecera">
+                            <tr>
+                                <td style="width:140px">
+                                    <img src="@Url.Content("~/Imagenes/tienda.png")" alt="" height="70" />
+                                </td>
+                                <td style="width:340px">
+                                    <table style="width:100%">
+                                        <tr>
+                                            <td>
+                                                <label style="font-size:20px;font-weight:bold;text-align:center;width:100%;display:block">
+                                                    @(Model.oTienda != null ? Model.oTienda.Nombre : "MI TIENDA")
+                                                </label>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <label style="text-align:center;width:100%;display:block">
+                                                    RUC: @(Model.oTienda != null ? Model.oTienda.RUC : "")
+                                                </label>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="width:150px;">
+                                    <table style="height:90px;width:100%;font-weight:bold;border:2px solid #17a2b8;">
+                                        <tbody>
+                                            <tr style="color:#fff;background-color:#17a2b8;-webkit-print-color-adjust:exact;">
+                                                <td align="center">ORDEN DE PAGO</td>
+                                            </tr>
+                                            <tr><td align="center">NRO - @Html.DisplayTextFor(m => m.NumeroOP)</td></tr>
+                                            <tr><td align="center">Fecha - @Html.DisplayTextFor(m => m.FechaEmisionTexto)</td></tr>
+                                            <tr><td align="center">Estado - @Html.DisplayTextFor(m => m.Estado)</td></tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr style="height:20px;"><td><br /></td></tr>
+
+                @* Proveedor  *@
+                <tr>
+                    <td>
+                        <table style="width:100%;">
+                            <tbody>
+                                <tr style="color:#fff;background-color:#17a2b8;-webkit-print-color-adjust:exact;">
+                                    <td style="padding:4px" colspan="4"><u>Datos del Proveedor</u></td>
+                                </tr>
+                                <tr>
+                                    <td width="30">RUC:</td>
+                                    <td style="border-bottom:1px solid black;">
+                                        <center>@(Model.oProveedor != null ? Model.oProveedor.Ruc : "")</center>
+                                    </td>
+                                    <td width="100">Razón Social:</td>
+                                    <td style="border-bottom:1px solid black;">
+                                        <center>@(Model.oProveedor != null ? Model.oProveedor.RazonSocial : "")</center>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr><td><hr /></td></tr>
+
+                @* Compra vinculada  *@
+                <tr>
+                    <td>
+                        <table style="width:100%;">
+                            <tbody>
+                                <tr style="color:#fff;background-color:#17a2b8;-webkit-print-color-adjust:exact;">
+                                    <td style="padding:4px" colspan="4"><u>Compra Vinculada</u></td>
+                                </tr>
+                                <tr>
+                                    <td width="80">N° Factura:</td>
+                                    <td style="border-bottom:1px solid black;">
+                                        <center>@(Model.oCompra != null ? Model.oCompra.NumeroFactura : "")</center>
+                                    </td>
+                                    <td width="80">Total Compra:</td>
+                                    <td style="border-bottom:1px solid black;">
+                                        <center>
+                                            Gs. @(Model.oCompra != null ? Model.oCompra.TotalCosto.ToString("N0") : "0")
+                                        </center>
+                                    </td>
+                                </tr>
+                                @if (Model.oCompra != null && Model.oCompra.MontoNotaCredito.HasValue)
+                                {
+                                    <tr>
+                                        <td>Nota de Crédito:</td>
+                                        <td colspan="3" style="border-bottom:1px solid black;">
+                                            <center>Gs. @Model.oCompra.MontoNotaCredito.Value.ToString("N0")</center>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr><td><hr /></td></tr>
+
+                @* Monto a pagar  *@
+                <tr>
+                    <td>
+                        <table style="width:100%;">
+                            <tbody>
+                                <tr style="color:#fff;background-color:#17a2b8;-webkit-print-color-adjust:exact;">
+                                    <td style="padding:4px" colspan="2"><u>Resumen</u></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>MONTO A PAGAR:</strong></td>
+                                    <td style="border-bottom:2px solid black; font-size:16px; font-weight:bold;">
+                                        <center>Gs. @Model.Monto.ToString("N0")</center>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr><td><hr /></td></tr>
+
+                @* Firma  *@
+                <tr>
+                    <td>
+                        <table style="width:100%; margin-top:30px;">
+                            <tr>
+                                <td style="width:45%; text-align:center; border-top:1px solid black;">
+                                    Firma Proveedor
+                                </td>
+                                <td style="width:10%"></td>
+                                <td style="width:45%; text-align:center; border-top:1px solid black;">
+                                    Firma Administrador
+                                    <br />
+                                    @(Model.oUsuarioEmite != null
+                                        ? Model.oUsuarioEmite.Nombres + " " + Model.oUsuarioEmite.Apellidos
+                                        : "")
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+            </table>
+        </center>
+    </div>
+
+    @Scripts.Render("~/bundles/jquery")
+    <script type="text/javascript">
+        function imprSelec(divId) {
+            var contenido = document.getElementById(divId).innerHTML;
+            var ventana = window.open('', '', 'height=600,width=800');
+            ventana.document.write('<html><head><title>Orden de Pago</title>');
+            ventana.document.write('</head><body>');
+            ventana.document.write(contenido);
+            ventana.document.write('</body></html>');
+            ventana.document.close();
+            ventana.print();
+        }
+    </script>
+</body>
+</html>

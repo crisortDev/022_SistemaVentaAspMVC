@@ -68,6 +68,11 @@
     <Compile Include="CD_Venta.cs" />
     <Compile Include="Conexion.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CD_CategoriaOC.cs" />
+    <Compile Include="CD_Compra.Revision.cs" />
+    <Compile Include="CD_MotivoNotaCredito.cs" />
+    <Compile Include="CD_MotivoRechazoOC.cs" />
+    <Compile Include="CD_OrdenPago.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CapaModelo\CapaModelo.csproj">

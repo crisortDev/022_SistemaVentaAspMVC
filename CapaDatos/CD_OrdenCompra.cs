@@ -16,7 +16,7 @@ namespace CapaDatos
     /// via Conexion.CN, stored procedures con parametros @Resultado
     /// y @Mensaje de salida.
     /// </summary>
-    public class CD_OrdenCompra
+    public partial class CD_OrdenCompra
     {
         private static CD_OrdenCompra _instancia = null;
 
@@ -292,7 +292,7 @@ namespace CapaDatos
         }
 
         public (bool resultado, string mensaje) RechazarOrdenCompra(
-            int idOrdenCompra, int idUsuarioAprobador, string motivo)
+            int idOrdenCompra, int idUsuarioAprobador, int idMotivoRechazo, string motivo = "")
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -302,7 +302,8 @@ namespace CapaDatos
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@IdOrdenCompra", idOrdenCompra);
                     cmd.Parameters.AddWithValue("@IdUsuarioAprobador", idUsuarioAprobador);
-                    cmd.Parameters.AddWithValue("@Motivo", (object)motivo ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@IdMotivoRechazo", idMotivoRechazo);
+                    cmd.Parameters.AddWithValue("@Motivo", (object)(string.IsNullOrWhiteSpace(motivo) ? null : motivo) ?? DBNull.Value);
                     cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 400).Direction = ParameterDirection.Output;
 

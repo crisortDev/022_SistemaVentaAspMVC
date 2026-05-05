@@ -143,20 +143,25 @@ function aprobarOrden(id) {
 
 function rechazarOrden(id) {
     $("#hdnIdRechazo").val(id);
+    $("#cboMotivoRechazo").val("0");
     $("#txtMotivoRechazo").val("");
     $("#modalRechazo").modal("show");
 }
 
 function confirmarRechazo() {
-    var id = parseInt($("#hdnIdRechazo").val()) || 0;
-    var motivo = $("#txtMotivoRechazo").val().trim();
+    var id            = parseInt($("#hdnIdRechazo").val()) || 0;
+    var idMotivo      = parseInt($("#cboMotivoRechazo").val()) || 0;
+    var observacion   = $("#txtMotivoRechazo").val().trim();
     if (id <= 0) return;
-    if (motivo === "") { Swal.fire({title: "Mensaje", text: "Debe ingresar el motivo del rechazo", icon: "warning"}); return; }
+    if (idMotivo <= 0) {
+        Swal.fire({title: "Mensaje", text: "Debe seleccionar un motivo de rechazo", icon: "warning"});
+        return;
+    }
 
     $.ajax({
         url: $.MisUrls.url._OC_Rechazar,
         type: "POST",
-        data: { idordencompra: id, motivo: motivo },
+        data: { idordencompra: id, idmotivorechazo: idMotivo, motivo: observacion },
         success: function (resp) {
             if (resp.resultado) {
                 $("#modalRechazo").modal("hide");

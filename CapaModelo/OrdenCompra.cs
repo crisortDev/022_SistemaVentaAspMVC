@@ -28,13 +28,28 @@ namespace CapaModelo
         public decimal TotalEstimado { get; set; }
         public decimal TotalEstimadoIva { get; set; }
 
+        // ── Campos de revisión ────────────────────────────────
+        /// <summary>FK a CATEGORIA_ORDEN_COMPRA.</summary>
+        public int IdCategoriaOC { get; set; }
+        public CategoriaOC oCategoria { get; set; }
+
+        /// <summary>Fecha tope de entrega comprometida con el proveedor.</summary>
+        public string FechaTopeEntrega { get; set; }
+
         // ── Ciclo de vida ────────────────────────────────────
         /// <summary>
         /// Pendiente | Aprobada | Rechazada | Facturada | Cerrada | Anulada
         /// </summary>
         public string Estado { get; set; }
         public string FechaAprobacion { get; set; }
+
+        /// <summary>FK a MOTIVO_RECHAZO_OC (0 = sin rechazo).</summary>
+        public int IdMotivoRechazo { get; set; }
+        public MotivoRechazoOC oMotivoRechazo { get; set; }
+
+        /// <summary>Texto libre opcional adicional al motivo tipificado.</summary>
         public string MotivoRechazo { get; set; }
+
         public bool Activo { get; set; }
         public DateTime FechaRegistro { get; set; }
 

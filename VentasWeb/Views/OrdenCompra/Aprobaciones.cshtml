@@ -1,6 +1,7 @@
 @{
     ViewBag.Title = "Aprobar Órdenes de Compra";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var motivosRechazo = ViewBag.MotivosRechazo as List<CapaModelo.MotivoRechazoOC> ?? new List<CapaModelo.MotivoRechazoOC>();
 }
 
 <nav aria-label="breadcrumb">
@@ -89,9 +90,19 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="hdnIdRechazo" value="0" />
-                <div class="form-group">
-                    <label class="col-form-label col-form-label-sm">Motivo del rechazo:</label>
-                    <textarea class="form-control form-control-sm" id="txtMotivoRechazo" rows="3" maxlength="500"></textarea>
+                <div class="form-group mb-2">
+                    <label class="col-form-label col-form-label-sm">Motivo <span class="text-danger">*</span>:</label>
+                    <select class="form-control form-control-sm" id="cboMotivoRechazo">
+                        <option value="0">-- Seleccione un motivo --</option>
+                        @foreach (var m in motivosRechazo)
+                        {
+                            <option value="@m.IdMotivoRechazo">@m.Descripcion</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group mb-0">
+                    <label class="col-form-label col-form-label-sm">Observación adicional (opcional):</label>
+                    <textarea class="form-control form-control-sm" id="txtMotivoRechazo" rows="2" maxlength="500"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -105,5 +116,5 @@
 </div>
 
 @section scripts{
-    <script src="@Url.Content("~/Scripts/Views/OrdenCompra_Aprobaciones.js?v=" + DateTime.Now.Ticks) type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/Views/OrdenCompra_Aprobaciones.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

@@ -12,7 +12,7 @@ using System.Xml.Linq;
 
 namespace CapaDatos
 {
-    public class CD_Compra
+    public partial class CD_Compra
     {
         public static CD_Compra _instancia = null;
 
@@ -72,47 +72,43 @@ namespace CapaDatos
             {
                 try
                 {
-                    // ── PASO 1: Ejecutar el SP para registrar la compra ──────────────
                     SqlCommand cmd = new SqlCommand("usp_RegistrarCompra", oConexion);
+                    cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@Detalle", SqlDbType.Xml).Value = Detalle;
+
+                    // El SP tiene 3 OUTPUT: @IdCompra, @Resultado, @Mensaje
+                    SqlParameter pIdCompra = new SqlParameter("@IdCompra", SqlDbType.Int);
+                    pIdCompra.Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add(pIdCompra);
 
                     SqlParameter pResultado = new SqlParameter("@Resultado", SqlDbType.Bit);
                     pResultado.Direction = ParameterDirection.Output;
                     cmd.Parameters.Add(pResultado);
 
-                    cmd.CommandType = CommandType.StoredProcedure;
+                    SqlParameter pMensaje = new SqlParameter("@Mensaje", SqlDbType.NVarChar, 400);
+                    pMensaje.Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add(pMensaje);
 
                     oConexion.Open();
                     cmd.ExecuteNonQuery();
 
                     bool resultado = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value ?? false);
+                    string mensaje = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
 
-                    System.Diagnostics.Debug.WriteLine($"SP usp_RegistrarCompra retornó: {resultado}");
+                    System.Diagnostics.Debug.WriteLine($"SP usp_RegistrarCompra — Resultado: {resultado} | Mensaje: {mensaje}");
 
                     if (resultado)
                     {
-                        // ── PASO 2: Si el SP tuvo éxito, obtener el IdCompra ────────
-                        // La compra acaba de insertarse, así que obtenemos el último IdCompra
-                        SqlCommand cmdId = new SqlCommand(
-                            "SELECT TOP 1 IdCompra FROM COMPRA ORDER BY IdCompra DESC",
-                            oConexion
-                        );
-                        object resultId = cmdId.ExecuteScalar();
+                        // El SP ya devuelve el id con SCOPE_IDENTITY() en @IdCompra
+                        object rawId = cmd.Parameters["@IdCompra"].Value;
+                        if (rawId != null && rawId != DBNull.Value)
+                            idCompra = Convert.ToInt32(rawId);
 
-                        if (resultId != null && int.TryParse(resultId.ToString(), out int id))
-                        {
-                            idCompra = id;
-                            System.Diagnostics.Debug.WriteLine($"✅ Compra registrada exitosamente. IdCompra: {idCompra}");
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"⚠️ El SP tuvo éxito pero no se pudo obtener el IdCompra");
-                            idCompra = 0;
-                        }
+                        System.Diagnostics.Debug.WriteLine($"✅ Compra registrada. IdCompra: {idCompra}");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"❌ El SP retornó false. La compra NO se registró.");
+                        System.Diagnostics.Debug.WriteLine($"❌ SP retornó false. Mensaje: {mensaje}");
                         idCompra = 0;
                     }
                 }

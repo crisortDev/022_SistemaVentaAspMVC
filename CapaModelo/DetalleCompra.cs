@@ -21,5 +21,17 @@ namespace CapaModelo
         public string TextoTotalCosto { get; set; }
         public bool Activo { get; set; }
         public DateTime FechaRegistro { get; set; }
+
+        // ── Campos de recepción ───────────────────────────────
+        /// <summary>Cantidad que figura en la factura del proveedor.</summary>
+        public int CantidadFacturada { get; set; }
+
+        /// <summary>Cantidad efectivamente recibida en el depósito.</summary>
+        public int CantidadRecibida { get; set; }
+
+        /// <summary>
+        /// Aceptada | Rechazada | NotaCredito
+        /// </summary>
+        public string EstadoLinea { get; set; }
     }
 }

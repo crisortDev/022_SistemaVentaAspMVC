@@ -26,7 +26,7 @@ namespace VentasWeb.Controllers
     /// refuerzan la validación apuntando a su submenú específico.
     /// </summary>
     [AuthorizeRol("OrdenCompra", "*")]
-    public class OrdenCompraController : BaseController
+    public partial class OrdenCompraController : BaseController
     {
         // ============================================================
         //  VISTAS
@@ -35,7 +35,8 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("OrdenCompra", "Crear")]
         public ActionResult Crear()
         {
-            ViewBag.IdUsuario = UsuarioActual?.IdUsuario ?? 0;
+            ViewBag.IdUsuario   = UsuarioActual?.IdUsuario ?? 0;
+            ViewBag.Categorias  = CD_CategoriaOC.Instancia.Obtener();
             return View();
         }
 
@@ -48,8 +49,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("OrdenCompra", "Aprobaciones")]
         public ActionResult Aprobaciones()
         {
-            // Reusa la vista Consultar? No. Tiene su propia vista
-            // para ver solo Pendientes y con botones Aprobar/Rechazar.
+            ViewBag.MotivosRechazo = CD_MotivoRechazoOC.Instancia.Obtener();
             return View();
         }
 
@@ -132,6 +132,7 @@ namespace VentasWeb.Controllers
         [HttpPost]
         public JsonResult Guardar(int idproveedor, int idtienda,
                                   string fechaentrega, string observacion,
+                                  int idcategoriaoc, string fechatopeentrega,
                                   List<DetalleOrdenCompra> detalle)
         {
             try
@@ -170,6 +171,8 @@ namespace VentasWeb.Controllers
                 xml.Append("<Observacion>").Append(EscaparXml(observacion)).Append("</Observacion>");
                 xml.Append("<TotalEstimado>").Append(totalEstimado.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</TotalEstimado>");
                 xml.Append("<TotalEstimadoIva>").Append(totalEstimadoIva.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</TotalEstimadoIva>");
+                xml.Append("<IdCategoriaOC>").Append(idcategoriaoc > 0 ? idcategoriaoc : 0).Append("</IdCategoriaOC>");
+                xml.Append("<FechaTopeEntrega>").Append(LimpiarFecha(fechatopeentrega)).Append("</FechaTopeEntrega>");
                 xml.Append("</ORDEN>");
                 xml.Append("<PRODUCTOS>");
                 foreach (var d in detalle)
@@ -225,13 +228,13 @@ namespace VentasWeb.Controllers
 
         [HttpPost]
         [AuthorizeRol("OrdenCompra", "Aprobar")]
-        public JsonResult Rechazar(int idordencompra, string motivo)
+        public JsonResult Rechazar(int idordencompra, int idmotivorechazo, string motivo)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            if (string.IsNullOrWhiteSpace(motivo))
-                return Json(new { resultado = false, mensaje = "Debe indicar el motivo del rechazo." });
+            if (idmotivorechazo <= 0)
+                return Json(new { resultado = false, mensaje = "Debe seleccionar un motivo de rechazo." });
 
             var oc = CD_OrdenCompra.Instancia.ObtenerDetalleOrdenCompra(idordencompra);
             if (oc == null || oc.oTienda == null)
@@ -240,7 +243,8 @@ namespace VentasWeb.Controllers
             if (!TienePermiso(oc.oTienda.IdTienda))
                 return Json(new { resultado = false, mensaje = "No puede rechazar órdenes de otra sucursal." });
 
-            var rpt = CD_OrdenCompra.Instancia.RechazarOrdenCompra(idordencompra, UsuarioActual.IdUsuario, motivo);
+            var rpt = CD_OrdenCompra.Instancia.RechazarOrdenCompra(
+                idordencompra, UsuarioActual.IdUsuario, idmotivorechazo, motivo ?? "");
             return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
         }
 

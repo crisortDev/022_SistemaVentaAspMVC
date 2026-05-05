@@ -15,7 +15,7 @@ using VentasWeb.Filters;
 namespace VentasWeb.Controllers
 {
     [AuthorizeRol("Compra", "*")]
-    public class CompraController : BaseController
+    public partial class CompraController : BaseController
     {
         public ActionResult Crear()
         {

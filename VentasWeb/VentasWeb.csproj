@@ -150,6 +150,8 @@
     <Compile Include="Controllers\TiendaController.cs" />
     <Compile Include="Controllers\UsuarioController.cs" />
     <Compile Include="Controllers\VentaController.cs" />
+    <Compile Include="Controllers\CompraController.Revision.cs" />
+    <Compile Include="Controllers\OrdenPagoController.cs" />
     <Compile Include="Filters\AuthorizeRol.cs" />
     <Compile Include="Filters\VerificarSession.cs" />
     <Compile Include="Global.asax.cs">
@@ -1935,11 +1937,13 @@
     <Content Include="Content\Plugins\fontawesome-free-5.15.2\webfonts\fa-solid-900.woff" />
     <Content Include="Content\Plugins\fontawesome-free-5.15.2\webfonts\fa-solid-900.woff2" />
     <Content Include="appSettings.secret.config" />
-    <None Include="Scripts\jquery-3.3.1.intellisense.js" />
-    <Content Include="Scripts\jquery-3.3.1.js" />
-    <Content Include="Scripts\jquery-3.3.1.min.js" />
-    <Content Include="Scripts\jquery-3.3.1.slim.js" />
-    <Content Include="Scripts\jquery-3.3.1.slim.min.js" />
+    <None Include="Scripts\jquery-3.7.1.intellisense.js" />
+    <Content Include="Scripts\jquery-3.7.1.js" />
+    <Content Include="Scripts\jquery-3.7.1.min.js" />
+    <Content Include="Scripts\jquery-3.7.1.slim.js" />
+    <Content Include="Scripts\jquery-3.7.1.slim.min.js" />
+    <Content Include="Scripts\jquery-3.7.1.slim.min.map" />
+    <Content Include="Scripts\jquery-3.7.1.min.map" />
     <None Include="Scripts\jquery.validate-vsdoc.js" />
     <Content Include="Scripts\jquery.validate.js" />
     <Content Include="Scripts\jquery.validate.min.js" />
@@ -2113,8 +2117,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <Content Include="Scripts\jquery-3.3.1.slim.min.map" />
-    <Content Include="Scripts\jquery-3.3.1.min.map" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Scripts\index.d.ts" />
