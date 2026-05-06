@@ -200,4 +200,68 @@ namespace CapaDatos
         public int IdDetalleCompra { get; set; }
         public int CantidadRecibida { get; set; }
     }
+
+    // ================================================================
+    //  NUEVO: RegistrarRecepcionDesdeOC
+    // ================================================================
+    public partial class CD_Compra
+    {
+        /// <summary>
+        /// Crea el registro COMPRA + DETALLE_COMPRA directamente desde una OC aprobada,
+        /// con las cantidades realmente recibidas. Llama a usp_RegistrarRecepcionDesdeOC.
+        /// </summary>
+        public (bool resultado, string mensaje, int idCompra) RegistrarRecepcionDesdeOC(
+            int idOrdenCompra, int idUsuario,
+            string numeroFactura, string numeroTimbrado,
+            DateTime fechaVencTimbrado, DateTime fechaFactura, DateTime fechaEntrega,
+            List<CapaModelo.LineaRecepcionOC> lineas)
+        {
+            var xml = new System.Text.StringBuilder();
+            xml.Append("<DETALLE>");
+            foreach (var l in lineas)
+            {
+                xml.Append("<ITEM>");
+                xml.Append("<IdDetalleOC>").Append(l.IdDetalleOC).Append("</IdDetalleOC>");
+                xml.Append("<CantidadRecibida>").Append(l.CantidadRecibida).Append("</CantidadRecibida>");
+                xml.Append("</ITEM>");
+            }
+            xml.Append("</DETALLE>");
+
+            using (var cn = new System.Data.SqlClient.SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    var cmd = new System.Data.SqlClient.SqlCommand("usp_RegistrarRecepcionDesdeOC", cn);
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdOrdenCompra",     idOrdenCompra);
+                    cmd.Parameters.AddWithValue("@IdUsuario",         idUsuario);
+                    cmd.Parameters.AddWithValue("@NumeroFactura",     numeroFactura);
+                    cmd.Parameters.AddWithValue("@NumeroTimbrado",    numeroTimbrado);
+                    cmd.Parameters.Add("@FechaVencTimbrado", System.Data.SqlDbType.Date).Value     = fechaVencTimbrado.Date;
+                    cmd.Parameters.Add("@FechaFactura",      System.Data.SqlDbType.Date).Value     = fechaFactura.Date;
+                    cmd.Parameters.Add("@FechaEntrega",      System.Data.SqlDbType.DateTime).Value = fechaEntrega;
+                    cmd.Parameters.Add("@Detalle",           System.Data.SqlDbType.Xml).Value      = xml.ToString();
+
+                    var pId  = new System.Data.SqlClient.SqlParameter("@IdCompra",  System.Data.SqlDbType.Int)           { Direction = System.Data.ParameterDirection.Output };
+                    var pRes = new System.Data.SqlClient.SqlParameter("@Resultado", System.Data.SqlDbType.Bit)           { Direction = System.Data.ParameterDirection.Output };
+                    var pMsg = new System.Data.SqlClient.SqlParameter("@Mensaje",   System.Data.SqlDbType.NVarChar, 400) { Direction = System.Data.ParameterDirection.Output };
+                    cmd.Parameters.Add(pId);
+                    cmd.Parameters.Add(pRes);
+                    cmd.Parameters.Add(pMsg);
+
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+
+                    bool ok    = Convert.ToBoolean(pRes.Value);
+                    string msg = pMsg.Value?.ToString() ?? "";
+                    int id     = ok && pId.Value != DBNull.Value ? Convert.ToInt32(pId.Value) : 0;
+                    return (ok, msg, id);
+                }
+                catch (Exception ex)
+                {
+                    return (false, "Error: " + ex.Message, 0);
+                }
+            }
+        }
+    }
 }

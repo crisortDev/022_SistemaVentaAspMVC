@@ -9,13 +9,8 @@ using VentasWeb.Filters;
 namespace VentasWeb.Controllers
 {
     /// <summary>
-    /// Extensión partial de CompraController — recepción, confirmación,
+    /// Extensión partial de CompraController — recepción desde OC, confirmación,
     /// nota de crédito y generación de Orden de Pago.
-    ///
-    /// REQUISITO PREVIO: CD_Compra.cs ya debe decir
-    ///     public partial class CD_Compra
-    /// y CompraController.cs debe decir
-    ///     public partial class CompraController
     /// </summary>
     public partial class CompraController : BaseController
     {
@@ -24,38 +19,46 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [AuthorizeRol("Compra", "Recepcion")]
-        public ActionResult Recepcion(int idcompra = 0)
+        public ActionResult Recepcion()
         {
-            Compra oCompra = idcompra > 0
-                ? CD_Compra.Instancia.ObtenerDetalleCompra(idcompra)
-                : null;
-
             ViewBag.MotivosNC = CD_MotivoNotaCredito.Instancia.Obtener();
-            return View(oCompra ?? new Compra());
+            return View(new Compra());
         }
 
         // ============================================================
-        //  JSON: LINEAS PARA RECEPCION
+        //  JSON: LÍNEAS DE UNA OC APROBADA (para cargar en recepción)
         // ============================================================
 
         [HttpGet]
-        public JsonResult ObtenerLineasRecepcion(int idcompra)
+        public JsonResult ObtenerLineasOC(int idordencompra)
         {
-            var lineas = CD_Compra.Instancia.ObtenerLineasParaRecepcion(idcompra);
-            return Json(new { data = lineas }, JsonRequestBehavior.AllowGet);
+            var oc = CD_OrdenCompra.Instancia.ObtenerDetalleOrdenCompra(idordencompra);
+
+            if (oc == null)
+                return Json(new { resultado = false, mensaje = "Orden de Compra no encontrada." },
+                            JsonRequestBehavior.AllowGet);
+
+            if (oc.Estado != "Aprobada")
+                return Json(new { resultado = false, mensaje = "La OC no está en estado Aprobada. Estado actual: " + oc.Estado },
+                            JsonRequestBehavior.AllowGet);
+
+            return Json(new { resultado = true, data = oc }, JsonRequestBehavior.AllowGet);
         }
 
         // ============================================================
-        //  JSON: REGISTRAR RECEPCION
+        //  JSON: REGISTRAR RECEPCIÓN DESDE OC (crea Compra + Detalle)
         // ============================================================
 
         [HttpPost]
         [AuthorizeRol("Compra", "Recepcion")]
-        public JsonResult RegistrarRecepcion(
-            int idcompra,
+        public JsonResult RegistrarRecepcionDesdeOC(
+            int    idordencompra,
+            string numerofactura,
+            string numerotimbrado,
+            string fechavencTimbrado,
             string fechafactura,
             string fechaentrega,
-            List<DetalleRecepcion> lineas)
+            List<CapaModelo.LineaRecepcionOC> lineas)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
@@ -63,20 +66,39 @@ namespace VentasWeb.Controllers
             if (lineas == null || lineas.Count == 0)
                 return Json(new { resultado = false, mensaje = "Debe ingresar al menos una línea." });
 
-            DateTime ff, fe;
+            // Parsear fechas (formato dd/MM/yyyy del datepicker)
+            DateTime ff, fe, fvt;
+
             if (!DateTime.TryParseExact(fechafactura, "dd/MM/yyyy",
                                         CultureInfo.InvariantCulture,
                                         DateTimeStyles.None, out ff))
-                return Json(new { resultado = false, mensaje = "Fecha de factura inválida." });
+                return Json(new { resultado = false, mensaje = "Fecha de Factura inválida." });
+
+            if (!DateTime.TryParseExact(fechavencTimbrado, "dd/MM/yyyy",
+                                        CultureInfo.InvariantCulture,
+                                        DateTimeStyles.None, out fvt))
+                return Json(new { resultado = false, mensaje = "Fecha de Vencimiento de Timbrado inválida." });
 
             if (string.IsNullOrWhiteSpace(fechaentrega) ||
                 !DateTime.TryParseExact(fechaentrega, "dd/MM/yyyy",
                                         CultureInfo.InvariantCulture,
                                         DateTimeStyles.None, out fe))
-                fe = DateTime.Today;
+                fe = ff; // si no ingresó fecha entrega, usar fecha factura
 
-            var rpt = CD_Compra.Instancia.RegistrarRecepcion(idcompra, ff, fe, lineas);
-            return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
+            var rpt = CD_Compra.Instancia.RegistrarRecepcionDesdeOC(
+                idordencompra,
+                UsuarioActual.IdUsuario,
+                numerofactura?.Trim()  ?? "",
+                numerotimbrado?.Trim() ?? "",
+                fvt, ff, fe,
+                lineas);
+
+            return Json(new
+            {
+                resultado = rpt.resultado,
+                mensaje   = rpt.mensaje,
+                idcompra  = rpt.idCompra
+            });
         }
 
         // ============================================================
@@ -132,4 +154,5 @@ namespace VentasWeb.Controllers
             });
         }
     }
+
 }

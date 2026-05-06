@@ -259,5 +259,5 @@
         // Permiso de eliminación física — solo SuperAdmin; inyectado server-side
         window.esSuperAdmin = @(ViewBag.EsSuperAdmin == true ? "true" : "false");
     </script>
-    <script src="@Url.Content("~/Scripts/Views/Proveedor_Crear.js?v=" + DateTime.Now.Ticks")?v=@DateTime.Now.Ticks" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/Views/Proveedor_Crear.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

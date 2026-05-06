@@ -1,6 +1,6 @@
 @model CapaModelo.Compra
 @{
-    ViewBag.Title = "Recepción de Compra";
+    ViewBag.Title = "Recepción de Mercadería";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var motivosNC = ViewBag.MotivosNC as List<CapaModelo.MotivoNotaCredito> ?? new List<CapaModelo.MotivoNotaCredito>();
 }
@@ -8,7 +8,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Compras</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Recepción</li>
+        <li class="breadcrumb-item active" aria-current="page">Recepción de Mercadería</li>
     </ol>
 </nav>
 
@@ -20,99 +20,150 @@
             </div>
             <div class="card-body p-2">
 
-                @* Buscar compra  *@
-                <div class="row align-items-end mb-2">
-                    <div class="col-sm-3">
-                        <label class="col-form-label col-form-label-sm">N° Factura / ID Compra:</label>
-                        <input type="number" id="txtIdCompra" class="form-control form-control-sm"
-                               placeholder="ID de compra" min="1" />
-                    </div>
-                    <div class="col-sm-2">
-                        <button id="btnBuscarCompra" class="btn btn-sm btn-info mt-1">
-                            <i class="fas fa-search"></i> Buscar
-                        </button>
+                @* ── FASE 1: Buscar OC ── *@
+                <div id="panelBuscarOC">
+                    <div class="row align-items-end mb-2">
+                        <div class="col-sm-3">
+                            <label class="col-form-label col-form-label-sm">N° Orden de Compra:</label>
+                            <input type="number" id="txtIdOrdenCompra" class="form-control form-control-sm"
+                                   placeholder="ID de la OC aprobada" min="1" />
+                        </div>
+                        <div class="col-sm-2">
+                            <button id="btnBuscarOC" class="btn btn-sm btn-info mt-1">
+                                <i class="fas fa-search"></i> Buscar OC
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                @* Datos de la compra  *@
-                <div id="panelCompra" class="@(Model.IdCompra > 0 ? "" : "d-none")">
+                @* ── FASE 1: Panel principal (se muestra al encontrar la OC) ── *@
+                <div id="panelRecepcion" class="d-none">
+
+                    @* Datos de la OC *@
                     <div class="row mb-2">
                         <div class="col-sm-3">
                             <label class="col-form-label col-form-label-sm">Proveedor:</label>
                             <input type="text" id="txtProveedor" class="form-control form-control-sm" readonly />
                         </div>
                         <div class="col-sm-2">
-                            <label class="col-form-label col-form-label-sm">Fecha Factura:</label>
-                            <input type="text" id="txtFechaFactura" class="form-control form-control-sm datepicker"
-                                   autocomplete="off" />
+                            <label class="col-form-label col-form-label-sm">N° Orden:</label>
+                            <input type="text" id="txtNumeroOrden" class="form-control form-control-sm" readonly />
                         </div>
                         <div class="col-sm-2">
-                            <label class="col-form-label col-form-label-sm">Fecha Entrega:</label>
-                            <input type="text" id="txtFechaEntrega" class="form-control form-control-sm datepicker"
-                                   autocomplete="off" />
-                        </div>
-                        <div class="col-sm-2">
-                            <label class="col-form-label col-form-label-sm">Estado:</label>
-                            <input type="text" id="txtEstado" class="form-control form-control-sm" readonly />
+                            <label class="col-form-label col-form-label-sm">Tienda:</label>
+                            <input type="text" id="txtTienda" class="form-control form-control-sm" readonly />
                         </div>
                     </div>
 
-                    @* Detalle de líneas  *@
-                    <div class="table-responsive mb-2">
-                        <table class="table table-sm table-bordered table-hover" id="tblLineas">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th>Producto</th>
-                                    <th class="text-center">Cant. Facturada</th>
-                                    <th class="text-center">Cant. Recibida</th>
-                                    <th class="text-center">Estado Línea</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbodyLineas"></tbody>
-                        </table>
-                    </div>
-
-                    @* Nota de Crédito  *@
-                    <div class="card border-warning mb-2" id="panelNC">
-                        <div class="card-header bg-warning text-dark py-1">
-                            Nota de Crédito (opcional)
+                    @* Datos fiscales de la factura del proveedor *@
+                    <div class="card border-secondary mb-2">
+                        <div class="card-header bg-secondary text-white py-1">
+                            <i class="fas fa-file-invoice"></i> Datos de la Factura del Proveedor
                         </div>
                         <div class="card-body py-2">
                             <div class="row align-items-end">
-                                <div class="col-sm-4">
-                                    <label class="col-form-label col-form-label-sm">Motivo NC:</label>
-                                    <select id="cboMotivoNC" class="form-control form-control-sm">
-                                        <option value="0">-- Sin nota de crédito --</option>
-                                        @foreach (var m in motivosNC)
-                                        {
-                                            <option value="@m.IdMotivoNotaCredito">@m.Descripcion</option>
-                                        }
-                                    </select>
+                                <div class="col-sm-2">
+                                    <label class="col-form-label col-form-label-sm">N° Factura <span class="text-danger">*</span></label>
+                                    <input type="text" id="txtNumeroFactura" class="form-control form-control-sm"
+                                           placeholder="001-001-0000001" />
                                 </div>
                                 <div class="col-sm-2">
-                                    <button id="btnNC" class="btn btn-sm btn-warning mt-1">
-                                        <i class="fas fa-file-invoice-dollar"></i> Generar NC
-                                    </button>
+                                    <label class="col-form-label col-form-label-sm">N° Timbrado <span class="text-danger">*</span></label>
+                                    <input type="text" id="txtNumeroTimbrado" class="form-control form-control-sm"
+                                           placeholder="12345678" />
+                                </div>
+                                <div class="col-sm-2">
+                                    <label class="col-form-label col-form-label-sm">Venc. Timbrado <span class="text-danger">*</span></label>
+                                    <input type="text" id="txtFechaVencTimbrado" class="form-control form-control-sm datepicker"
+                                           autocomplete="off" />
+                                </div>
+                                <div class="col-sm-2">
+                                    <label class="col-form-label col-form-label-sm">Fecha Factura <span class="text-danger">*</span></label>
+                                    <input type="text" id="txtFechaFactura" class="form-control form-control-sm datepicker"
+                                           autocomplete="off" />
+                                </div>
+                                <div class="col-sm-2">
+                                    <label class="col-form-label col-form-label-sm">Fecha Entrega</label>
+                                    <input type="text" id="txtFechaEntrega" class="form-control form-control-sm datepicker"
+                                           autocomplete="off" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    @* Botones de acción  *@
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <button id="btnGuardarRecepcion" class="btn btn-sm btn-primary mr-1">
-                                <i class="fas fa-save"></i> Guardar Recepción
-                            </button>
-                            <button id="btnConfirmar" class="btn btn-sm btn-success mr-1">
-                                <i class="fas fa-check-circle"></i> Confirmar Compra
-                            </button>
-                            <button id="btnGenerarOP" class="btn btn-sm btn-dark">
-                                <i class="fas fa-file-alt"></i> Generar Orden de Pago
-                            </button>
-                        </div>
+                    @* Detalle de líneas *@
+                    <div class="table-responsive mb-2">
+                        <table class="table table-sm table-bordered table-hover" id="tblLineas">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cant. Ordenada</th>
+                                    <th class="text-center">Cant. Recibida</th>
+                                    <th class="text-center">Precio Unit.</th>
+                                    <th class="text-center">Total Línea</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyLineas"></tbody>
+                            <tfoot>
+                                <tr class="table-info font-weight-bold">
+                                    <td colspan="4" class="text-right">Total Compra:</td>
+                                    <td class="text-center" id="tdTotalCompra">Gs. 0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
-                </div><!-- /panelCompra -->
+
+                    @* Botón guardar recepción — solo visible antes de guardar *@
+                    <div id="panelGuardar" class="mb-2">
+                        <button id="btnGuardarRecepcion" class="btn btn-sm btn-primary">
+                            <i class="fas fa-save"></i> Guardar Recepción
+                        </button>
+                    </div>
+
+                    @* ── FASE 2: acciones post-guardado (ocultas hasta guardar) ── *@
+                    <div id="panelFase2" class="d-none">
+
+                        @* Nota de Crédito *@
+                        <div class="card border-warning mb-2">
+                            <div class="card-header bg-warning text-dark py-1">
+                                <i class="fas fa-file-invoice-dollar"></i> Nota de Crédito (si hubo diferencia)
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row align-items-end">
+                                    <div class="col-sm-4">
+                                        <label class="col-form-label col-form-label-sm">Motivo NC:</label>
+                                        <select id="cboMotivoNC" class="form-control form-control-sm">
+                                            <option value="0">-- Sin nota de crédito --</option>
+                                            @foreach (var m in motivosNC)
+                                            {
+                                                <option value="@m.IdMotivoNotaCredito">@m.Descripcion</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <button id="btnNC" class="btn btn-sm btn-warning mt-1">
+                                            <i class="fas fa-file-invoice-dollar"></i> Generar NC
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @* Confirmar y OP *@
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <button id="btnConfirmar" class="btn btn-sm btn-success mr-1">
+                                    <i class="fas fa-check-circle"></i> Confirmar Compra
+                                </button>
+                                <button id="btnGenerarOP" class="btn btn-sm btn-dark">
+                                    <i class="fas fa-file-alt"></i> Generar Orden de Pago
+                                </button>
+                            </div>
+                        </div>
+
+                    </div><!-- /panelFase2 -->
+
+                </div><!-- /panelRecepcion -->
 
             </div><!-- /card-body -->
         </div>
@@ -121,8 +172,8 @@
 
 @section scripts {
 <script>
-    // Expone el id inicial al JS externo (patrón del proyecto)
-    var idCompraInicial = @(Model.IdCompra > 0 ? Model.IdCompra.ToString() : "0");
+    var idCompraActual   = 0;
+    var idOCActual       = 0;
 </script>
 <script src="@Url.Content("~/Scripts/Views/Compra_Recepcion.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

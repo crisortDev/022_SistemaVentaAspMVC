@@ -43,5 +43,14 @@ namespace CapaModelo
 
         /// <summary>Monto de la NC aplicada (null si no hubo NC).</summary>
         public decimal? MontoNotaCredito { get; set; }
+
+        /// <summary>FK al motivo de NC (null si no hubo NC).</summary>
+        public int? IdMotivoNotaCredito { get; set; }
+
+        /// <summary>EnRecepcion | Confirmada (estado del proceso de recepción).</summary>
+        public string EstadoRecepcion { get; set; }
+
+        /// <summary>Fecha en que se confirmó la compra y se impactó el stock.</summary>
+        public string FechaConfirmacion { get; set; }
     }
 }
