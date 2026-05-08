@@ -157,42 +157,54 @@ namespace VentasWeb.Controllers
                 if (!TienePermiso(idtienda))
                     return Json(new { resultado = false, mensaje = "No tiene permisos para registrar órdenes en esta sucursal." });
 
-                // ── Armar XML ─────────────────────────────────────
-                decimal totalEstimado = detalle.Sum(d => d.TotalLinea);
-                decimal totalEstimadoIva = detalle.Sum(d => d.TotalLineaIva);
+                // ── Calcular totales server-side (no confiar en valores del cliente) ──
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                decimal totalEstimado    = 0;
+                decimal totalEstimadoIva = 0;
 
-                StringBuilder xml = new StringBuilder();
-                xml.Append("<DETALLE>");
-                xml.Append("<ORDEN>");
-                xml.Append("<IdProveedor>").Append(idproveedor).Append("</IdProveedor>");
-                xml.Append("<IdTienda>").Append(idtienda).Append("</IdTienda>");
-                xml.Append("<IdUsuario>").Append(usuario.IdUsuario).Append("</IdUsuario>");
-                xml.Append("<FechaEntregaEstimada>").Append(LimpiarFecha(fechaentrega)).Append("</FechaEntregaEstimada>");
-                xml.Append("<Observacion>").Append(EscaparXml(observacion)).Append("</Observacion>");
-                xml.Append("<TotalEstimado>").Append(totalEstimado.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</TotalEstimado>");
-                xml.Append("<TotalEstimadoIva>").Append(totalEstimadoIva.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</TotalEstimadoIva>");
-                xml.Append("<IdCategoriaOC>").Append(idcategoriaoc > 0 ? idcategoriaoc : 0).Append("</IdCategoriaOC>");
-                xml.Append("<FechaTopeEntrega>").Append(LimpiarFecha(fechatopeentrega)).Append("</FechaTopeEntrega>");
-                xml.Append("</ORDEN>");
-                xml.Append("<PRODUCTOS>");
+                // El SP usp_RegistrarOrdenCompra espera:
+                //   cabecera en /OrdenCompra/*
+                //   productos en /OrdenCompra/Detalle/Item
+                StringBuilder xmlItems = new StringBuilder();
                 foreach (var d in detalle)
                 {
                     if (d.oProducto == null || d.oProducto.IdProducto <= 0)
                         return Json(new { resultado = false, mensaje = "Hay un ítem sin producto." });
                     if (d.Cantidad <= 0)
                         return Json(new { resultado = false, mensaje = "La cantidad de cada ítem debe ser mayor a 0." });
+                    if (d.PrecioUnitario <= 0)
+                        return Json(new { resultado = false, mensaje = "El precio unitario debe ser mayor a 0." });
 
-                    xml.Append("<ITEM>");
-                    xml.Append("<IdProducto>").Append(d.oProducto.IdProducto).Append("</IdProducto>");
-                    xml.Append("<Cantidad>").Append(d.Cantidad).Append("</Cantidad>");
-                    xml.Append("<PrecioUnitario>").Append(d.PrecioUnitario.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</PrecioUnitario>");
-                    xml.Append("<IvaPorcentaje>").Append(d.IvaPorcentaje.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</IvaPorcentaje>");
-                    xml.Append("<TotalLinea>").Append(d.TotalLinea.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</TotalLinea>");
-                    xml.Append("<TotalLineaIva>").Append(d.TotalLineaIva.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("</TotalLineaIva>");
-                    xml.Append("</ITEM>");
+                    // Recalcular siempre en el servidor
+                    decimal iva          = d.IvaPorcentaje > 0 ? d.IvaPorcentaje : 10;
+                    decimal linea        = d.Cantidad * d.PrecioUnitario;
+                    decimal lineaIva     = linea * (1 + iva / 100m);
+                    totalEstimado        += linea;
+                    totalEstimadoIva     += lineaIva;
+
+                    xmlItems.Append("<Item>");
+                    xmlItems.Append("<IdProducto>").Append(d.oProducto.IdProducto).Append("</IdProducto>");
+                    xmlItems.Append("<Cantidad>").Append(d.Cantidad).Append("</Cantidad>");
+                    xmlItems.Append("<PrecioUnitario>").Append(d.PrecioUnitario.ToString(ci)).Append("</PrecioUnitario>");
+                    xmlItems.Append("<IvaPorcentaje>").Append(iva.ToString(ci)).Append("</IvaPorcentaje>");
+                    xmlItems.Append("<TotalLinea>").Append(linea.ToString(ci)).Append("</TotalLinea>");
+                    xmlItems.Append("<TotalLineaIva>").Append(lineaIva.ToString(ci)).Append("</TotalLineaIva>");
+                    xmlItems.Append("</Item>");
                 }
-                xml.Append("</PRODUCTOS>");
-                xml.Append("</DETALLE>");
+
+                StringBuilder xml = new StringBuilder();
+                xml.Append("<OrdenCompra>");
+                xml.Append("<IdProveedor>").Append(idproveedor).Append("</IdProveedor>");
+                xml.Append("<IdTienda>").Append(idtienda).Append("</IdTienda>");
+                xml.Append("<IdUsuario>").Append(usuario.IdUsuario).Append("</IdUsuario>");
+                xml.Append("<FechaEntregaEstimada>").Append(LimpiarFecha(fechaentrega)).Append("</FechaEntregaEstimada>");
+                xml.Append("<FechaTopeEntrega>").Append(LimpiarFecha(fechatopeentrega)).Append("</FechaTopeEntrega>");
+                xml.Append("<Observacion>").Append(EscaparXml(observacion)).Append("</Observacion>");
+                xml.Append("<TotalEstimado>").Append(totalEstimado.ToString(ci)).Append("</TotalEstimado>");
+                xml.Append("<TotalEstimadoIva>").Append(totalEstimadoIva.ToString(ci)).Append("</TotalEstimadoIva>");
+                xml.Append("<IdCategoriaOC>").Append(idcategoriaoc > 0 ? idcategoriaoc : 0).Append("</IdCategoriaOC>");
+                xml.Append("<Detalle>").Append(xmlItems).Append("</Detalle>");
+                xml.Append("</OrdenCompra>");
 
                 var rpt = CD_OrdenCompra.Instancia.RegistrarOrdenCompra(xml.ToString());
                 return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje, idgenerado = rpt.idGenerado });
@@ -222,7 +234,7 @@ namespace VentasWeb.Controllers
             if (!TienePermiso(oc.oTienda.IdTienda))
                 return Json(new { resultado = false, mensaje = "No puede aprobar órdenes de otra sucursal." });
 
-            var rpt = CD_OrdenCompra.Instancia.AprobarOrdenCompra(idordencompra, UsuarioActual.IdUsuario);
+            var rpt = CD_OrdenCompra.Instancia.AprobarOrdenCompra(idordencompra, UsuarioActual.IdUsuario, EsSuperAdmin);
             return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
         }
 
@@ -262,7 +274,7 @@ namespace VentasWeb.Controllers
             if (!TienePermiso(oc.oTienda.IdTienda))
                 return Json(new { resultado = false, mensaje = "No puede anular órdenes de otra sucursal." });
 
-            var rpt = CD_OrdenCompra.Instancia.AnularOrdenCompra(idordencompra);
+            var rpt = CD_OrdenCompra.Instancia.AnularOrdenCompra(idordencompra, UsuarioActual.IdUsuario);
             return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
         }
 

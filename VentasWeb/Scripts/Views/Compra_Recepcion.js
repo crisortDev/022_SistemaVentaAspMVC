@@ -21,9 +21,7 @@ $(function () {
     });
 
     $('#btnGuardarRecepcion').on('click', guardarRecepcion);
-    $('#btnConfirmar').on('click',  confirmarCompra);
-    $('#btnGenerarOP').on('click',  generarOP);
-    $('#btnNC').on('click',         generarNC);
+    $('#btnNC').on('click', generarNC);
 
     // Recalcular total al cambiar cantidades
     $(document).on('input', '.txtRecibida', recalcularTotal);
@@ -70,11 +68,11 @@ function cargarLineasOC(idOC) {
 
             recalcularTotal();
 
-            // Mostrar panel
+            // Mostrar panel de captura; ocultar Fase 2 y NC hasta guardar
             $('#panelRecepcion').removeClass('d-none');
             $('#panelFase2').addClass('d-none');
+            $('#panelNC').addClass('d-none');
             $('#panelGuardar').show();
-            $('#btnNC').prop('disabled', false).html('<i class="fas fa-file-invoice-dollar"></i> Generar NC');
             idCompraActual = 0;
         })
         .fail(function () {
@@ -142,83 +140,35 @@ function guardarRecepcion() {
             if (res.resultado) {
                 idCompraActual = res.idcompra;
                 Swal.fire({ title: 'Éxito', text: res.mensaje || 'Recepción guardada.', icon: 'success' });
-                // Pasar a Fase 2
-                $('#panelGuardar').hide();
-                $('#panelFase2').removeClass('d-none');
+
                 // Bloquear campos fiscales y cantidades
                 $('#txtNumeroFactura, #txtNumeroTimbrado, #txtFechaVencTimbrado, #txtFechaFactura, #txtFechaEntrega').prop('readonly', true);
                 $('.txtRecibida').prop('disabled', true);
                 $('#btnBuscarOC, #txtIdOrdenCompra').prop('disabled', true);
+                $('#panelGuardar').hide();
+
+                // Verificar si hubo diferencia en alguna línea (recibido < pedido)
+                var hayDiferencia = false;
+                $('.txtRecibida').each(function () {
+                    var recibido = parseInt($(this).val()) || 0;
+                    var pedido   = parseInt($(this).data('cantidad')) || 0;
+                    if (recibido < pedido) { hayDiferencia = true; return false; }
+                });
+
+                // Mostrar NC solo si hay diferencia
+                if (hayDiferencia) {
+                    $('#panelNC').removeClass('d-none');
+                    $('#btnNC').prop('disabled', false)
+                               .html('<i class="fas fa-file-invoice-dollar"></i> Generar NC');
+                }
+
+                // Mostrar Fase 2 (aviso de siguiente paso)
+                $('#panelFase2').removeClass('d-none');
             } else {
                 Swal.fire({ title: 'Error', text: res.mensaje, icon: 'error' });
             }
         },
         error: function () { Swal.fire({ title: 'Error', text: 'Error de red.', icon: 'error' }); }
-    });
-}
-
-// ── Confirmar compra ──────────────────────────────────
-function confirmarCompra() {
-    if (idCompraActual <= 0) {
-        Swal.fire({ title: 'Atención', text: 'Primero guarde la recepción.', icon: 'warning' });
-        return;
-    }
-    Swal.fire({
-        title: '¿Confirmar compra?',
-        text:  'Esta acción actualizará el stock.',
-        icon:  'question',
-        showCancelButton:  true,
-        confirmButtonText: 'Confirmar',
-        cancelButtonText:  'Cancelar'
-    }).then(function (r) {
-        if (!r.isConfirmed) return;
-        $.ajax({
-            url:  $.MisUrls.url._Compra_Confirmar,
-            type: 'POST',
-            data: { idcompra: idCompraActual },
-            beforeSend: function () { $('body').LoadingOverlay('show'); },
-            complete:   function () { $('body').LoadingOverlay('hide'); },
-            success: function (res) {
-                if (res.resultado) Swal.fire({ title: 'Éxito', text: res.mensaje || 'Compra confirmada.', icon: 'success' });
-                else Swal.fire({ title: 'Error', text: res.mensaje, icon: 'error' });
-            },
-            error: function () { Swal.fire({ title: 'Error', text: 'Error de red.', icon: 'error' }); }
-        });
-    });
-}
-
-// ── Generar Orden de Pago ─────────────────────────────
-function generarOP() {
-    if (idCompraActual <= 0) {
-        Swal.fire({ title: 'Atención', text: 'Primero guarde y confirme la recepción.', icon: 'warning' });
-        return;
-    }
-    Swal.fire({
-        title: '¿Generar Orden de Pago?',
-        text:  'Se creará la OP para esta compra.',
-        icon:  'question',
-        showCancelButton:  true,
-        confirmButtonText: 'Generar',
-        cancelButtonText:  'Cancelar'
-    }).then(function (r) {
-        if (!r.isConfirmed) return;
-        $.ajax({
-            url:  $.MisUrls.url._Compra_GenerarOP,
-            type: 'POST',
-            data: { idcompra: idCompraActual },
-            beforeSend: function () { $('body').LoadingOverlay('show'); },
-            complete:   function () { $('body').LoadingOverlay('hide'); },
-            success: function (res) {
-                if (res.resultado) {
-                    Swal.fire({ title: 'Éxito', text: res.mensaje || 'Orden de Pago generada.', icon: 'success' });
-                    if (res.idgenerado > 0)
-                        window.open($.MisUrls.url._OP_Documento + '?idordenpago=' + res.idgenerado, '_blank');
-                } else {
-                    Swal.fire({ title: 'Error', text: res.mensaje, icon: 'error' });
-                }
-            },
-            error: function () { Swal.fire({ title: 'Error', text: 'Error de red.', icon: 'error' }); }
-        });
     });
 }
 

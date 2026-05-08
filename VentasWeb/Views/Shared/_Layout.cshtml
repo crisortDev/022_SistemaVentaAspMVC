@@ -507,6 +507,16 @@
             _Compra_GenerarOP:          '@Url.Action("GenerarOP",                 "Compra")'
         });
 
+        // ---- COMPRA — REVISION (segregación O&M) ----
+        $.MisUrls.urls({
+            _Compra_Documento:          '@Url.Action("Documento",         "Compra")',
+            _Compra_Revision:           '@Url.Action("Revision",          "Compra")',
+            _Compra_ObtenerRevision:    '@Url.Action("ObtenerRevision",   "Compra")',
+            _Compra_Anular:             '@Url.Action("AnularCompra",      "Compra")',
+            _Compra_ObtenerConsulta:    '@Url.Action("ObtenerConsulta",   "Compra")',
+            _Compra_DetalleJson:        '@Url.Action("ObtenerDetalleJson","Compra")'
+        });
+
         // ---- ORDEN PAGO ----
         $.MisUrls.urls({
             _OP_Obtener:   '@Url.Action("Obtener",   "OrdenPago")',

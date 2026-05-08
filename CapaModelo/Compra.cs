@@ -52,5 +52,37 @@ namespace CapaModelo
 
         /// <summary>Fecha en que se confirmó la compra y se impactó el stock.</summary>
         public string FechaConfirmacion { get; set; }
+
+        // ── Campos de anulación / auditoría ──────────────────
+        /// <summary>IdUsuario que confirmó la compra (segregación O&amp;M).</summary>
+        public int? IdUsuarioConfirma { get; set; }
+
+        /// <summary>Nombre del usuario que confirmó (para vistas).</summary>
+        public string UsuarioConfirma { get; set; }
+
+        /// <summary>Fecha en que se anuló la compra.</summary>
+        public string FechaAnulacion { get; set; }
+
+        /// <summary>Motivo de anulación ingresado por el revisor.</summary>
+        public string MotivoAnulacion { get; set; }
+
+        /// <summary>Nombre del usuario que registró la compra (para vistas).</summary>
+        public string UsuarioRegistro { get; set; }
+
+        /// <summary>Número de la OC vinculada (para vistas de revisión).</summary>
+        public string NumeroOrden { get; set; }
+
+        /// <summary>
+        /// true si la compra tiene líneas con diferencia (CantidadRecibida &lt; Cantidad)
+        /// y aún no se generó una Nota de Crédito. Se usa en la vista Revisión para
+        /// mostrar el botón "Generar NC".
+        /// </summary>
+        public bool NecesitaNC { get; set; }
+
+        /// <summary>
+        /// IdOrdenPago generada para esta compra (0 = aún no se generó la OP).
+        /// Se usa en la vista Revisión para mostrar/ocultar el botón "Generar OP".
+        /// </summary>
+        public int IdOrdenPago { get; set; }
     }
 }

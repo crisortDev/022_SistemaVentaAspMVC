@@ -264,7 +264,7 @@ namespace CapaDatos
         //  APROBAR / RECHAZAR / ANULAR
         // ============================================================
 
-        public (bool resultado, string mensaje) AprobarOrdenCompra(int idOrdenCompra, int idUsuarioAprobador)
+        public (bool resultado, string mensaje) AprobarOrdenCompra(int idOrdenCompra, int idUsuarioAprobador, bool esSuperAdmin = false)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -272,8 +272,9 @@ namespace CapaDatos
                 {
                     SqlCommand cmd = new SqlCommand("usp_AprobarOrdenCompra", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@IdOrdenCompra", idOrdenCompra);
+                    cmd.Parameters.AddWithValue("@IdOrdenCompra",      idOrdenCompra);
                     cmd.Parameters.AddWithValue("@IdUsuarioAprobador", idUsuarioAprobador);
+                    cmd.Parameters.AddWithValue("@EsSuperAdmin",       esSuperAdmin ? 1 : 0);
                     cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 400).Direction = ParameterDirection.Output;
 
@@ -321,7 +322,7 @@ namespace CapaDatos
             }
         }
 
-        public (bool resultado, string mensaje) AnularOrdenCompra(int idOrdenCompra)
+        public (bool resultado, string mensaje) AnularOrdenCompra(int idOrdenCompra, int idUsuario = 0)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -330,6 +331,7 @@ namespace CapaDatos
                     SqlCommand cmd = new SqlCommand("usp_AnularOrdenCompra", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@IdOrdenCompra", idOrdenCompra);
+                    cmd.Parameters.AddWithValue("@IdUsuario",     idUsuario);
                     cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 400).Direction = ParameterDirection.Output;
 

@@ -123,17 +123,18 @@
                     @* ── FASE 2: acciones post-guardado (ocultas hasta guardar) ── *@
                     <div id="panelFase2" class="d-none">
 
-                        @* Nota de Crédito *@
-                        <div class="card border-warning mb-2">
+                        @* Nota de Crédito — solo visible si hubo diferencia en cantidades *@
+                        <div id="panelNC" class="card border-warning mb-2 d-none">
                             <div class="card-header bg-warning text-dark py-1">
-                                <i class="fas fa-file-invoice-dollar"></i> Nota de Crédito (si hubo diferencia)
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                Nota de Crédito — se detectó diferencia entre lo pedido y lo recibido
                             </div>
                             <div class="card-body py-2">
                                 <div class="row align-items-end">
                                     <div class="col-sm-4">
                                         <label class="col-form-label col-form-label-sm">Motivo NC:</label>
                                         <select id="cboMotivoNC" class="form-control form-control-sm">
-                                            <option value="0">-- Sin nota de crédito --</option>
+                                            <option value="0">-- Seleccione un motivo --</option>
                                             @foreach (var m in motivosNC)
                                             {
                                                 <option value="@m.IdMotivoNotaCredito">@m.Descripcion</option>
@@ -149,16 +150,16 @@
                             </div>
                         </div>
 
-                        @* Confirmar y OP *@
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <button id="btnConfirmar" class="btn btn-sm btn-success mr-1">
-                                    <i class="fas fa-check-circle"></i> Confirmar Compra
-                                </button>
-                                <button id="btnGenerarOP" class="btn btn-sm btn-dark">
-                                    <i class="fas fa-file-alt"></i> Generar Orden de Pago
-                                </button>
-                            </div>
+                        @* Aviso de siguiente paso — Segregación O&M *@
+                        <div class="alert alert-success py-2 mb-0" role="alert">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Recepción guardada correctamente.</strong>
+                            La factura quedó en estado <strong>Pendiente</strong>.
+                            Para confirmarla o anularla, ingrese a
+                            <a href="@Url.Action("Revision","Compra")" class="alert-link">
+                                Compras → Revisión de Compras
+                            </a>
+                            (requiere rol Supervisor o Administrador).
                         </div>
 
                     </div><!-- /panelFase2 -->

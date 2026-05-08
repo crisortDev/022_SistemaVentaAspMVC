@@ -1,183 +1,255 @@
-﻿@model CapaModelo.Compra
+@model CapaModelo.Compra
 @{
     Layout = null;
+    var items     = Model.oListaDetalleCompra ?? new List<CapaModelo.DetalleCompra>();
+    var proveedor = Model.oProveedor          ?? new CapaModelo.Proveedor();
+    var tienda    = Model.oTienda             ?? new CapaModelo.Tienda();
+    bool tieneNC  = Model.MontoNotaCredito.HasValue && Model.MontoNotaCredito > 0;
+    string badgeEstado = Model.Estado == "Confirmada" ? "badge-success"
+                       : Model.Estado == "Anulada"    ? "badge-danger"
+                       : "badge-warning";
 }
-
 <!DOCTYPE html>
-
-<html>
+<html lang="es">
 <head>
-    <meta name="viewport" content="width=device-width" />
-    <title>Documento</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Factura de Compra — @Model.Codigo</title>
     @Styles.Render("~/Content/PluginsCSS")
-    <style type="text/css">
-        .btn:not(:disabled):not(.disabled) {
-            cursor: pointer;
-        }
-        .btn-secondary {
-            color: #fff;
-            background-color: #6c757d;
-            border-color: #6c757d;
-        }
-        .btn {
-            display: inline-block;
-            font-weight: 400;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: middle;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            border: 1px solid transparent;
-            padding: .375rem .75rem;
-            font-size: 1rem;
-            line-height: 1.5;
-            border-radius: .25rem;
-            transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    <style>
+        /* ── Base ── */
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #1a1a2e; background: #f4f7fb; margin: 0; padding: 20px; }
+
+        /* ── Contenedor principal ── */
+        .doc-wrap { max-width: 760px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 18px rgba(26,53,102,.13); overflow: hidden; }
+
+        /* ── Barra de acciones (no imprime) ── */
+        .doc-actions { background: #1a3566; color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
+        .doc-actions h6 { margin: 0; font-size: 13px; }
+        .btn-print { background: #fff; color: #1a3566; border: none; border-radius: 4px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .btn-print:hover { background: #dbeafe; }
+
+        /* ── Header del documento ── */
+        .doc-header { background: linear-gradient(135deg, #0c1a35 0%, #1a3566 100%); color: #fff; padding: 22px 28px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .doc-header .empresa h2 { margin: 0 0 4px 0; font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+        .doc-header .empresa p  { margin: 0; font-size: 11px; opacity: .8; }
+        .doc-header .factura-box { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 12px 18px; text-align: center; min-width: 180px; }
+        .doc-header .factura-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: .75; }
+        .doc-header .factura-box .value { font-size: 14px; font-weight: 700; margin: 2px 0; }
+        .doc-header .factura-box .value-sm { font-size: 11px; opacity: .85; }
+
+        /* ── Sección info ── */
+        .doc-body { padding: 22px 28px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+        .info-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 14px; }
+        .info-card .card-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #1a3566; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .info-row .field { color: #64748b; }
+        .info-row .val   { font-weight: 600; text-align: right; max-width: 60%; }
+
+        /* ── Estado y OC ── */
+        .estado-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger  { background: #fee2e2; color: #991b1b; }
+        .badge-nc      { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+
+        /* ── Tabla productos ── */
+        .productos-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #1a3566; margin-bottom: 8px; }
+        table.productos { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+        table.productos thead tr { background: #1a3566; color: #fff; }
+        table.productos thead th { padding: 8px 10px; font-weight: 600; text-align: left; }
+        table.productos thead th.right { text-align: right; }
+        table.productos thead th.center { text-align: center; }
+        table.productos tbody tr:nth-child(even) { background: #f8fafc; }
+        table.productos tbody tr:hover { background: #eff6ff; }
+        table.productos tbody td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+        table.productos tbody td.right  { text-align: right; }
+        table.productos tbody td.center { text-align: center; }
+        .linea-nc   { color: #92400e; font-size: 10px; }
+        .diff-neg   { color: #dc2626; font-weight: 700; }
+
+        /* ── Totales ── */
+        .totales-wrap { display: flex; justify-content: flex-end; margin-top: 14px; }
+        .totales-box  { min-width: 240px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+        .totales-row  { display: flex; justify-content: space-between; padding: 6px 14px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+        .totales-row:last-child { border-bottom: none; }
+        .totales-row.total-final { background: #1a3566; color: #fff; font-weight: 700; font-size: 13px; }
+        .totales-row.nc-row { background: #fef3c7; color: #92400e; }
+
+        /* ── Footer ── */
+        .doc-footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 28px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; }
+
+        /* ── Impresión ── */
+        @@media print {
+            body { background: #fff; padding: 0; }
+            .doc-actions { display: none !important; }
+            .doc-wrap { box-shadow: none; border-radius: 0; }
         }
     </style>
 </head>
 <body>
-    <div style="font-size: 11px; text-align: right;">
-        <center>
-            <button type="button" id="Imprimir" class="btn btn-secondary" onclick="javascript:imprSelec('seleccion')"><i class="fas fa-print"></i> Imprimir</button>
-        </center>
-        <br>
+
+<div class="doc-wrap">
+
+    @* Barra de acciones *@
+    <div class="doc-actions no-print">
+        <h6><i class="fas fa-file-invoice"></i> Documento de Factura de Compra</h6>
+        <button class="btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> Imprimir
+        </button>
     </div>
-    <div id="seleccion">
-        <center>
-            <table style="width: 650px; border:2px solid #17a2b8;padding: 10px;">
-                <tr>
-                    <td>
-                        <table id="cabezera">
-                            <tr>
-                                <td style="width:140px">
-                                    <img src="@Url.Content("~/Imagenes/tienda.png")" alt="" height="70">
-                                </td>
-                                <td style="width:340px">
-                                    <table style="width:100%">
-                                        <tr><td><label style="font-size:20px;font-weight:bold;text-align:center;width:100%;display:block">MI TIENDA ONLINE COMPU SPACE</label></td></tr>
-                                        <tr><td><label style="text-align:center;width:100%;display:block">test@gmmail.com</label></td></tr>
-                                    </table>
-                                </td>
-                                <td style="width:150px;">
-                                    <table style="height: 90px; width:100%; font-weight: bold;border:2px solid #17a2b8;">
-                                        <tbody>
-                                            <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;"><td align="center">COMPRA</td></tr>
-                                            <tr><td align="center">NRO - <span>@Html.DisplayTextFor(model => model.NumeroFactura)</span> </td></tr>
-                                            <tr><td align="center">Fecha - <span>@Html.DisplayTextFor(model => model.FechaCompra)</span> </td></tr>
-                                            <tr><td align="center">Timbrado - <span>@Html.DisplayTextFor(model => model.NumeroTimbrado)</span> </td></tr>
-                                            <tr><td align="center">Vencimiento Timbrado - <span>@Html.DisplayTextFor(model => model.FechaVencimientoTimbrado)</span> </td></tr>
 
-                                        </tbody>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
+    @* Encabezado *@
+    <div class="doc-header">
+        <div class="empresa">
+            <h2>COMPU SPACE</h2>
+            <p>@tienda.Nombre</p>
+            <p>@tienda.Direccion</p>
+            <p>RUC: @tienda.RUC</p>
+        </div>
+        <div class="factura-box">
+            <div class="label">Factura de Compra</div>
+            <div class="value">N° @Model.NumeroFactura</div>
+            <div class="value-sm">Timbrado: @Model.NumeroTimbrado</div>
+            <div class="value-sm">Venc. Timbrado: @Model.FechaVencimientoTimbrado</div>
+        </div>
+    </div>
 
-                    </td>
-                </tr>
-                <tr style="height: 20px;"><td><br></td></tr>
+    <div class="doc-body">
+
+        @* Estado y OC *@
+        <div class="estado-bar">
+            <span>Estado:</span>
+            <span class="badge @badgeEstado">@(string.IsNullOrEmpty(Model.Estado) ? "—" : Model.Estado)</span>
+            @if (!string.IsNullOrEmpty(Model.NumeroOrden))
+            {
+                <span class="badge badge-warning"><i class="fas fa-file-alt"></i> OC: @Model.NumeroOrden</span>
+            }
+            @if (tieneNC)
+            {
+                <span class="badge badge-nc"><i class="fas fa-file-invoice-dollar"></i> NC aplicada: Gs. @string.Format("{0:N0}", Model.MontoNotaCredito).Replace(",", ".")</span>
+            }
+        </div>
+
+        @* Info proveedor / fechas *@
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="card-title"><i class="fas fa-truck"></i> Datos del Proveedor</div>
+                <div class="info-row"><span class="field">Razón Social</span><span class="val">@proveedor.RazonSocial</span></div>
+                <div class="info-row"><span class="field">RUC</span><span class="val">@proveedor.Ruc</span></div>
+                @if (!string.IsNullOrEmpty(proveedor.Telefono))
+                {
+                    <div class="info-row"><span class="field">Teléfono</span><span class="val">@proveedor.Telefono</span></div>
+                }
+                @if (!string.IsNullOrEmpty(proveedor.Correo))
+                {
+                    <div class="info-row"><span class="field">Correo</span><span class="val">@proveedor.Correo</span></div>
+                }
+            </div>
+            <div class="info-card">
+                <div class="card-title"><i class="fas fa-calendar-alt"></i> Fechas</div>
+                <div class="info-row"><span class="field">Fecha Factura</span><span class="val">@(string.IsNullOrEmpty(Model.FechaFactura) ? Model.FechaCompra : Model.FechaFactura)</span></div>
+                <div class="info-row"><span class="field">Fecha Entrega</span><span class="val">@(string.IsNullOrEmpty(Model.FechaEntrega) ? "—" : Model.FechaEntrega)</span></div>
+                <div class="info-row"><span class="field">Registrado</span><span class="val">@Model.FechaCompra</span></div>
+            </div>
+        </div>
+
+        @* Tabla de productos *@
+        <div class="productos-title"><i class="fas fa-boxes"></i> Detalle de Productos</div>
+        <table class="productos">
+            <thead>
                 <tr>
-                    <td>
-                        <table style="width: 100%;">
-                            <tbody>
-                                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
-                                    <td style="padding:4px" colspan="4">
-                                        <u>Detalle Proveedor</u>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td width="15">Ruc:</td>
-                                    <td style="border-bottom: 1px solid black;"><center><span>@Html.DisplayTextFor(model => model.oProveedor.Ruc)</span></center></td>
-                                    <td width="100">Razon Social:</td>
-                                    <td style="border-bottom: 1px solid black;"><center><span>@Html.DisplayTextFor(model => model.oProveedor.RazonSocial)</span></center></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </td>
+                    <th style="width:5%">#</th>
+                    <th style="width:35%">Producto</th>
+                    <th class="center" style="width:10%">Pedido</th>
+                    <th class="center" style="width:10%">Recibido</th>
+                    <th class="right"  style="width:15%">P. Unitario</th>
+                    <th class="right"  style="width:15%">Total</th>
+                    <th class="center" style="width:10%">Estado</th>
                 </tr>
-                <tr><td><hr /></td></tr>
-                <tr>
-                    <td>
-                        <table style="width: 100%;">
-                            <tbody>
-                                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
-                                    <td style="padding:4px" colspan="4">
-                                        <u>Tienda Destino</u>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td width="15">Ruc:</td>
-                                    <td style="border-bottom: 1px solid black;"><center><span>@Html.DisplayTextFor(model => model.oTienda.RUC)</span></center></td>
-                                    <td width="110">Nombre Tienda:</td>
-                                    <td style="border-bottom: 1px solid black;"><center><span id="nombretienda">@Html.DisplayTextFor(model => model.oTienda.Nombre)</span></center></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </td>
-                </tr>
-                <tr><td><hr /></td></tr>
-                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
-                    <td style="padding:4px">
-                        <u>Detalle Productos</u>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <table id="tbCompras" border="1" style=" width: 100%;">
-                            <thead>
-                                <tr bgcolor="#D9D9D9">
-                                    <th style="width: 15%;">Cantidad</th>
-                                    <th style="width: 50%;">Concepto</th>
-                                    <th style="width: 20%;">P.Unit Compra</th>
-                                    <th style="width: 25%;">Importe Iva Incluido</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in Model.oListaDetalleCompra)
+            </thead>
+            <tbody>
+                @if (!items.Any())
+                {
+                    <tr><td colspan="7" style="text-align:center; color:#64748b; padding:14px;">Sin líneas de detalle.</td></tr>
+                }
+                else
+                {
+                    int i = 1;
+                    foreach (var item in items)
+                    {
+                        int pedido   = item.Cantidad;
+                        int recibido = item.CantidadRecibida > 0 ? item.CantidadRecibida : pedido;
+                        int diff     = pedido - recibido;
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>@(item.oProducto != null ? item.oProducto.Nombre : "—")</td>
+                            <td class="center">@pedido</td>
+                            <td class="center">
+                                @recibido
+                                @if (diff > 0)
                                 {
-
-                                    <tr>
-                                        <td>@Html.DisplayFor(modelItem => item.Cantidad)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.oProducto.Nombre)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.PrecioUnitarioCompra)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.TotalCostoIvaIncluido)</td>
-                                    </tr>
+                                    <span class="diff-neg"> (-@diff)</span>
                                 }
-                            </tbody>
-                        </table>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">
-                        <table style="font-weight: bold; width: 150px;">
-                            <tbody>
-                                <tr>
-                                    <td>Total G/.</td>
-                                    <td style="border:1px solid black;"><span>@Html.DisplayTextFor(model => model.TotalCostoIvaIncluido)</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </center>
+                            </td>
+                            <td class="right">Gs. @string.Format("{0:N0}", item.PrecioUnitarioCompra).Replace(",",".")</td>
+                            <td class="right">Gs. @string.Format("{0:N0}", item.TotalCosto).Replace(",",".")</td>
+                            <td class="center">
+                                @{
+                                    string lineBadge = item.EstadoLinea == "Aceptada"  ? "badge-success"
+                                                     : item.EstadoLinea == "NC"        ? "badge-warning"
+                                                     : item.EstadoLinea == "Rechazada" ? "badge-danger"
+                                                     : "badge-warning";
+                                }
+                                <span class="badge @lineBadge">@(string.IsNullOrEmpty(item.EstadoLinea) ? "—" : item.EstadoLinea)</span>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        @* Totales *@
+        <div class="totales-wrap">
+            <div class="totales-box">
+                <div class="totales-row">
+                    <span>Subtotal</span>
+                    <span>Gs. @string.Format("{0:N0}", Model.TotalCosto).Replace(",",".")</span>
+                </div>
+                @if (tieneNC)
+                {
+                    <div class="totales-row nc-row">
+                        <span><i class="fas fa-minus"></i> Nota de Crédito</span>
+                        <span>- Gs. @string.Format("{0:N0}", Model.MontoNotaCredito).Replace(",",".")</span>
+                    </div>
+                    <div class="totales-row total-final">
+                        <span>Total Neto</span>
+                        <span>Gs. @string.Format("{0:N0}", Model.TotalCosto - (Model.MontoNotaCredito ?? 0)).Replace(",",".")</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="totales-row total-final">
+                        <span>Total</span>
+                        <span>Gs. @string.Format("{0:N0}", Model.TotalCosto).Replace(",",".")</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>@* /doc-body *@
+
+    @* Footer *@
+    <div class="doc-footer">
+        <span>Compra N° @Model.Codigo</span>
+        <span>Sistema de Ventas — COMPU SPACE</span>
+        <span>@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
     </div>
-    @Scripts.Render("~/Content/PluginsJS")
-    <script>
-        
-        function imprSelec(nombre) {
-            var printContents = document.getElementById(nombre).innerHTML;
-            var originalContents = document.body.innerHTML;
 
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-        }
+</div>@* /doc-wrap *@
 
-    </script>
-
+@Scripts.Render("~/Content/PluginsJS")
 </body>
 </html>

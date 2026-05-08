@@ -72,9 +72,10 @@ namespace CapaDatos
         }
 
         /// <summary>
-        /// Confirma la compra: cambia EstadoRecepcion a Confirmada y mueve el stock.
+        /// Confirma la compra: cambia EstadoRecepcion/Estado a Confirmada y mueve el stock.
+        /// El parámetro idUsuario es obligatorio para la trazabilidad O&amp;M.
         /// </summary>
-        public (bool resultado, string mensaje) ConfirmarCompra(int idCompra)
+        public (bool resultado, string mensaje) ConfirmarCompra(int idCompra, int idUsuario = 0, bool esSuperAdmin = false)
         {
             using (SqlConnection cn = new SqlConnection(Conexion.CN))
             {
@@ -82,7 +83,9 @@ namespace CapaDatos
                 {
                     SqlCommand cmd = new SqlCommand("usp_ConfirmarCompraEImpactarStock", cn);
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@IdCompra", idCompra);
+                    cmd.Parameters.AddWithValue("@IdCompra",     idCompra);
+                    cmd.Parameters.AddWithValue("@IdUsuario",    idUsuario);
+                    cmd.Parameters.AddWithValue("@EsSuperAdmin", esSuperAdmin ? 1 : 0);
                     cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 400).Direction = ParameterDirection.Output;
 
@@ -262,6 +265,133 @@ namespace CapaDatos
                     return (false, "Error: " + ex.Message, 0);
                 }
             }
+        }
+    }
+
+    // ================================================================
+    //  ANULAR COMPRA  (segregación O&M — el revisor anula si no llegó)
+    // ================================================================
+    public partial class CD_Compra
+    {
+        /// <summary>
+        /// Anula una compra Pendiente. Solo el revisor (diferente al que registró)
+        /// puede ejecutar esta acción. Registra en HISTORIAL_ESTADO_COMPRA.
+        /// </summary>
+        public (bool resultado, string mensaje) AnularCompra(
+            int idCompra, int idUsuario, string motivo = "")
+        {
+            using (var cn = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_AnularCompra", cn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdCompra",  idCompra);
+                    cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
+                    cmd.Parameters.AddWithValue("@Motivo",
+                        string.IsNullOrWhiteSpace(motivo) ? (object)DBNull.Value : motivo);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 400).Direction = ParameterDirection.Output;
+
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+
+                    bool ok    = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    string msg = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
+                    return (ok, msg);
+                }
+                catch (Exception ex)
+                {
+                    return (false, "Error al anular compra: " + ex.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la lista de compras para la pantalla de Revisión,
+        /// filtrando por fechas, proveedor, tienda y estado.
+        /// Llama a usp_ObtenerListaCompraRevision.
+        /// </summary>
+        public List<CapaModelo.Compra> ObtenerListaRevision(
+            DateTime fechaInicio, DateTime fechaFin,
+            int idProveedor, int idTienda, string estado = "Pendiente")
+        {
+            var lista = new List<CapaModelo.Compra>();
+
+            using (var cn = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand("usp_ObtenerListaCompraRevision", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@FechaInicio", SqlDbType.Date).Value = fechaInicio.Date;
+                cmd.Parameters.Add("@FechaFin",    SqlDbType.Date).Value = fechaFin.Date;
+                cmd.Parameters.AddWithValue("@IdProveedor", idProveedor);
+                cmd.Parameters.AddWithValue("@IdTienda",    idTienda);
+                cmd.Parameters.AddWithValue("@Estado",      string.IsNullOrWhiteSpace(estado) ? "Todos" : estado);
+
+                try
+                {
+                    cn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new CapaModelo.Compra
+                            {
+                                IdCompra        = Convert.ToInt32(dr["IdCompra"]),
+                                NumeroCompra    = dr["NumeroCompra"].ToString(),
+                                NumeroFactura   = dr["NumeroFactura"]?.ToString(),
+                                NumeroTimbrado  = dr["NumeroTimbrado"]?.ToString(),
+                                oProveedor = new CapaModelo.Proveedor
+                                {
+                                    IdProveedor = Convert.ToInt32(dr["IdProveedor"]),
+                                    RazonSocial = dr["RazonSocial"].ToString()
+                                },
+                                oTienda = new CapaModelo.Tienda
+                                {
+                                    IdTienda = Convert.ToInt32(dr["IdTienda"]),
+                                    Nombre   = dr["NombreTienda"].ToString()
+                                },
+                                FechaCompra      = dr["FechaRegistro"].ToString(),
+                                FechaFactura     = dr["FechaFactura"].ToString(),
+                                FechaEntrega     = dr["FechaEntrega"].ToString(),
+                                TotalCosto       = Convert.ToDecimal(dr["TotalCosto"]),
+                                Estado           = dr["Estado"].ToString(),
+                                EstadoRecepcion  = dr["EstadoRecepcion"].ToString(),
+                                UsuarioRegistro  = dr["UsuarioRegistro"].ToString(),
+                                NumeroOrden      = dr["NumeroOrden"]?.ToString(),
+                                MontoNotaCredito = LeerDecimal(dr, "MontoNotaCredito"),
+                                NecesitaNC       = LeerBool(dr, "NecesitaNC"),
+                                IdOrdenPago      = LeerInt(dr, "IdOrdenPago")
+                            });
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    lista = new List<CapaModelo.Compra>();
+                }
+            }
+
+            return lista;
+        }
+
+        // ── Helpers defensivos: leen columnas opcionales sin explotar ─────────
+        private static decimal LeerDecimal(SqlDataReader dr, string columna)
+        {
+            try { return dr[columna] != DBNull.Value ? Convert.ToDecimal(dr[columna]) : 0; }
+            catch { return 0; }
+        }
+
+        private static bool LeerBool(SqlDataReader dr, string columna)
+        {
+            try { return dr[columna] != DBNull.Value && Convert.ToBoolean(dr[columna]); }
+            catch { return false; }
+        }
+
+        private static int LeerInt(SqlDataReader dr, string columna)
+        {
+            try { return dr[columna] != DBNull.Value ? Convert.ToInt32(dr[columna]) : 0; }
+            catch { return 0; }
         }
     }
 }

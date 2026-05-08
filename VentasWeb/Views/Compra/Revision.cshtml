@@ -1,0 +1,186 @@
+@{
+    ViewBag.Title = "Revisión de Compras";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Compras</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Revisión de Compras</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-clipboard-check"></i>
+                Revisión de Facturas / Notas de Crédito — Segregación de Funciones O&amp;M
+            </div>
+            <div class="card-body p-2">
+
+                @* Filtros *@
+                <div class="row align-items-end">
+                    <div class="col-sm-2">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Fecha Inicio:</label>
+                            <input type="text" class="form-control form-control-sm" id="txtFechaInicio" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Fecha Fin:</label>
+                            <input type="text" class="form-control form-control-sm" id="txtFechaFin" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Proveedor:</label>
+                            <select class="form-control form-control-sm" id="cboProveedor"></select>
+                        </div>
+                    </div>
+                    <div class="col-sm-2" id="divFiltroTienda">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Tienda:</label>
+                            <select class="form-control form-control-sm" id="cboTienda"></select>
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Estado:</label>
+                            <select class="form-control form-control-sm" id="cboEstado">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Confirmada">Confirmada</option>
+                                <option value="Anulada">Anulada</option>
+                                <option value="Todos">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-sm btn-primary btn-block" onclick="buscar()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+
+                @* Alerta de segregación *@
+                <div class="alert alert-warning alert-sm mt-2 mb-0 py-1 px-2" role="alert">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Segregación O&amp;M:</strong>
+                    Solo puede confirmar o anular facturas que <strong>usted no registró</strong>.
+                    El SP valida este control automáticamente.
+                </div>
+
+                <hr class="mt-2 mb-2" />
+
+                <div class="row mt-2">
+                    <div class="col-sm-12">
+                        <table id="tbCompras"
+                               class="table table-striped table-bordered nowrap compact"
+                               style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Acciones</th>
+                                    <th>N° Compra</th>
+                                    <th>N° Factura</th>
+                                    <th>Proveedor</th>
+                                    <th>Tienda</th>
+                                    <th>F. Factura</th>
+                                    <th>F. Entrega</th>
+                                    <th>OC Vinculada</th>
+                                    <th>Total (Gs.)</th>
+                                    <th>Estado</th>
+                                    <th>Registrado por</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal Nota de Crédito *@
+<div class="modal fade" id="modalNC" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-file-invoice-dollar"></i> Generar Nota de Crédito</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnIdNC" value="0" />
+                <p class="text-muted small">
+                    Esta compra tiene <strong>diferencia entre lo pedido y lo recibido</strong>.
+                    Seleccione el motivo para generar la Nota de Crédito correspondiente.
+                </p>
+                <div class="form-group mb-0">
+                    <label class="col-form-label col-form-label-sm">
+                        Motivo <span class="text-danger">*</span>:
+                    </label>
+                    <select class="form-control form-control-sm" id="cboMotivoNC">
+                        <option value="0">-- Seleccione un motivo --</option>
+                        @if (ViewBag.MotivosNC != null)
+                        {
+                            foreach (var m in ViewBag.MotivosNC)
+                            {
+                                <option value="@m.IdMotivoNotaCredito">@m.Descripcion</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" onclick="confirmarGenerarNC()">
+                    <i class="fas fa-file-invoice-dollar"></i> Generar NC
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal Anulación *@
+<div class="modal fade" id="modalAnular" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-ban"></i> Anular Compra</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnIdAnular" value="0" />
+                <p class="text-muted small">
+                    Esta acción anulará la factura seleccionada.
+                    Solo es posible si la compra está en estado <strong>Pendiente</strong>.
+                </p>
+                <div class="form-group mb-0">
+                    <label class="col-form-label col-form-label-sm">
+                        Motivo de anulación <span class="text-danger">*</span>:
+                    </label>
+                    <textarea class="form-control form-control-sm"
+                              id="txtMotivoAnular" rows="3" maxlength="500"
+                              placeholder="Describa brevemente el motivo..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm"
+                        data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger btn-sm"
+                        onclick="confirmarAnulacion()">
+                    <i class="fas fa-ban"></i> Confirmar Anulación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/Compra_Revision.js?v=" + DateTime.Now.Ticks)"
+            type="text/javascript"></script>
+}

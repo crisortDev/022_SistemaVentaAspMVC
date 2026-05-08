@@ -33,6 +33,8 @@ namespace VentasWeb.Filters
             { "OrdenCompra|Aprobar",                       "Aprobar Orden Compra"       },
             { "OrdenCompra|Rechazar",                      "Aprobar Orden Compra"       },
             { "OrdenCompra|Anular",                        "Anular Orden Compra"        },
+            { "Compra|Revision",                           "Revisión de Compras"        },
+            { "Compra|OrdenPago",                          "Órdenes de Pago"            },
             { "Tienda|Crear",                              "Tiendas"                    },
             { "Venta|Crear",                               "Registrar Venta"            },
             { "Venta|Consultar",                           "Consultar Venta"            },

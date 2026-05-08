@@ -60,6 +60,38 @@ namespace VentasWeb.Controllers
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
+        /// <summary>
+        /// Lista enriquecida para la vista Consultar: usa el mismo SP de Revisión
+        /// con estado="Todos" para mostrar Estado, NC, OC vinculada, etc.
+        /// </summary>
+        [HttpGet]
+        public JsonResult ObtenerConsulta(string fechainicio, string fechafin,
+                                          int idproveedor, int idtienda, string estado)
+        {
+            if (!EsSuperAdmin)
+                idtienda = TiendaActiva;
+
+            var lista = CD_Compra.Instancia.ObtenerListaRevision(
+                Convert.ToDateTime(fechainicio),
+                Convert.ToDateTime(fechafin),
+                idproveedor,
+                idtienda,
+                string.IsNullOrWhiteSpace(estado) ? "Todos" : estado
+            );
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        /// <summary>
+        /// Devuelve las líneas de detalle de una compra en JSON
+        /// (cantidades pedidas/recibidas + estado de línea) para el child row.
+        /// </summary>
+        [HttpGet]
+        public JsonResult ObtenerDetalleJson(int idcompra)
+        {
+            var lineas = CD_Compra.Instancia.ObtenerLineasParaRecepcion(idcompra);
+            return Json(new { data = lineas ?? new List<DetalleCompra>() }, JsonRequestBehavior.AllowGet);
+        }
+
         [HttpPost]
         public JsonResult Guardar(string xml)
         {

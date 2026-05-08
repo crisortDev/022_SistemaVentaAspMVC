@@ -224,39 +224,60 @@ namespace CapaDatos
                             XDocument doc = XDocument.Load(dr);
                             if (doc.Element("DETALLE_COMPRA") != null)
                             {
-                                rptDetalleCompra = (from dato in doc.Elements("DETALLE_COMPRA")
-                                                     select new Compra()
-                                                     {
-                                                         Codigo = dato.Element("Codigo")?.Value ?? "",
-                                                         TotalCosto = Convert.ToDecimal(dato.Element("TotalCosto")?.Value ?? "0", new CultureInfo("es-PE")),
-                                                         FechaCompra = dato.Element("FechaCompra")?.Value ?? "",
-                                                         FechaVencimientoTimbrado = dato.Element("FechaVencimientoTimbrado")?.Value ?? "",
-                                                         NumeroTimbrado = dato.Element("NumeroTimbrado")?.Value ?? "",
-                                                         NumeroFactura = dato.Element("NumeroFactura")?.Value ?? "",
-                                                         TotalCostoIvaIncluido = Convert.ToDecimal(dato.Element("TotalCostoIvaIncluido")?.Value ?? "0", new CultureInfo("es-PE")),
-                                                     }).FirstOrDefault();
-                                rptDetalleCompra.oProveedor = (from dato in doc.Element("DETALLE_COMPRA").Elements("DETALLE_PROVEEDOR")
-                                                               select new Proveedor()
-                                                               {
-                                                                   Ruc = dato.Element("RUC").Value,
-                                                                   RazonSocial = dato.Element("RazonSocial").Value,
-                                                               }).FirstOrDefault();
-                                rptDetalleCompra.oTienda = (from dato in doc.Element("DETALLE_COMPRA").Elements("DETALLE_TIENDA")
-                                                            select new Tienda()
-                                                            {
-                                                                RUC = dato.Element("RUC").Value,
-                                                                Nombre = dato.Element("Nombre").Value,
-                                                                Direccion = dato.Element("Direccion").Value
-                                                            }).FirstOrDefault();
-                                rptDetalleCompra.oListaDetalleCompra = (from producto in doc.Element("DETALLE_COMPRA").Element("DETALLE_PRODUCTO").Elements("PRODUCTO")
-                                                                        select new DetalleCompra()
-                                                                        {
-                                                                            Cantidad = int.Parse(producto.Element("Cantidad").Value),
-                                                                            oProducto = new Producto() { Nombre = producto.Element("NombreProducto").Value },
-                                                                            PrecioUnitarioCompra = Convert.ToDecimal(producto.Element("PrecioUnitarioCompra").Value, new CultureInfo("es-PE")),
-                                                                            TotalCosto = Convert.ToDecimal(producto.Element("TotalCosto").Value, new CultureInfo("es-PE")),
-                                                                            TotalCostoIvaIncluido = Convert.ToDecimal(producto.Element("TotalCostoIvaIncluido").Value, new CultureInfo("es-PE"))
-                                                                        }).ToList();
+                                var root = doc.Element("DETALLE_COMPRA");
+                                rptDetalleCompra = new Compra()
+                                {
+                                    IdCompra                 = int.Parse(root.Element("IdCompra")?.Value ?? "0"),
+                                    Codigo                   = root.Element("Codigo")?.Value ?? "",
+                                    NumeroFactura            = root.Element("NumeroFactura")?.Value ?? "",
+                                    NumeroTimbrado           = root.Element("NumeroTimbrado")?.Value ?? "",
+                                    FechaVencimientoTimbrado = root.Element("FechaVencimientoTimbrado")?.Value ?? "",
+                                    FechaCompra              = root.Element("FechaCompra")?.Value ?? "",
+                                    FechaFactura             = root.Element("FechaFactura")?.Value ?? "",
+                                    FechaEntrega             = root.Element("FechaEntrega")?.Value ?? "",
+                                    TotalCosto               = Convert.ToDecimal(root.Element("TotalCosto")?.Value ?? "0", new CultureInfo("es-PE")),
+                                    TotalCostoIvaIncluido    = Convert.ToDecimal(root.Element("TotalCostoIvaIncluido")?.Value ?? "0", new CultureInfo("es-PE")),
+                                    Estado                   = root.Element("Estado")?.Value ?? "",
+                                    EstadoRecepcion          = root.Element("EstadoRecepcion")?.Value ?? "",
+                                    MontoNotaCredito         = root.Element("MontoNotaCredito") != null
+                                                               ? Convert.ToDecimal(root.Element("MontoNotaCredito").Value, new CultureInfo("es-PE"))
+                                                               : (decimal?)null,
+                                    NumeroOrden              = root.Element("DETALLE_OC")?.Element("NumeroOrden")?.Value ?? ""
+                                };
+
+                                rptDetalleCompra.oProveedor = root.Element("DETALLE_PROVEEDOR") != null
+                                    ? new Proveedor()
+                                      {
+                                          Ruc         = root.Element("DETALLE_PROVEEDOR").Element("RUC")?.Value ?? "",
+                                          RazonSocial = root.Element("DETALLE_PROVEEDOR").Element("RazonSocial")?.Value ?? "",
+                                          Telefono    = root.Element("DETALLE_PROVEEDOR").Element("Telefono")?.Value ?? "",
+                                          Correo      = root.Element("DETALLE_PROVEEDOR").Element("Correo")?.Value ?? "",
+                                          Direccion   = root.Element("DETALLE_PROVEEDOR").Element("Direccion")?.Value ?? ""
+                                      }
+                                    : new Proveedor();
+
+                                rptDetalleCompra.oTienda = root.Element("DETALLE_TIENDA") != null
+                                    ? new Tienda()
+                                      {
+                                          RUC       = root.Element("DETALLE_TIENDA").Element("RUC")?.Value ?? "",
+                                          Nombre    = root.Element("DETALLE_TIENDA").Element("Nombre")?.Value ?? "",
+                                          Direccion = root.Element("DETALLE_TIENDA").Element("Direccion")?.Value ?? ""
+                                      }
+                                    : new Tienda();
+                                var detalleProductoEl = doc.Element("DETALLE_COMPRA")?.Element("DETALLE_PRODUCTO");
+                                rptDetalleCompra.oListaDetalleCompra = detalleProductoEl != null
+                                    ? (from producto in detalleProductoEl.Elements("PRODUCTO")
+                                       select new DetalleCompra()
+                                       {
+                                           Cantidad             = int.Parse(producto.Element("Cantidad")?.Value ?? "0"),
+                                           CantidadRecibida     = producto.Element("CantidadRecibida") != null ? int.Parse(producto.Element("CantidadRecibida").Value) : 0,
+                                           oProducto            = new Producto() { Nombre = producto.Element("NombreProducto")?.Value ?? "" },
+                                           PrecioUnitarioCompra = Convert.ToDecimal(producto.Element("PrecioUnitarioCompra")?.Value ?? "0", new CultureInfo("es-PE")),
+                                           TotalCosto           = Convert.ToDecimal(producto.Element("TotalCosto")?.Value            ?? "0", new CultureInfo("es-PE")),
+                                           TotalCostoIvaIncluido = Convert.ToDecimal(producto.Element("TotalCostoIvaIncluido")?.Value ?? "0", new CultureInfo("es-PE")),
+                                           EstadoLinea          = producto.Element("EstadoLinea")?.Value ?? ""
+                                       }).ToList()
+                                    : new List<DetalleCompra>();
                             }
                             else
                             {

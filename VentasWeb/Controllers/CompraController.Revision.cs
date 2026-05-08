@@ -102,17 +102,68 @@ namespace VentasWeb.Controllers
         }
 
         // ============================================================
+        //  VISTA REVISION (compras pendientes de confirmación)
+        // ============================================================
+
+        [AuthorizeRol("Compra", "Revision")]
+        public ActionResult Revision()
+        {
+            ViewBag.MotivosNC = CD_MotivoNotaCredito.Instancia.Obtener();
+            return View();
+        }
+
+        // ============================================================
+        //  JSON: LISTA PARA REVISION
+        // ============================================================
+
+        [HttpGet]
+        [AuthorizeRol("Compra", "Revision")]
+        public JsonResult ObtenerRevision(string fechainicio, string fechafin,
+                                          int idproveedor, int idtienda, string estado)
+        {
+            if (!EsSuperAdmin)
+                idtienda = TiendaActiva;
+
+            var lista = CD_Compra.Instancia.ObtenerListaRevision(
+                Convert.ToDateTime(fechainicio),
+                Convert.ToDateTime(fechafin),
+                idproveedor,
+                idtienda,
+                string.IsNullOrWhiteSpace(estado) ? "Pendiente" : estado
+            );
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        // ============================================================
         //  JSON: CONFIRMAR COMPRA
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("Compra", "Confirmar")]
+        [AuthorizeRol("Compra", "Revision")]
         public JsonResult ConfirmarCompra(int idcompra)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            var rpt = CD_Compra.Instancia.ConfirmarCompra(idcompra);
+            var rpt = CD_Compra.Instancia.ConfirmarCompra(idcompra, UsuarioActual.IdUsuario, EsSuperAdmin);
+            return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
+        }
+
+        // ============================================================
+        //  JSON: ANULAR COMPRA
+        // ============================================================
+
+        [HttpPost]
+        [AuthorizeRol("Compra", "Revision")]
+        public JsonResult AnularCompra(int idcompra, string motivo)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            if (string.IsNullOrWhiteSpace(motivo))
+                return Json(new { resultado = false, mensaje = "Debe ingresar un motivo de anulación." });
+
+            var rpt = CD_Compra.Instancia.AnularCompra(idcompra, UsuarioActual.IdUsuario, motivo);
             return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
         }
 
@@ -121,7 +172,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("Compra", "NotaCredito")]
+        [AuthorizeRol("Compra", "Revision")]
         public JsonResult GenerarNotaCredito(int idcompra, int idmotivoNC)
         {
             if (UsuarioActual == null)
