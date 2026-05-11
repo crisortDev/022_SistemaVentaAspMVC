@@ -106,9 +106,17 @@ $(document).ready(function () {
                     var btnNC   = "";
 
                     if (row.Estado === "Pendiente") {
-                        btnConf = "<button class='btn btn-success btn-sm mr-1' title='Confirmar' "
-                                + "onclick='confirmarCompra(" + row.IdCompra + ")'>"
-                                + "<i class='fas fa-check'></i></button>";
+                        // Confirmar: bloqueado hasta que NC sea generada (si corresponde)
+                        if (row.NecesitaNC) {
+                            btnConf = "<button class='btn btn-success btn-sm mr-1' disabled "
+                                    + "title='Genere primero la Nota de Crédito (diferencia de cantidades pendiente)' "
+                                    + "style='opacity:0.45;cursor:not-allowed'>"
+                                    + "<i class='fas fa-check'></i></button>";
+                        } else {
+                            btnConf = "<button class='btn btn-success btn-sm mr-1' title='Confirmar Compra' "
+                                    + "onclick='confirmarCompra(" + row.IdCompra + ")'>"
+                                    + "<i class='fas fa-check'></i></button>";
+                        }
 
                         btnAnul = "<button class='btn btn-danger btn-sm mr-1' title='Anular' "
                                 + "onclick='abrirModalAnular(" + row.IdCompra + ")'>"
@@ -117,9 +125,10 @@ $(document).ready(function () {
 
                     // Botón NC: solo si hay diferencia de cantidades sin NC generada
                     if (row.NecesitaNC) {
-                        btnNC = "<button class='btn btn-warning btn-sm mr-1' title='Generar Nota de Crédito' "
+                        btnNC = "<button class='btn btn-warning btn-sm mr-1' "
+                              + "title='Generar Nota de Crédito — Diferencia en cantidades' "
                               + "onclick='abrirModalNC(" + row.IdCompra + ")'>"
-                              + "<i class='fas fa-file-invoice-dollar'></i></button>";
+                              + "<i class='fas fa-file-invoice-dollar'></i> NC</button>";
                     }
 
                     // Botón OP: solo en compras Confirmadas sin Orden de Pago generada
