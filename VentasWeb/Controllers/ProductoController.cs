@@ -90,12 +90,6 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                // CAMBIO: PrecioVenta ya no viene del formulario de creación,
-                // se deja en 0 por defecto para nuevos productos.
-                // Se gestiona desde el módulo de Precios de Venta.
-                if (objeto.IdProducto == 0)
-                    objeto.PrecioVenta = 0;
-
                 bool respuesta = objeto.IdProducto == 0
                     ? _productoService.RegistrarProducto(objeto)
                     : _productoService.ModificarProducto(objeto);

@@ -19,6 +19,53 @@ function formatNum(n) {
     return n.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+// Debounce: ejecuta fn solo si pasaron `ms` ms sin nuevas llamadas
+function debounce(fn, ms) {
+    var timer;
+    return function () {
+        var args = arguments, ctx = this;
+        clearTimeout(timer);
+        timer = setTimeout(function () { fn.apply(ctx, args); }, ms);
+    };
+}
+
+// ─── Validación de stock en tiempo real (por fila) ────────────────────
+var _stockTimers = {};   // timers por fila para debounce individual
+
+function verificarStockFila(tr) {
+    var idProducto = parseInt(tr.data('idproducto')) || 0;
+    var idTienda   = parseInt($("#txtIdTienda").val()) || 0;
+    var cantidad   = parseInt(tr.find('.inp-cantidad').val()) || 0;
+    var $alerta    = tr.find('.stock-alert-fila');
+
+    if (idProducto <= 0 || idTienda <= 0 || cantidad <= 0) {
+        $alerta.hide();
+        return;
+    }
+
+    $.ajax({
+        url:      $.MisUrls.url._OC_ValidarStockItem,
+        type:     "GET",
+        dataType: "json",
+        data:     { idtienda: idTienda, idproducto: idProducto, cantidad: cantidad },
+        success: function (res) {
+            if (res.supera) {
+                $alerta
+                    .html('<i class="fas fa-exclamation-triangle"></i> '
+                        + 'Stock máx: <strong>' + res.stockMax + '</strong> | '
+                        + 'Actual: ' + res.stockActual + ' | '
+                        + 'Proyectado: <strong class="text-danger">' + res.proyectado + '</strong>')
+                    .show();
+                tr.find('.inp-cantidad').addClass('border-warning');
+            } else {
+                $alerta.hide();
+                tr.find('.inp-cantidad').removeClass('border-warning');
+            }
+        },
+        error: function () { $alerta.hide(); }
+    });
+}
+
 // ─── Inicialización ───────────────────────────────────────────────────
 $(document).ready(function () {
     activarMenu("Compras");
@@ -50,16 +97,20 @@ $(document).ready(function () {
         recalcularTotales();
     });
 
-    // IVA global: recalcular todo si cambia
-    $("#txtIvaGlobal").on('input', function () {
-        var iva = parseFloat($(this).val()) || 10;
-        $("#tbDetalle tbody tr").each(function () {
-            $(this).data('iva', iva);
-            $(this).find('.td-iva').text(iva);
-            actualizarFilaTotales($(this));
-        });
-        recalcularTotales();
+    // Validación de stock en tiempo real al cambiar la cantidad (debounce 600ms)
+    $(document).on('input', '#tbDetalle tbody .inp-cantidad', function () {
+        var tr      = $(this).closest('tr');
+        var trIndex = tr.index();
+
+        clearTimeout(_stockTimers[trIndex]);
+        _stockTimers[trIndex] = setTimeout(function () {
+            verificarStockFila(tr);
+        }, 600);
     });
+
+    // IVA global: ya no aplica — el IVA se toma del producto individual.
+    // Se mantiene el campo en la vista solo como referencia informativa.
+    // (sin handler de cambio)
 });
 
 // ─── DataTables ───────────────────────────────────────────────────────
@@ -149,16 +200,24 @@ function inicializarDataTables() {
                                 data-id="${row.IdProducto}"
                                 data-codigo="${row.Codigo}"
                                 data-nombre="${row.Nombre}"
-                                data-iva="${row.IvaPorcentaje || 10}">
+                                data-iva="${row.IvaPorcentaje != null ? row.IvaPorcentaje : 10}">
                                 <i class="fas fa-plus"></i>
                             </button>`;
                 },
-                "orderable": false, "searchable": false, "width": "60px"
+                "orderable": false, "searchable": false, "width": "50px"
             },
-            { "data": "Codigo" },
+            { "data": "Codigo",      "width": "80px" },
             { "data": "Nombre" },
             { "data": "Descripcion" },
-            { "data": "oCategoria", "render": d => d ? d.Descripcion : "" }
+            { "data": "oCategoria",  "render": function(d) { return d ? d.Descripcion : ""; } },
+            {
+                "data": "IvaPorcentaje",
+                "render": function(d) { return (d != null ? d : 10) + ' %'; },
+                "className": "text-center",
+                "width": "70px",
+                "orderable": false,
+                "searchable": false
+            }
         ],
         "language": lenguajeDataTable()
     });
@@ -169,7 +228,9 @@ function inicializarDataTables() {
         var idProducto = btn.data('id');
         var codigo     = btn.data('codigo');
         var nombre     = btn.data('nombre');
-        var iva        = parseFloat($("#txtIvaGlobal").val()) || 10;
+        // Usar el IVA propio del producto; solo si es 0 puede ser exento (no usar global)
+        var iva        = parseFloat(btn.data('iva'));
+        if (isNaN(iva)) iva = 10;
 
         // Validar que proveedor y tienda estén seleccionados
         if (parseInt($("#txtIdProveedor").val()) <= 0) {
@@ -202,6 +263,8 @@ function inicializarDataTables() {
             <td>
                 <input type="number" class="form-control form-control-sm inp-cantidad"
                        value="1" min="1" style="width:75px">
+                <small class="stock-alert-fila text-warning d-block mt-1"
+                       style="display:none!important;font-size:0.72em;line-height:1.3"></small>
             </td>
             <td>
                 <input type="number" class="form-control form-control-sm inp-precio"
@@ -380,7 +443,7 @@ function guardarOrden() {
         if (cantidad <= 0 || precio <= 0) {
             filaInvalida = true;
             tr.find('.inp-cantidad, .inp-precio').addClass('is-invalid');
-            return false; // break
+            return false;
         }
         tr.find('.inp-cantidad, .inp-precio').removeClass('is-invalid');
 
@@ -403,43 +466,121 @@ function guardarOrden() {
         return;
     }
 
-    Swal.fire({
-        title: "¿Guardar la Orden de Compra?",
-        text: "Quedará en estado Pendiente de aprobación.",
-        icon: "info",
-        showCancelButton: true,
-        confirmButtonText: "Confirmar",
-        cancelButtonText: "Cancelar"
-    }).then(function (result) {
-        if (!result.isConfirmed) return;
+    // ── PASO 1: Validar stock máximo antes de confirmar ───────────────
+    var itemsValidar = detalle.map(function (d) {
+        return { IdProducto: d.oProducto.IdProducto, Cantidad: d.Cantidad };
+    });
 
-        $.ajax({
-            url:      $.MisUrls.url._OC_Guardar,
-            type:     "POST",
-            dataType: "json",
-            data: {
-                idproveedor:      idProveedor,
-                idtienda:         idTienda,
-                fechaentrega:     fechaEntrega,
-                observacion:      observacion,
-                idcategoriaoc:    idCategoriaOC,
-                fechatopeentrega: fechaTopeEntrega,
-                detalle:          detalle
-            },
-            traditional: false,
-            beforeSend: function () { $("body").LoadingOverlay("show"); },
-            complete:   function () { $("body").LoadingOverlay("hide"); },
-            success: function (resp) {
-                if (resp.resultado) {
-                    Swal.fire({ title: "Éxito", text: resp.mensaje || "Orden registrada correctamente.", icon: "success" })
-                        .then(() => { window.location.href = $.MisUrls.url._OC_Consultar; });
-                } else {
-                    Swal.fire({ title: "Error", text: resp.mensaje || "No se pudo registrar la orden.", icon: "error" });
-                }
-            },
-            error: function () {
-                Swal.fire({ title: "Error", text: "Error de comunicación con el servidor.", icon: "error" });
+    var postData = { idtienda: idTienda };
+    itemsValidar.forEach(function (it, i) {
+        postData['items[' + i + '].IdProducto'] = it.IdProducto;
+        postData['items[' + i + '].Cantidad']   = it.Cantidad;
+    });
+
+    $("body").LoadingOverlay("show");
+
+    $.ajax({
+        url:  $.MisUrls.url._OC_ValidarStock,
+        type: "POST",
+        data: postData,
+        dataType: "json",
+        complete: function () { $("body").LoadingOverlay("hide"); },
+        success: function (res) {
+            var advertencias = res.advertencias || [];
+
+            if (advertencias.length > 0) {
+                // Construir tabla de advertencias para el Swal
+                var filas = advertencias.map(function (a) {
+                    return '<tr>'
+                         + '<td class="text-left"><strong>' + a.Producto + '</strong></td>'
+                         + '<td class="text-center">' + a.StockActual + '</td>'
+                         + '<td class="text-center text-primary">' + a.Pedido + '</td>'
+                         + '<td class="text-center text-danger"><strong>' + a.Proyectado + '</strong></td>'
+                         + '<td class="text-center">' + a.StockMax + '</td>'
+                         + '</tr>';
+                }).join('');
+
+                var tablaHtml = '<div style="max-height:200px;overflow-y:auto;font-size:0.85em">'
+                    + '<table class="table table-sm table-bordered mb-0">'
+                    + '<thead class="thead-light"><tr>'
+                    + '<th>Producto</th><th>Stock actual</th>'
+                    + '<th>A pedir</th><th>Proyectado</th><th>Máximo</th>'
+                    + '</tr></thead><tbody>' + filas + '</tbody></table></div>';
+
+                Swal.fire({
+                    title:             '⚠ Stock máximo superado',
+                    html:              '<p class="mb-2 text-muted">Los siguientes productos superarían el stock máximo configurado:</p>'
+                                     + tablaHtml
+                                     + '<p class="mt-2 mb-0 text-muted" style="font-size:0.85em">Podés continuar igual o ajustar las cantidades.</p>',
+                    icon:              'warning',
+                    showCancelButton:  true,
+                    confirmButtonText: 'Continuar de todas formas',
+                    cancelButtonText:  'Ajustar cantidades',
+                    confirmButtonColor: '#e67e22',
+                    cancelButtonColor:  '#6c757d',
+                    width:             '650px'
+                }).then(function (r) {
+                    if (r.isConfirmed) enviarGuardarOC(idProveedor, idTienda, fechaEntrega, observacion, idCategoriaOC, fechaTopeEntrega, detalle);
+                });
+
+            } else {
+                // Sin advertencias → confirmar y guardar directamente
+                Swal.fire({
+                    title:             '¿Guardar la Orden de Compra?',
+                    text:              'Quedará en estado Pendiente de aprobación.',
+                    icon:              'info',
+                    showCancelButton:  true,
+                    confirmButtonText: 'Confirmar',
+                    cancelButtonText:  'Cancelar'
+                }).then(function (r) {
+                    if (r.isConfirmed) enviarGuardarOC(idProveedor, idTienda, fechaEntrega, observacion, idCategoriaOC, fechaTopeEntrega, detalle);
+                });
             }
-        });
+        },
+        error: function () {
+            // Si la validación falla, igual preguntar y dejar guardar
+            Swal.fire({
+                title:             '¿Guardar la Orden de Compra?',
+                text:              'Quedará en estado Pendiente de aprobación.',
+                icon:              'info',
+                showCancelButton:  true,
+                confirmButtonText: 'Confirmar',
+                cancelButtonText:  'Cancelar'
+            }).then(function (r) {
+                if (r.isConfirmed) enviarGuardarOC(idProveedor, idTienda, fechaEntrega, observacion, idCategoriaOC, fechaTopeEntrega, detalle);
+            });
+        }
+    });
+}
+
+// ─── Enviar POST de guardado ───────────────────────────────────────────
+function enviarGuardarOC(idProveedor, idTienda, fechaEntrega, observacion, idCategoriaOC, fechaTopeEntrega, detalle) {
+    $.ajax({
+        url:      $.MisUrls.url._OC_Guardar,
+        type:     "POST",
+        dataType: "json",
+        data: {
+            idproveedor:      idProveedor,
+            idtienda:         idTienda,
+            fechaentrega:     fechaEntrega,
+            observacion:      observacion,
+            idcategoriaoc:    idCategoriaOC,
+            fechatopeentrega: fechaTopeEntrega,
+            detalle:          detalle
+        },
+        traditional: false,
+        beforeSend: function () { $("body").LoadingOverlay("show"); },
+        complete:   function () { $("body").LoadingOverlay("hide"); },
+        success: function (resp) {
+            if (resp.resultado) {
+                Swal.fire({ title: "Éxito", text: resp.mensaje || "Orden registrada correctamente.", icon: "success" })
+                    .then(function () { window.location.href = $.MisUrls.url._OC_Consultar; });
+            } else {
+                Swal.fire({ title: "Error", text: resp.mensaje || "No se pudo registrar la orden.", icon: "error" });
+            }
+        },
+        error: function () {
+            Swal.fire({ title: "Error", text: "Error de comunicación con el servidor.", icon: "error" });
+        }
     });
 }

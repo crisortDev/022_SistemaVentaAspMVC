@@ -69,6 +69,20 @@ function inicializarDataTable() {
                 render: function (data) { return data ? data.Descripcion : "Sin categoría"; }
             },
             {
+                data: "IvaPorcentaje",
+                className: "text-center",
+                render: function (data) { return (data != null ? data : 10) + ' %'; }
+            },
+            {
+                data: "StockMaximo",
+                className: "text-center",
+                render: function (data) {
+                    return data > 0
+                        ? '<span class="badge badge-info">' + data + '</span>'
+                        : '<span class="text-muted">Sin límite</span>';
+                }
+            },
+            {
                 data: "Activo",
                 render: function (data) {
                     return data
@@ -130,6 +144,10 @@ function verProducto(jsonString) {
         $("#verNombre").text(json.Nombre || '—');
         $("#verDescripcion").text(json.Descripcion || '—');
         $("#verCategoria").text((json.oCategoria && json.oCategoria.Descripcion) ? json.oCategoria.Descripcion : 'Sin categoría');
+        var iva = json.IvaPorcentaje != null ? json.IvaPorcentaje : 10;
+        $("#verIva").text(iva + ' %');
+        var smax = json.StockMaximo != null ? json.StockMaximo : 0;
+        $("#verStockMaximo").text(smax > 0 ? smax : 'Sin límite');
         $("#verEstado").html(json.Activo
             ? '<span class="badge badge-success">Activo</span>'
             : '<span class="badge badge-danger">Inactivo</span>');
@@ -155,6 +173,8 @@ function abrirPopUpForm(jsonString) {
             $("#txtNombre").val(json.Nombre);
             $("#txtDescripcion").val(json.Descripcion);
             $("#cboCategoria").val(json.IdCategoria);
+            $("#cboIva").val(json.IvaPorcentaje != null ? String(json.IvaPorcentaje) : "10");
+            $("#txtStockMaximo").val(json.StockMaximo != null ? json.StockMaximo : 0);
             $("#cboEstado").val(json.Activo ? "1" : "0");
         }
 
@@ -172,12 +192,13 @@ function Guardar() {
 
         var request = {
             objeto: {
-                IdProducto: parseInt($("#txtid").val()) || 0,
-                Nombre: $("#txtNombre").val(),
-                Descripcion: $("#txtDescripcion").val(),
-                IdCategoria: parseInt($("#cboCategoria").val()) || 0,
-                Activo: $("#cboEstado").val() === "1"
-                // CAMBIO: PrecioVenta eliminado del formulario
+                IdProducto:    parseInt($("#txtid").val()) || 0,
+                Nombre:        $("#txtNombre").val(),
+                Descripcion:   $("#txtDescripcion").val(),
+                IdCategoria:   parseInt($("#cboCategoria").val()) || 0,
+                IvaPorcentaje: parseFloat($("#cboIva").val()) || 10,
+                StockMaximo:   parseInt($("#txtStockMaximo").val()) || 0,
+                Activo:        $("#cboEstado").val() === "1"
             }
         };
 

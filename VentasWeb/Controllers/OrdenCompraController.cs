@@ -300,6 +300,133 @@ namespace VentasWeb.Controllers
         }
 
         // ============================================================
+        //  VALIDAR STOCK — ítem individual (para alerta en tiempo real)
+        // ============================================================
+
+        /// <summary>
+        /// Consulta rápida para un solo producto: devuelve stock actual,
+        /// StockMaximo y si la cantidad pedida lo superaría.
+        /// Usado por el JS para la alerta inline al escribir la cantidad.
+        /// </summary>
+        [HttpGet]
+        public JsonResult ValidarStockItem(int idtienda, int idproducto, int cantidad)
+        {
+            if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+            try
+            {
+                using (var cn = new System.Data.SqlClient.SqlConnection(CapaDatos.Conexion.CN))
+                {
+                    cn.Open();
+                    var cmd = new System.Data.SqlClient.SqlCommand(@"
+                        SELECT ISNULL(pt.Stock,  0) AS StockActual,
+                               ISNULL(p.StockMaximo, 0) AS StockMaximo
+                        FROM dbo.PRODUCTO p
+                        LEFT JOIN dbo.PRODUCTO_TIENDA pt
+                               ON pt.IdProducto = p.IdProducto
+                              AND pt.IdTienda   = @IdTienda
+                        WHERE p.IdProducto = @IdProducto", cn);
+
+                    cmd.Parameters.AddWithValue("@IdProducto", idproducto);
+                    cmd.Parameters.AddWithValue("@IdTienda",   idtienda);
+
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            int stockMax    = Convert.ToInt32(dr["StockMaximo"]);
+                            int stockActual = Convert.ToInt32(dr["StockActual"]);
+                            bool supera     = stockMax > 0 && (stockActual + cantidad) > stockMax;
+
+                            return Json(new
+                            {
+                                stockActual,
+                                stockMax,
+                                supera,
+                                proyectado = stockActual + cantidad
+                            }, JsonRequestBehavior.AllowGet);
+                        }
+                    }
+                }
+            }
+            catch { /* silencioso — no romper la UX */ }
+
+            return Json(new { stockActual = 0, stockMax = 0, supera = false, proyectado = cantidad },
+                        JsonRequestBehavior.AllowGet);
+        }
+
+        // ============================================================
+        //  VALIDAR STOCK MÁXIMO ANTES DE GUARDAR LA OC
+        // ============================================================
+
+        /// <summary>
+        /// Verifica si algún producto de la OC superaría el StockMaximo
+        /// de la tienda destino. Devuelve lista de advertencias (vacía = OK).
+        /// No bloquea: solo informa para que el usuario decida.
+        /// </summary>
+        [HttpPost]
+        public JsonResult ValidarStock(int idtienda, List<ItemStockValidacion> items)
+        {
+            if (items == null || !items.Any())
+                return Json(new { advertencias = new System.Collections.Generic.List<object>() });
+
+            if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+            var advertencias = new System.Collections.Generic.List<object>();
+
+            try
+            {
+                using (var cn = new System.Data.SqlClient.SqlConnection(CapaDatos.Conexion.CN))
+                {
+                    cn.Open();
+                    foreach (var item in items)
+                    {
+                        var cmd = new System.Data.SqlClient.SqlCommand(@"
+                            SELECT p.Nombre,
+                                   ISNULL(pt.Stock,       0) AS StockActual,
+                                   ISNULL(p.StockMaximo,  0) AS StockMaximo
+                            FROM dbo.PRODUCTO p
+                            LEFT JOIN dbo.PRODUCTO_TIENDA pt
+                                   ON pt.IdProducto = p.IdProducto
+                                  AND pt.IdTienda   = @IdTienda
+                            WHERE p.IdProducto = @IdProducto", cn);
+
+                        cmd.Parameters.AddWithValue("@IdProducto", item.IdProducto);
+                        cmd.Parameters.AddWithValue("@IdTienda",   idtienda);
+
+                        using (var dr = cmd.ExecuteReader())
+                        {
+                            if (dr.Read())
+                            {
+                                int stockMax    = Convert.ToInt32(dr["StockMaximo"]);
+                                int stockActual = Convert.ToInt32(dr["StockActual"]);
+                                int proyectado  = stockActual + item.Cantidad;
+
+                                if (stockMax > 0 && proyectado > stockMax)
+                                {
+                                    advertencias.Add(new
+                                    {
+                                        Producto    = dr["Nombre"].ToString(),
+                                        StockActual = stockActual,
+                                        Pedido      = item.Cantidad,
+                                        Proyectado  = proyectado,
+                                        StockMax    = stockMax
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { advertencias = new System.Collections.Generic.List<object>(), error = ex.Message });
+            }
+
+            return Json(new { advertencias });
+        }
+
+        // ============================================================
         //  HELPERS PRIVADOS
         // ============================================================
 
@@ -325,5 +452,12 @@ namespace VentasWeb.Controllers
                     .Replace("\"", "&quot;")
                     .Replace("'", "&apos;");
         }
+    }
+
+    /// <summary>DTO para validación de stock por ítem de OC.</summary>
+    public class ItemStockValidacion
+    {
+        public int IdProducto { get; set; }
+        public int Cantidad   { get; set; }
     }
 }

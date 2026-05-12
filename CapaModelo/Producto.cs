@@ -10,7 +10,8 @@ namespace CapaModelo
         public string Nombre { get; set; }
         public string Descripcion { get; set; }
         public int IdCategoria { get; set; }
-        public int PrecioVenta { get; set; }
+        public decimal IvaPorcentaje { get; set; }
+        public int StockMaximo { get; set; }
         public Categoria oCategoria { get; set; }
         public bool Activo { get; set; }
     }

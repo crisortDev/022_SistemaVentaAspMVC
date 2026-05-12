@@ -41,14 +41,16 @@ namespace CapaDatos
                     {
                         rptListaProducto.Add(new Producto()
                         {
-                            IdProducto = Convert.ToInt32(dr["IdProducto"].ToString()),
-                            Codigo = dr["Codigo"].ToString(),
-                            ValorCodigo = Convert.ToInt32(dr["ValorCodigo"].ToString()),
-                            Nombre = dr["Nombre"].ToString(),
-                            Descripcion = dr["DescripcionProducto"].ToString(),
-                            IdCategoria = Convert.ToInt32(dr["IdCategoria"].ToString()),
-                            oCategoria = new Categoria() { Descripcion = dr["DescripcionCategoria"].ToString() },
-                            Activo = Convert.ToBoolean(dr["Activo"].ToString())
+                            IdProducto    = Convert.ToInt32(dr["IdProducto"].ToString()),
+                            Codigo        = dr["Codigo"].ToString(),
+                            ValorCodigo   = Convert.ToInt32(dr["ValorCodigo"].ToString()),
+                            Nombre        = dr["Nombre"].ToString(),
+                            Descripcion   = dr["DescripcionProducto"].ToString(),
+                            IdCategoria   = Convert.ToInt32(dr["IdCategoria"].ToString()),
+                            IvaPorcentaje = dr["IvaPorcentaje"] == DBNull.Value ? 10m  : Convert.ToDecimal(dr["IvaPorcentaje"]),
+                            StockMaximo   = dr["StockMaximo"]  == DBNull.Value ? 0    : Convert.ToInt32(dr["StockMaximo"]),
+                            oCategoria    = new Categoria() { Descripcion = dr["DescripcionCategoria"].ToString() },
+                            Activo        = Convert.ToBoolean(dr["Activo"].ToString())
                         });
                     }
                     dr.Close();
@@ -70,9 +72,11 @@ namespace CapaDatos
                 {
                     SqlCommand cmd = new SqlCommand("usp_RegistrarProducto", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("Nombre", oProducto.Nombre);
-                    cmd.Parameters.AddWithValue("Descripcion", oProducto.Descripcion);
-                    cmd.Parameters.AddWithValue("IdCategoria", oProducto.IdCategoria);
+                    cmd.Parameters.AddWithValue("Nombre",        oProducto.Nombre);
+                    cmd.Parameters.AddWithValue("Descripcion",   oProducto.Descripcion);
+                    cmd.Parameters.AddWithValue("IdCategoria",   oProducto.IdCategoria);
+                    cmd.Parameters.AddWithValue("IvaPorcentaje", oProducto.IvaPorcentaje);
+                    cmd.Parameters.AddWithValue("StockMaximo",   oProducto.StockMaximo);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
                     oConexion.Open();
@@ -91,11 +95,15 @@ namespace CapaDatos
             {
                 try
                 {
-                    SqlCommand cmd = new SqlCommand("usp_RegistrarProducto", oConexion);
+                    SqlCommand cmd = new SqlCommand("usp_ModificarProducto", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("Nombre", oProducto.Nombre);
-                    cmd.Parameters.AddWithValue("Descripcion", oProducto.Descripcion);
-                    cmd.Parameters.AddWithValue("IdCategoria", oProducto.IdCategoria);
+                    cmd.Parameters.AddWithValue("IdProducto",    oProducto.IdProducto);
+                    cmd.Parameters.AddWithValue("Nombre",        oProducto.Nombre);
+                    cmd.Parameters.AddWithValue("Descripcion",   oProducto.Descripcion);
+                    cmd.Parameters.AddWithValue("IdCategoria",   oProducto.IdCategoria);
+                    cmd.Parameters.AddWithValue("IvaPorcentaje", oProducto.IvaPorcentaje);
+                    cmd.Parameters.AddWithValue("StockMaximo",   oProducto.StockMaximo);
+                    cmd.Parameters.AddWithValue("Activo",        oProducto.Activo);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
                     oConexion.Open();
@@ -103,9 +111,6 @@ namespace CapaDatos
                     respuesta = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
                 }
                 catch { respuesta = false; }
-
-
-
             }
             return respuesta;
         }
