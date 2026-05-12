@@ -1,0 +1,197 @@
+@{
+    ViewBag.Title = "Reporte de Gerencia — Compras";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var tiendas = ViewBag.Tiendas as List<CapaModelo.Tienda> ?? new List<CapaModelo.Tienda>();
+}
+
+@section estilos {
+    <style>
+        .kpi-card { border-radius: 10px; padding: 1rem 1.2rem; color: #fff; min-height: 100px; }
+        .kpi-card .kpi-val  { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+        .kpi-card .kpi-lbl  { font-size: 0.78rem; opacity: .88; }
+        .kpi-card .kpi-icon { font-size: 2rem; opacity: .25; position: absolute; right: 1rem; top: .8rem; }
+        .kpi-compras  { background: linear-gradient(135deg,#1a3566,#2563eb); }
+        .kpi-monto    { background: linear-gradient(135deg,#059669,#10b981); }
+        .kpi-oc       { background: linear-gradient(135deg,#0891b2,#06b6d4); }
+        .kpi-nc       { background: linear-gradient(135deg,#b45309,#f59e0b); }
+        .kpi-alerta   { background: linear-gradient(135deg,#991b1b,#ef4444); }
+        .chart-card   { border-radius:10px; box-shadow:0 2px 12px rgba(12,26,53,.07); }
+        .badge-Pendiente { background:#fbbf24; color:#1c1917; }
+        .badge-Aprobada  { background:#10b981; color:#fff; }
+        .badge-Rechazada { background:#ef4444; color:#fff; }
+        .badge-Anulada   { background:#6b7280; color:#fff; }
+        .badge-Facturada { background:#2563eb; color:#fff; }
+        .badge-Cerrada   { background:#7c3aed; color:#fff; }
+        #spinner { display:none; }
+    </style>
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Reportes</a></li>
+        <li class="breadcrumb-item active">Reporte Gerencia Compras</li>
+    </ol>
+</nav>
+
+<!-- Filtros -->
+<div class="card border-info mb-3">
+    <div class="card-header bg-info text-white py-2">
+        <i class="fas fa-chart-bar mr-1"></i> Reporte de Gerencia — Módulo Compras
+    </div>
+    <div class="card-body p-2">
+        <div class="row align-items-end">
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Inicio</label>
+                <input type="text" class="form-control form-control-sm datepicker-rg" id="txtFechaInicio" placeholder="dd/mm/aaaa" autocomplete="off">
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Fin</label>
+                <input type="text" class="form-control form-control-sm datepicker-rg" id="txtFechaFin" placeholder="dd/mm/aaaa" autocomplete="off">
+            </div>
+            <div class="col-sm-3" id="divTienda" style="@(Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"] ? "" : "display:none;")">
+                <label class="col-form-label col-form-label-sm">Tienda</label>
+                <select class="form-control form-control-sm" id="cboTienda">
+                    <option value="0">Todas las tiendas</option>
+                    @foreach (var t in tiendas)
+                    {
+                        <option value="@t.IdTienda">@t.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button class="btn btn-primary btn-sm btn-block" onclick="generarReporte()">
+                    <i class="fas fa-search"></i> Generar
+                </button>
+            </div>
+            <div class="col-sm-2">
+                <button class="btn btn-danger btn-sm btn-block" id="btnPDF" onclick="descargarPDF()" disabled>
+                    <i class="fas fa-file-pdf"></i> Descargar PDF
+                </button>
+            </div>
+            <div class="col-sm-1 text-center" id="spinner">
+                <i class="fas fa-spinner fa-spin fa-lg text-primary mt-2"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenido del reporte (oculto hasta generar) -->
+<div id="divReporte" style="display:none;">
+
+    <!-- Encabezado del reporte -->
+    <div class="text-center mb-3">
+        <h5 id="lblTituloReporte" class="font-weight-bold text-primary"></h5>
+        <small class="text-muted" id="lblPeriodo"></small>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row mb-3" id="divKPIs">
+        <div class="col-sm-2">
+            <div class="kpi-card kpi-compras position-relative">
+                <div class="kpi-lbl">Total Compras</div>
+                <div class="kpi-val" id="kpiTotalCompras">0</div>
+                <i class="fas fa-shopping-cart kpi-icon"></i>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <div class="kpi-card kpi-monto position-relative">
+                <div class="kpi-lbl">Monto Total (Gs.)</div>
+                <div class="kpi-val" id="kpiMonto">0</div>
+                <i class="fas fa-money-bill-wave kpi-icon"></i>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <div class="kpi-card kpi-oc position-relative">
+                <div class="kpi-lbl">OC Pendientes</div>
+                <div class="kpi-val" id="kpiOCPendientes">0</div>
+                <i class="fas fa-clipboard-list kpi-icon"></i>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <div class="kpi-card kpi-nc position-relative">
+                <div class="kpi-lbl">NC Pendientes</div>
+                <div class="kpi-val" id="kpiNCPendientes">0</div>
+                <i class="fas fa-file-invoice-dollar kpi-icon"></i>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <div class="kpi-card kpi-alerta position-relative">
+                <div class="kpi-lbl">OC Fuera de Plazo</div>
+                <div class="kpi-val" id="kpiOCFuera">0</div>
+                <i class="fas fa-exclamation-triangle kpi-icon"></i>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <div class="kpi-card kpi-nc position-relative">
+                <div class="kpi-lbl">Monto Total NC (Gs.)</div>
+                <div class="kpi-val" id="kpiMontoNC">0</div>
+                <i class="fas fa-receipt kpi-icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-3">
+        <!-- Compras por mes -->
+        <div class="col-sm-7">
+            <div class="card chart-card p-3">
+                <h6 class="text-primary mb-2"><i class="fas fa-chart-bar mr-1"></i> Compras por Mes (Gs.)</h6>
+                <canvas id="chartMensual" height="120"></canvas>
+            </div>
+        </div>
+        <!-- OC por estado -->
+        <div class="col-sm-5">
+            <div class="card chart-card p-3">
+                <h6 class="text-primary mb-2"><i class="fas fa-chart-pie mr-1"></i> Órdenes de Compra por Estado</h6>
+                <canvas id="chartOCEstado" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <!-- Top proveedores -->
+        <div class="col-sm-6">
+            <div class="card chart-card p-3">
+                <h6 class="text-primary mb-2"><i class="fas fa-trophy mr-1"></i> Top 5 Proveedores por Monto (Gs.)</h6>
+                <canvas id="chartProveedores" height="160"></canvas>
+            </div>
+        </div>
+        <!-- Resumen NC -->
+        <div class="col-sm-6">
+            <div class="card chart-card p-3">
+                <h6 class="text-primary mb-2"><i class="fas fa-file-invoice-dollar mr-1"></i> Notas de Crédito — Resumen</h6>
+                <div class="row text-center mt-2" id="divResumenNC"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OCs fuera de plazo -->
+    <div class="card chart-card p-3 mb-3" id="divOCFuera">
+        <h6 class="text-danger mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> Órdenes de Compra Fuera de Plazo</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered table-striped mb-0" id="tbOCFuera">
+                <thead>
+                    <tr>
+                        <th>Nro. Orden</th>
+                        <th>Proveedor</th>
+                        <th>Tienda</th>
+                        <th>Fecha Tope</th>
+                        <th class="text-right">Monto Est. (Gs.)</th>
+                        <th>Estado</th>
+                        <th class="text-center">Días Vencida</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyOCFuera"></tbody>
+            </table>
+        </div>
+        <div id="sinOCFuera" class="text-center text-success mt-2" style="display:none;">
+            <i class="fas fa-check-circle mr-1"></i> No hay órdenes de compra fuera de plazo en el período.
+        </div>
+    </div>
+
+</div>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="@Url.Content("~/Scripts/Views/ReporteGerencia_Index.js?v=" + DateTime.Now.Ticks)"></script>
+}

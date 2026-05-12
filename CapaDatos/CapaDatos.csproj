@@ -72,6 +72,7 @@
     <Compile Include="CD_Compra.Revision.cs" />
     <Compile Include="CD_MotivoNotaCredito.cs" />
     <Compile Include="CD_NotaCredito.cs" />
+    <Compile Include="CD_ReporteGerencia.cs" />
     <Compile Include="CD_MotivoRechazoOC.cs" />
     <Compile Include="CD_OrdenPago.cs" />
   </ItemGroup>
