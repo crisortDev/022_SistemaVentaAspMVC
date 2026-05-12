@@ -117,8 +117,12 @@
                     </div>
                     <div class="col-sm-3">
                         <div class="form-group mb-0">
-                            <label class="col-form-label col-form-label-sm">Fecha Tope de Entrega:</label>
-                            <input type="text" class="form-control form-control-sm" id="txtFechaTopeEntrega" autocomplete="off" placeholder="dd/mm/aaaa">
+                            <label class="col-form-label col-form-label-sm">
+                                Fecha Tope de Entrega:
+                                <small class="text-muted">(mín. 7 días)</small>
+                            </label>
+                            <input type="text" class="form-control form-control-sm datepicker-tope"
+                                   id="txtFechaTopeEntrega" autocomplete="off" placeholder="dd/mm/aaaa">
                         </div>
                     </div>
                 </div>
@@ -155,10 +159,10 @@
                                         <th style="width:80px">Código</th>
                                         <th>Producto</th>
                                         <th style="width:100px">Cantidad</th>
-                                        <th style="width:140px">Precio Unit. (Gs.)</th>
+                                        <th style="width:150px">Precio Costo Unit. (Gs.)</th>
                                         <th style="width:60px">IVA %</th>
-                                        <th style="width:120px" class="text-right">Total</th>
-                                        <th style="width:120px" class="text-right">Total c/IVA</th>
+                                        <th style="width:130px" class="text-right">Total Costo</th>
+                                        <th style="width:130px" class="text-right">Total Costo c/IVA</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>

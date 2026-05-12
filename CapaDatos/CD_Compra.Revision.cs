@@ -104,31 +104,36 @@ namespace CapaDatos
         }
 
         /// <summary>
-        /// Genera la nota de crédito por las diferencias entre cantidad facturada y
-        /// cantidad recibida. Si no hay diferencia, devuelve resultado=false.
+        /// Genera (registra) la Nota de Crédito formal por las diferencias entre
+        /// cantidad pedida y cantidad recibida.  Llama a usp_RegistrarNotaCredito
+        /// que crea el registro en estado 'Pendiente' y actualiza COMPRA.MontoNotaCredito.
+        /// Si no hay diferencia, devuelve resultado=false.
         /// </summary>
         public (bool resultado, string mensaje, decimal montoNC) GenerarNotaCredito(
-            int idCompra, int idMotivoNC)
+            int idCompra, int idMotivoNC, int idUsuario = 0)
         {
             using (SqlConnection cn = new SqlConnection(Conexion.CN))
             {
                 try
                 {
-                    SqlCommand cmd = new SqlCommand("usp_GenerarNotaCreditoPorDiferencia", cn);
+                    SqlCommand cmd = new SqlCommand("usp_RegistrarNotaCredito", cn);
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@IdCompra", idCompra);
-                    cmd.Parameters.AddWithValue("@IdMotivoNotaCredito", idMotivoNC);
+                    cmd.Parameters.AddWithValue("@IdCompra",   idCompra);
+                    cmd.Parameters.AddWithValue("@IdMotivoNC", idMotivoNC);
+                    cmd.Parameters.AddWithValue("@IdUsuario",  idUsuario);
+
                     cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 400).Direction = ParameterDirection.Output;
-                    cmd.Parameters.Add("@MontoNC", SqlDbType.Decimal).Direction = ParameterDirection.Output;
-                    cmd.Parameters["@MontoNC"].Precision = 18;
-                    cmd.Parameters["@MontoNC"].Scale     = 2;
+                    var pMonto = cmd.Parameters.Add("@MontoNC", SqlDbType.Decimal);
+                    pMonto.Direction = ParameterDirection.Output;
+                    pMonto.Precision = 18;
+                    pMonto.Scale     = 2;
 
                     cn.Open();
                     cmd.ExecuteNonQuery();
 
-                    bool ok    = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
-                    string msg = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
+                    bool    ok    = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    string  msg   = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
                     decimal monto = cmd.Parameters["@MontoNC"].Value != DBNull.Value
                                   ? Convert.ToDecimal(cmd.Parameters["@MontoNC"].Value) : 0;
                     return (ok, msg, monto);

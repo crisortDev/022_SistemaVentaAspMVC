@@ -29,6 +29,61 @@ function debounce(fn, ms) {
     };
 }
 
+// ─── Validación de fechas ─────────────────────────────────────────────
+/**
+ * Valida la coherencia entre Fecha Entrega Estimada y Fecha Tope de Entrega.
+ * @param {boolean} mostrarError  Si true muestra SweetAlert en caso de error.
+ * @returns {boolean}  true = fechas OK (o vacías), false = hay error.
+ */
+function parseFechaDDMMYYYY(str) {
+    if (!str) return null;
+    var p = str.split('/');
+    if (p.length !== 3) return null;
+    var d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function validarFechas(mostrarError) {
+    var strEntrega = $("#txtFechaEntrega").val().trim();
+    var strTope    = $("#txtFechaTopeEntrega").val().trim();
+
+    var hoy     = new Date(); hoy.setHours(0, 0, 0, 0);
+    var minTope = new Date(hoy); minTope.setDate(minTope.getDate() + 7);
+
+    // ── Validar Fecha Tope ────────────────────────────────────────────
+    if (strTope) {
+        var dtTope = parseFechaDDMMYYYY(strTope);
+        if (!dtTope) {
+            if (mostrarError) Swal.fire({ title: 'Fecha inválida', text: 'La Fecha Tope de Entrega no tiene un formato válido (dd/mm/aaaa).', icon: 'warning' });
+            $("#txtFechaTopeEntrega").addClass('is-invalid');
+            return false;
+        }
+        if (dtTope < minTope) {
+            if (mostrarError) Swal.fire({ title: 'Fecha Tope muy cercana', text: 'La Fecha Tope de Entrega debe ser al menos 7 días desde hoy.', icon: 'warning' });
+            $("#txtFechaTopeEntrega").addClass('is-invalid');
+            return false;
+        }
+        $("#txtFechaTopeEntrega").removeClass('is-invalid').addClass('is-valid');
+
+        // ── Validar que Entrega Estimada ≤ Tope ──────────────────────
+        if (strEntrega) {
+            var dtEntrega = parseFechaDDMMYYYY(strEntrega);
+            if (dtEntrega && dtEntrega > dtTope) {
+                if (mostrarError) Swal.fire({
+                    title: 'Fechas inconsistentes',
+                    text:  'La Fecha de Entrega Estimada no puede ser posterior a la Fecha Tope de Entrega.',
+                    icon:  'warning'
+                });
+                $("#txtFechaEntrega").addClass('is-invalid');
+                return false;
+            }
+            $("#txtFechaEntrega").removeClass('is-invalid');
+        }
+    }
+
+    return true;
+}
+
 // ─── Validación de stock en tiempo real (por fila) ────────────────────
 var _stockTimers = {};   // timers por fila para debounce individual
 
@@ -71,7 +126,22 @@ $(document).ready(function () {
     activarMenu("Compras");
 
     $.datepicker.setDefaults($.datepicker.regional['es']);
-    $("#txtFechaEntrega").datepicker({ dateFormat: 'dd/mm/yy' });
+
+    // Fecha Entrega Estimada — sin restricción de mínimo
+    $("#txtFechaEntrega").datepicker({
+        dateFormat: 'dd/mm/yy',
+        minDate:    0   // no puede ser en el pasado
+    });
+
+    // Fecha Tope de Entrega — mínimo 7 días desde hoy
+    $("#txtFechaTopeEntrega").datepicker({
+        dateFormat: 'dd/mm/yy',
+        minDate:    '+7d',
+        onSelect: function () {
+            // Cuando se cambia el tope, revalidar la estimada si ya tiene valor
+            validarFechas(false);
+        }
+    });
 
     inicializarDataTables();
 
@@ -429,6 +499,9 @@ function guardarOrden() {
 
     if (idProveedor <= 0) { Swal.fire({ title: "Atención", text: "Debe seleccionar un proveedor.", icon: "warning" }); return; }
     if (idTienda    <= 0) { Swal.fire({ title: "Atención", text: "Debe seleccionar una tienda.",    icon: "warning" }); return; }
+
+    // ── Validar coherencia de fechas ──────────────────────────────────
+    if (!validarFechas(true)) return;
 
     // Construir detalle desde inputs inline
     var detalle = [];

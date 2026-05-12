@@ -1,0 +1,275 @@
+@{
+    ViewBag.Title = "Gestión de Notas de Crédito";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var tiendas = ViewBag.Tiendas as List<CapaModelo.Tienda> ?? new List<CapaModelo.Tienda>();
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Compras</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Gestión de Notas de Crédito</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-file-invoice-dollar mr-1"></i> Gestión de Notas de Crédito
+            </div>
+            <div class="card-body p-2">
+
+                <!-- Filtros -->
+                <div class="row align-items-end mb-2">
+
+                    <!-- Tienda (solo SuperAdmin) -->
+                    <div class="col-sm-3" id="divFiltroTienda" style="@(Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"] ? "" : "display:none;")">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Tienda:</label>
+                            <select class="form-control form-control-sm" id="cboFiltroTienda">
+                                <option value="0">-- Todas --</option>
+                                @foreach (var t in tiendas)
+                                {
+                                    <option value="@t.IdTienda">@t.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Estado -->
+                    <div class="col-sm-2">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">Estado:</label>
+                            <select class="form-control form-control-sm" id="cboFiltroEstado">
+                                <option value="">Todos</option>
+                                <option value="Pendiente" selected>Pendiente</option>
+                                <option value="Recibida">Recibida</option>
+                                <option value="Rechazada">Rechazada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Botón Buscar -->
+                    <div class="col-sm-2">
+                        <button id="btnBuscar" class="btn btn-primary btn-sm btn-block" onclick="cargarTabla()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+
+                    <!-- Leyenda estados -->
+                    <div class="col-sm-5 d-flex align-items-end pb-1">
+                        <small class="text-muted">
+                            <span class="badge badge-warning text-dark mr-1">Pendiente</span>
+                            <span class="badge badge-danger mr-1">Morosa</span>
+                            <span class="badge badge-success mr-1">Recibida</span>
+                            <span class="badge badge-secondary mr-1">Rechazada</span>
+                            &nbsp;Una NC es <strong>Morosa</strong> cuando lleva más de 30 días desde la factura sin el documento del proveedor.
+                        </small>
+                    </div>
+                </div>
+
+                <hr class="mt-1 mb-2" />
+
+                <!-- Tabla DataTable -->
+                <div class="table-responsive-sm">
+                    <table id="tbNC" class="table table-striped table-bordered table-sm" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th style="width:40px"></th>
+                                <th>Nro. NC</th>
+                                <th>Compra / Factura</th>
+                                <th>Proveedor</th>
+                                <th>Tienda</th>
+                                <th class="text-right" style="width:130px">Monto NC (Gs.)</th>
+                                <th style="width:100px">Estado</th>
+                                <th style="width:70px" class="text-center">Días</th>
+                                <th>Motivo</th>
+                                <th style="width:120px" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL: CONFIRMAR RECEPCIÓN DEL DOCUMENTO FÍSICO
+════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalConfirmar" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white py-2">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-invoice-dollar mr-1"></i>
+                    Registrar Nota de Crédito — Documento del Proveedor
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <input type="hidden" id="hdnIdNC" value="0" />
+
+                <!-- Info de la compra (solo lectura) -->
+                <div class="alert alert-info py-1 mb-2">
+                    <strong>Compra:</strong> <span id="infoNumFactura"></span>
+                    &nbsp;|&nbsp;
+                    <strong>Proveedor:</strong> <span id="infoProveedor"></span>
+                    &nbsp;|&nbsp;
+                    <strong>Monto NC:</strong> <span id="infoMontoNC"></span>
+                </div>
+
+                <div class="row">
+                    <!-- Número NC (formato SET PY: xxx-xxx-xxxxxxx) -->
+                    <div class="col-sm-6">
+                        <div class="form-group mb-2">
+                            <label class="col-form-label col-form-label-sm">
+                                Número de Nota de Crédito <small class="text-muted">(xxx-xxx-xxxxxxx)</small>
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="txtNumeroNC"
+                                   maxlength="20" placeholder="001-001-0000001"
+                                   oninput="formatearNumeroNC(this)">
+                        </div>
+                    </div>
+                    <!-- Número Timbrado -->
+                    <div class="col-sm-6">
+                        <div class="form-group mb-2">
+                            <label class="col-form-label col-form-label-sm">Número de Timbrado</label>
+                            <input type="text" class="form-control form-control-sm" id="txtNumeroTimbrado"
+                                   maxlength="20" placeholder="12345678">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Fecha Vencimiento Timbrado -->
+                    <div class="col-sm-6">
+                        <div class="form-group mb-2">
+                            <label class="col-form-label col-form-label-sm">Fecha Vencimiento Timbrado</label>
+                            <input type="text" class="form-control form-control-sm datepicker-nc"
+                                   id="txtFechaVencTimbrado" placeholder="dd/mm/aaaa" autocomplete="off">
+                        </div>
+                    </div>
+                    <!-- Fecha Emisión NC -->
+                    <div class="col-sm-6">
+                        <div class="form-group mb-2">
+                            <label class="col-form-label col-form-label-sm">
+                                Fecha de Emisión NC
+                                <small class="text-muted">(no puede ser futura ni mayor a 30 días de la factura)</small>
+                            </label>
+                            <input type="text" class="form-control form-control-sm datepicker-nc"
+                                   id="txtFechaEmision" placeholder="dd/mm/aaaa" autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observación -->
+                <div class="form-group mb-1">
+                    <label class="col-form-label col-form-label-sm">Observación <small class="text-muted">(opcional)</small></label>
+                    <input type="text" class="form-control form-control-sm" id="txtObservacionConfirmar"
+                           maxlength="500">
+                </div>
+
+                <!-- Advertencia SET PY -->
+                <div class="alert alert-warning py-1 mt-2 mb-0" style="font-size:0.82rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>SET Paraguay:</strong> La NC debe haber sido emitida dentro de los <strong>30 días</strong>
+                    corridos desde la fecha de la factura original. El sistema validará este plazo.
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnConfirmarNC" onclick="confirmarRecepcion()">
+                    <i class="fas fa-check"></i> Confirmar Recepción
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL: RECHAZAR NC
+════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalRechazar" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white py-2">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle mr-1"></i> Rechazar Nota de Crédito
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnIdNCRechazar" value="0" />
+                <div class="alert alert-danger py-1 mb-2">
+                    <strong>Compra:</strong> <span id="infoNumFacturaRechazar"></span>
+                </div>
+                <div class="form-group mb-1">
+                    <label class="col-form-label col-form-label-sm">
+                        Motivo del Rechazo <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control form-control-sm" id="txtObservacionRechazar"
+                              rows="3" maxlength="500"
+                              placeholder="Ej: Timbrado vencido, monto incorrecto, documento ilegible..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="rechazarNC()">
+                    <i class="fas fa-times"></i> Rechazar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL: VER DETALLE NC
+════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalVerNC" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye mr-1"></i> Detalle de Nota de Crédito
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered table-sm mb-0">
+                    <tbody>
+                        <tr><th style="width:200px">Número NC</th>         <td id="verNumeroNC" class="ver-text"></td></tr>
+                        <tr><th>Timbrado</th>                               <td id="verTimbrado" class="ver-text"></td></tr>
+                        <tr><th>Vencimiento Timbrado</th>                   <td id="verFechaVenc"></td></tr>
+                        <tr><th>Fecha Emisión NC</th>                       <td id="verFechaEmision"></td></tr>
+                        <tr><th>Factura Origen</th>                         <td id="verFactura" class="ver-text"></td></tr>
+                        <tr><th>Proveedor</th>                              <td id="verProveedor" class="ver-text"></td></tr>
+                        <tr><th>Tienda</th>                                 <td id="verTienda"></td></tr>
+                        <tr><th>Monto NC (Gs.)</th>                         <td id="verMontoNC" class="text-right"></td></tr>
+                        <tr><th>Estado</th>                                 <td id="verEstado"></td></tr>
+                        <tr><th>Motivo</th>                                 <td id="verMotivo"></td></tr>
+                        <tr><th>Fecha Registro</th>                         <td id="verFechaRegistro"></td></tr>
+                        <tr><th>Registrado por</th>                         <td id="verUsuario"></td></tr>
+                        <tr><th>Observación</th>                            <td id="verObservacion" class="ver-text"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/NotaCredito_Index.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

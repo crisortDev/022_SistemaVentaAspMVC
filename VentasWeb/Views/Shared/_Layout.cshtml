@@ -526,6 +526,14 @@
             _OP_Consultar: '@Url.Action("Consultar", "OrdenPago")'
         });
 
+        // ---- NOTA DE CRÉDITO ----
+        $.MisUrls.urls({
+            _NC_Index:             '@Url.Action("Index",             "NotaCredito")',
+            _NC_Obtener:           '@Url.Action("Obtener",           "NotaCredito")',
+            _NC_ConfirmarRecepcion:'@Url.Action("ConfirmarRecepcion","NotaCredito")',
+            _NC_Rechazar:          '@Url.Action("Rechazar",          "NotaCredito")'
+        });
+
         // ---- VENTA ----
         $.MisUrls.urls({
             _ObtenerUsuario: '@Url.Action("ObtenerUsuario", "Venta")',

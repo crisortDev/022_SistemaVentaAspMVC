@@ -181,8 +181,8 @@ namespace VentasWeb.Controllers
             if (idmotivoNC <= 0)
                 return Json(new { resultado = false, mensaje = "Debe seleccionar el motivo." });
 
-            var rpt = CD_Compra.Instancia.GenerarNotaCredito(idcompra, idmotivoNC);
-            return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
+            var rpt = CD_Compra.Instancia.GenerarNotaCredito(idcompra, idmotivoNC, UsuarioActual.IdUsuario);
+            return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje, montonc = rpt.montoNC });
         }
 
         // ============================================================

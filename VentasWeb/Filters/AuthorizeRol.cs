@@ -42,7 +42,8 @@ namespace VentasWeb.Filters
             { "Reporte|Ventas",                            "Ventas"                     },
             { "ConsultarCajaCompra|ConsultarCajaCompra",   "Caja Compra"                },
             { "ConsultarCajaVenta|ConsultarCajaVenta",     "Caja Venta"                 },
-            { "Usuario|CambioContraseña",                  "Cambio de Contraseña"       }
+            { "Usuario|CambioContraseña",                  "Cambio de Contraseña"       },
+            { "NotaCredito|Index",                         "Gestión de NC"              }
         };
 
         public AuthorizeRolAttribute(string controlador, string vista)
