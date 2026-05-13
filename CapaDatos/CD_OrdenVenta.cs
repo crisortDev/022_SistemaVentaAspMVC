@@ -40,7 +40,13 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("@IdUsuarioRegistro", idUsuarioRegistro);
                     cmd.Parameters.AddWithValue("@Observacion",
                         string.IsNullOrWhiteSpace(observacion) ? (object)DBNull.Value : observacion);
-                    cmd.Parameters.AddWithValue("@FechaVencimiento", fechaVencimiento);
+                    // El datepicker envía dd/MM/yyyy — convertir a DateTime para SQL DATE
+                    DateTime fechaVenc;
+                    if (!DateTime.TryParseExact(fechaVencimiento, "dd/MM/yyyy",
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.None, out fechaVenc))
+                        fechaVenc = Convert.ToDateTime(fechaVencimiento);
+                    cmd.Parameters.Add("@FechaVencimiento", SqlDbType.Date).Value = fechaVenc;
                     cmd.Parameters.Add("@DetalleXml", SqlDbType.Xml).Value = detalleXml;
 
                     cmd.Parameters.Add("@IdOVGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;

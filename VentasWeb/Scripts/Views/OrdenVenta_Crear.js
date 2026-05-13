@@ -48,7 +48,11 @@ function seleccionarCliente(id, doc, nombre) {
 
 function iniciarTablaProducto() {
     dtProducto = $('#tbProducto').DataTable({
-        ajax: { url: $.MisUrls.url._Venta_ProductoStock + '?soloConStock=false', dataSrc: 'data', type: 'GET' },
+        ajax: {
+            url: $.MisUrls.url._Venta_ProductoStock,
+            data: { soloConStock: false, idtienda: AppSession.idTienda > 0 ? AppSession.idTienda : 1 },
+            dataSrc: 'data', type: 'GET'
+        },
         columns: [
             {
                 data: null, orderable: false, searchable: false,

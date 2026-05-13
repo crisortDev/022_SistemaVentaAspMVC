@@ -72,6 +72,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
+        [ValidateInput(false)]
         [AuthorizeRol("Venta", "Registrar Venta Directa")]
         public JsonResult GuardarVentaDirecta(
             int idCliente, int idFormaCobro,
@@ -83,8 +84,11 @@ namespace VentasWeb.Controllers
             if (string.IsNullOrWhiteSpace(detalleXml))
                 return Json(new { resultado = false, mensaje = "Debe agregar al menos un producto." });
 
+            // SuperAdmin (TiendaActiva=0): usar tienda 1 por defecto
+            int idTiendaVenta = TiendaActiva > 0 ? TiendaActiva : 1;
+
             var r = CD_Venta.Instancia.RegistrarVentaDirecta(
-                TiendaActiva,
+                idTiendaVenta,
                 UsuarioActual.IdUsuario,
                 idCliente > 0 ? (int?)idCliente : null,
                 idFormaCobro,
@@ -148,10 +152,8 @@ namespace VentasWeb.Controllers
         {
             int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
 
-            DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
-                ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);
-            DateTime ff = string.IsNullOrWhiteSpace(fechafin)
-                ? DateTime.Today : Convert.ToDateTime(fechafin);
+            DateTime fi = ParseFecha(fechainicio, DateTime.Today.AddDays(-30));
+            DateTime ff = ParseFecha(fechafin,   DateTime.Today);
 
             var lista = CD_Venta.Instancia.ObtenerListaVenta_v2(
                 idTienda, fi, ff, numerofactura, documentocliente,
@@ -216,6 +218,18 @@ namespace VentasWeb.Controllers
         {
             var lista = CD_Venta.Instancia.ObtenerFormasCobro();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        // ── Helper: parsea fechas dd/MM/yyyy enviadas por el datepicker ──
+        private static DateTime ParseFecha(string valor, DateTime fallback)
+        {
+            if (string.IsNullOrWhiteSpace(valor)) return fallback;
+            DateTime resultado;
+            if (DateTime.TryParseExact(valor, "dd/MM/yyyy",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out resultado))
+                return resultado;
+            return DateTime.TryParse(valor, out resultado) ? resultado : fallback;
         }
     }
 }
