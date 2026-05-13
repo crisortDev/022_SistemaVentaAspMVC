@@ -1,20 +1,20 @@
 @{
-    ViewBag.Title = "Consultar Ventas";
+    ViewBag.Title = "Consultar Pre-ventas";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Venta</a></li>
-        <li class="breadcrumb-item active">Consultar Ventas</li>
+        <li class="breadcrumb-item active">Consultar Pre-ventas</li>
     </ol>
 </nav>
 
 <div class="row">
     <div class="col-sm-12">
-        <div class="card border-success">
-            <div class="card-header bg-success text-white">
-                <i class="fas fa-list mr-1"></i> Consultar Ventas
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-clipboard-list mr-1"></i> Consultar Pre-ventas
             </div>
             <div class="card-body p-2">
                 <!-- Filtros -->
@@ -28,28 +28,21 @@
                         <input type="text" class="form-control form-control-sm datepicker" id="txtFechaFin" autocomplete="off">
                     </div>
                     <div class="col-sm-2">
-                        <label class="col-form-label col-form-label-sm">Nº Factura:</label>
-                        <input type="text" class="form-control form-control-sm" id="txtNumeroFactura" placeholder="001-001-0000001">
-                    </div>
-                    <div class="col-sm-2">
-                        <label class="col-form-label col-form-label-sm">Flujo:</label>
-                        <select class="form-control form-control-sm" id="cboTipoFlujo">
-                            <option value="">-- Todos --</option>
-                            <option value="Directa">Venta Directa</option>
-                            <option value="PreVenta">Pre-venta</option>
-                        </select>
+                        <label class="col-form-label col-form-label-sm">Nº OV:</label>
+                        <input type="text" class="form-control form-control-sm" id="txtNumeroOV" placeholder="OV-00000001">
                     </div>
                     <div class="col-sm-2">
                         <label class="col-form-label col-form-label-sm">Estado:</label>
                         <select class="form-control form-control-sm" id="cboEstado">
                             <option value="">-- Todos --</option>
-                            <option value="Activa">Activa</option>
+                            <option value="Pendiente" selected>Pendiente</option>
+                            <option value="Facturada">Facturada</option>
                             <option value="Anulada">Anulada</option>
                         </select>
                     </div>
                     <div class="col-sm-2">
                         <label class="col-form-label col-form-label-sm invisible">.</label>
-                        <button type="button" class="btn btn-success btn-sm btn-block" onclick="buscarVentas()">
+                        <button type="button" class="btn btn-info btn-sm btn-block" onclick="buscarOV()">
                             <i class="fas fa-search"></i> Buscar
                         </button>
                     </div>
@@ -58,18 +51,17 @@
                 <hr />
 
                 <div class="table-responsive-sm mt-1">
-                    <table id="tbVentas" class="table table-striped table-bordered table-sm" style="width:100%">
+                    <table id="tbOV" class="table table-striped table-bordered table-sm" style="width:100%">
                         <thead>
                             <tr>
-                                <th style="width:40px"></th>
-                                <th>Nº Factura</th>
-                                <th>Flujo</th>
+                                <th style="width:100px"></th>
+                                <th>Nº OV</th>
                                 <th>Cliente</th>
-                                <th>Forma Cobro</th>
-                                <th class="text-right">Total (Gs.)</th>
-                                <th>Cajero</th>
+                                <th class="text-right">Total Est. (Gs.)</th>
+                                <th>Registrada por</th>
                                 <th>Tienda</th>
                                 <th>Fecha</th>
+                                <th>Vencimiento</th>
                                 <th>Estado</th>
                             </tr>
                         </thead>
@@ -86,15 +78,15 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white py-2">
-                <h5 class="modal-title"><i class="fas fa-ban mr-1"></i> Anular Venta</h5>
+                <h5 class="modal-title"><i class="fas fa-ban mr-1"></i> Anular Pre-venta</h5>
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="hdnIdVentaAnular" value="0" />
-                <p>Factura: <strong id="lblFacturaAnular"></strong></p>
+                <input type="hidden" id="hdnIdOVAnular" value="0" />
+                <p>Pre-venta: <strong id="lblOVAnular"></strong></p>
                 <div class="form-group">
-                    <label class="col-form-label col-form-label-sm">Motivo de Anulación: <span class="text-danger">*</span></label>
-                    <textarea class="form-control form-control-sm" id="txtMotivoAnulacion" rows="3" maxlength="500" placeholder="Ingrese el motivo..."></textarea>
+                    <label class="col-form-label col-form-label-sm">Motivo: <span class="text-danger">*</span></label>
+                    <textarea class="form-control form-control-sm" id="txtMotivoAnulacion" rows="3" maxlength="500"></textarea>
                 </div>
             </div>
             <div class="modal-footer py-2">
@@ -108,5 +100,5 @@
 </div>
 
 @section scripts{
-    <script src="@Url.Content("~/Scripts/Views/Venta_Consultar.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/Views/OrdenVenta_Consultar.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

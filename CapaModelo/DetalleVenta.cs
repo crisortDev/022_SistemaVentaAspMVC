@@ -1,18 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CapaModelo
 {
     public class DetalleVenta
     {
-        public int Cantidad { get; set; }
+        public int IdDetalleVenta { get; set; }
+        public int IdProducto { get; set; }
+        public string CodigoProducto { get; set; }
         public string NombreProducto { get; set; }
-        // FIX: Cambiado de float a decimal para evitar errores de precisión en montos monetarios.
-        // float tiene ~7 dígitos de precisión, decimal(18,2) es el estándar para dinero.
+        public int Cantidad { get; set; }
         public decimal PrecioUnidad { get; set; }
+        public decimal IvaPorcentaje { get; set; }
+        public decimal MontoIva { get; set; }
+        public decimal ImporteSinIva { get; set; }
         public decimal ImporteTotal { get; set; }
         public decimal ImporteTotalIvaIncluido { get; set; }
     }

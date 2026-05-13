@@ -75,6 +75,9 @@
     <Compile Include="CD_ReporteGerencia.cs" />
     <Compile Include="CD_MotivoRechazoOC.cs" />
     <Compile Include="CD_OrdenPago.cs" />
+    <Compile Include="CD_OrdenVenta.cs" />
+    <Compile Include="CD_ComprobanteCobro.cs" />
+    <Compile Include="CD_NotaCreditoVenta.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CapaModelo\CapaModelo.csproj">

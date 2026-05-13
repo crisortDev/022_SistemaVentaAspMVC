@@ -1,158 +1,362 @@
-﻿using CapaModelo;
+using CapaModelo;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
 
 namespace CapaDatos
 {
     public class CD_Venta
     {
-
-        public static CD_Venta _instancia = null;
-
-        private CD_Venta()
-        {
-
-        }
-
+        private static CD_Venta _instancia = null;
+        private CD_Venta() { }
         public static CD_Venta Instancia
         {
             get
             {
-                if (_instancia == null)
-                {
-                    _instancia = new CD_Venta();
-                }
+                if (_instancia == null) _instancia = new CD_Venta();
                 return _instancia;
             }
         }
 
-        public int RegistrarVenta(string Detalle)
+        // ----------------------------------------------------------------
+        //  DATOS TRIBUTARIOS (timbrado vigente + próximo número de factura)
+        // ----------------------------------------------------------------
+        public DatosTributarios ObtenerDatosTributarios()
         {
-            int respuesta = 0;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand("usp_ObtenerDatosTributarios", oConexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+                try
+                {
+                    oConexion.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            return new DatosTributarios()
+                            {
+                                NumeroTimbrado       = dr["NumeroTimbrado"].ToString(),
+                                VencimientoTimbrado  = dr["VencimientoTimbrado"].ToString(),
+                                Establecimiento      = dr["Establecimiento"].ToString(),
+                                PuntoExpedicion      = dr["PuntoExpedicion"].ToString(),
+                                SecuenciaActual      = Convert.ToInt32(dr["SecuenciaActual"]),
+                                ProximoNumeroFactura = dr["ProximoNumeroFactura"].ToString()
+                            };
+                        }
+                    }
+                    return null;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+        }
+
+        // ----------------------------------------------------------------
+        //  REGISTRAR VENTA DIRECTA (Cajero hace todo en un paso)
+        // ----------------------------------------------------------------
+        public (bool resultado, string mensaje, int idVenta, string numeroFactura) RegistrarVentaDirecta(
+            int idTienda, int idUsuario, int? idCliente, int idFormaCobro,
+            decimal importeRecibido, string detalleXml)
+        {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
                 {
-                    SqlCommand cmd = new SqlCommand("usp_RegistrarVenta", oConexion);
-                    cmd.Parameters.Add("Detalle", SqlDbType.Xml).Value = Detalle;
-                    cmd.Parameters.Add("Resultado", SqlDbType.Int).Direction = ParameterDirection.Output;
+                    SqlCommand cmd = new SqlCommand("usp_RegistrarVentaDirecta", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    oConexion.Open();
+                    cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                    cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
+                    cmd.Parameters.AddWithValue("@IdCliente",
+                        idCliente.HasValue ? (object)idCliente.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@IdFormaCobro", idFormaCobro);
+                    cmd.Parameters.AddWithValue("@ImporteRecibido", importeRecibido);
+                    cmd.Parameters.Add("@DetalleXml", SqlDbType.Xml).Value = detalleXml;
 
+                    cmd.Parameters.Add("@IdVentaGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@NumeroFactura", SqlDbType.VarChar, 20).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 500).Direction = ParameterDirection.Output;
+
+                    oConexion.Open();
                     cmd.ExecuteNonQuery();
 
-                    respuesta = Convert.ToInt32(cmd.Parameters["Resultado"].Value);
+                    bool ok = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    string msg = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
+                    int id = cmd.Parameters["@IdVentaGenerada"].Value != DBNull.Value
+                           ? Convert.ToInt32(cmd.Parameters["@IdVentaGenerada"].Value) : 0;
+                    string nroFac = cmd.Parameters["@NumeroFactura"].Value?.ToString() ?? "";
 
+                    return (ok, msg, id, nroFac);
                 }
                 catch (Exception ex)
                 {
-                    respuesta = 0;
+                    return (false, "Error al registrar venta: " + ex.Message, 0, "");
                 }
             }
-            return respuesta;
         }
 
-
-
-
-        public Venta ObtenerDetalleVenta(int IdVenta)
+        // ----------------------------------------------------------------
+        //  FACTURAR DESDE ORDEN DE VENTA (Pre-venta → Factura)
+        // ----------------------------------------------------------------
+        public (bool resultado, string mensaje, int idVenta, string numeroFactura) FacturarDesdeOrdenVenta(
+            int idOrdenVenta, int idUsuarioCajero, int? idCliente,
+            int idFormaCobro, decimal importeRecibido)
         {
-            Venta rptDetalleVenta = new Venta();
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                SqlCommand cmd = new SqlCommand("usp_ObtenerDetalleVenta", oConexion);
-                cmd.Parameters.AddWithValue("@IdVenta", IdVenta);
-                cmd.CommandType = CommandType.StoredProcedure;
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_FacturarDesdeOrdenVenta", oConexion);
+                    cmd.CommandType = CommandType.StoredProcedure;
 
-                var NuevaCultura = CultureInfo.GetCultureInfo("es-PE");
+                    cmd.Parameters.AddWithValue("@IdOrdenVenta", idOrdenVenta);
+                    cmd.Parameters.AddWithValue("@IdUsuarioCajero", idUsuarioCajero);
+                    cmd.Parameters.AddWithValue("@IdCliente",
+                        idCliente.HasValue ? (object)idCliente.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@IdFormaCobro", idFormaCobro);
+                    cmd.Parameters.AddWithValue("@ImporteRecibido", importeRecibido);
+
+                    cmd.Parameters.Add("@IdVentaGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@NumeroFactura", SqlDbType.VarChar, 20).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 500).Direction = ParameterDirection.Output;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+
+                    bool ok = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    string msg = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
+                    int id = cmd.Parameters["@IdVentaGenerada"].Value != DBNull.Value
+                           ? Convert.ToInt32(cmd.Parameters["@IdVentaGenerada"].Value) : 0;
+                    string nroFac = cmd.Parameters["@NumeroFactura"].Value?.ToString() ?? "";
+
+                    return (ok, msg, id, nroFac);
+                }
+                catch (Exception ex)
+                {
+                    return (false, "Error al facturar pre-venta: " + ex.Message, 0, "");
+                }
+            }
+        }
+
+        // ----------------------------------------------------------------
+        //  LISTAR VENTAS (v2)
+        // ----------------------------------------------------------------
+        public List<Venta> ObtenerListaVenta_v2(
+            int idTienda, DateTime fechaInicio, DateTime fechaFin,
+            string numeroFactura, string documentoCliente, string nombreCliente,
+            string tipoFlujo, string estado)
+        {
+            List<Venta> lista = new List<Venta>();
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand("usp_ObtenerListaVenta_v2", oConexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
+                cmd.Parameters.AddWithValue("@NumeroFactura", numeroFactura ?? "");
+                cmd.Parameters.AddWithValue("@DocumentoCliente", documentoCliente ?? "");
+                cmd.Parameters.AddWithValue("@NombreCliente", nombreCliente ?? "");
+                cmd.Parameters.AddWithValue("@TipoFlujo", tipoFlujo ?? "");
+                cmd.Parameters.AddWithValue("@Estado", estado ?? "");
+
                 try
                 {
                     oConexion.Open();
-                    using (XmlReader dr = cmd.ExecuteXmlReader())
+                    using (SqlDataReader dr = cmd.ExecuteReader())
                     {
                         while (dr.Read())
                         {
-                            XDocument doc = XDocument.Load(dr);
-                            if (doc.Element("DETALLE_VENTA") != null)
+                            lista.Add(new Venta()
                             {
-                                // FIX: Cambiado float.Parse → decimal.Parse para precisión monetaria correcta
-                                rptDetalleVenta = (from dato in doc.Elements("DETALLE_VENTA")
-                                                   select new Venta()
-                                                   {
-                                                       TipoDocumento = dato.Element("TipoDocumento").Value,
-                                                       Codigo = dato.Element("Codigo").Value,
-                                                       TotalCosto = decimal.Parse(dato.Element("TotalCosto").Value, NuevaCultura),
-                                                       ImporteRecibido = decimal.Parse(dato.Element("ImporteRecibido").Value, NuevaCultura),
-                                                       ImporteCambio = decimal.Parse(dato.Element("ImporteCambio").Value, NuevaCultura),
-                                                       FechaRegistro = dato.Element("FechaRegistro").Value,
-                                                       NumeroFactura = dato.Element("NumeroFactura").Value,
-                                                       NumeroTimbrado = dato.Element("NumeroTimbrado").Value,
-                                                       VencimientoTimbrado = dato.Element("VencimientoTimbrado").Value,
-                                                   }).FirstOrDefault();
-                                rptDetalleVenta.oUsuario = (from dato in doc.Element("DETALLE_VENTA").Elements("DETALLE_USUARIO")
-                                                            select new Usuario()
-                                                            {
-                                                                Nombres = dato.Element("Nombres").Value,
-                                                                Apellidos = dato.Element("Apellidos").Value,
-                                                            }).FirstOrDefault();
-                                rptDetalleVenta.oTienda = (from dato in doc.Element("DETALLE_VENTA").Elements("DETALLE_TIENDA")
-                                                           select new Tienda()
-                                                           {
-                                                               RUC = dato.Element("RUC").Value,
-                                                               Nombre = dato.Element("Nombre").Value,
-                                                               Direccion = dato.Element("Direccion").Value
-                                                           }).FirstOrDefault();
-                                rptDetalleVenta.oCliente = (from dato in doc.Element("DETALLE_VENTA").Elements("DETALLE_CLIENTE")
-                                                            select new Cliente()
-                                                            {
-                                                                Nombre = dato.Element("Nombre").Value,
-                                                                Direccion = dato.Element("Direccion").Value,
-                                                                NumeroDocumento = dato.Element("NumeroDocumento").Value,
-                                                                Telefono = dato.Element("Telefono").Value
-                                                            }).FirstOrDefault();
-                                // FIX: Cambiado float.Parse → decimal.Parse para precisión monetaria correcta
-                                rptDetalleVenta.oListaDetalleVenta = (from producto in doc.Element("DETALLE_VENTA").Element("DETALLE_PRODUCTO").Elements("PRODUCTO")
-                                                                      select new DetalleVenta()
-                                                                      {
-                                                                          Cantidad = int.Parse(producto.Element("Cantidad").Value),
-                                                                          NombreProducto = producto.Element("NombreProducto").Value,
-                                                                          PrecioUnidad = decimal.Parse(producto.Element("PrecioUnidad").Value, NuevaCultura),
-                                                                          ImporteTotal = decimal.Parse(producto.Element("ImporteTotal").Value, NuevaCultura),
-                                                                          ImporteTotalIvaIncluido = decimal.Parse(producto.Element("ImporteTotalIvaIncluido").Value, NuevaCultura)
-                                                                      }).ToList();
-                            }
-                            else
+                                IdVenta          = Convert.ToInt32(dr["IdVenta"]),
+                                NumeroFactura    = dr["NumeroFactura"].ToString(),
+                                TipoFlujo        = dr["TipoFlujo"].ToString(),
+                                Estado           = dr["Estado"].ToString(),
+                                TotalCosto       = Convert.ToDecimal(dr["TotalCosto"]),
+                                FormaCobro       = dr["FormaCobro"].ToString(),
+                                FechaRegistro    = dr["FechaRegistro"].ToString(),
+                                NombreCliente    = dr["NombreCliente"].ToString(),
+                                DocumentoCliente = dr["DocumentoCliente"].ToString(),
+                                NombreUsuario    = dr["NombreUsuario"].ToString(),
+                                NombreTienda     = dr["NombreTienda"].ToString(),
+                                NumeroOV         = dr["NumeroOV"] != DBNull.Value
+                                                 ? dr["NumeroOV"].ToString() : ""
+                            });
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    lista = new List<Venta>();
+                }
+            }
+            return lista;
+        }
+
+        // ----------------------------------------------------------------
+        //  DETALLE VENTA v2 (2 resultsets: cabecera KuDE + productos)
+        // ----------------------------------------------------------------
+        public Venta ObtenerDetalleVenta_v2(int idVenta)
+        {
+            Venta venta = null;
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand("usp_ObtenerDetalleVenta_v2", oConexion);
+                cmd.Parameters.AddWithValue("@IdVenta", idVenta);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                try
+                {
+                    oConexion.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        // RS1: cabecera KuDE
+                        if (dr.Read())
+                        {
+                            venta = new Venta()
                             {
-                                rptDetalleVenta = null;
-                            }
+                                IdVenta                   = Convert.ToInt32(dr["IdVenta"]),
+                                NumeroFactura             = dr["NumeroFactura"].ToString(),
+                                NumeroTimbrado            = dr["NumeroTimbrado"].ToString(),
+                                VencimientoTimbrado       = dr["VencimientoTimbrado"].ToString(),
+                                Establecimiento           = dr["Establecimiento"].ToString(),
+                                PuntoExpedicion           = dr["PuntoExpedicion"].ToString(),
+                                TipoFlujo                 = dr["TipoFlujo"].ToString(),
+                                Estado                    = dr["Estado"].ToString(),
+                                FechaRegistro             = dr["FechaRegistro"].ToString(),
+                                TotalCosto                = Convert.ToDecimal(dr["TotalCosto"]),
+                                ImporteRecibido           = Convert.ToDecimal(dr["ImporteRecibido"]),
+                                ImporteCambio             = Convert.ToDecimal(dr["ImporteCambio"]),
+                                Gravado10                 = Convert.ToDecimal(dr["Gravado10"]),
+                                Gravado5Base              = Convert.ToDecimal(dr["Gravado5Base"]),
+                                IVA10                     = Convert.ToDecimal(dr["IVA10"]),
+                                IVA5                      = Convert.ToDecimal(dr["IVA5"]),
+                                Exento0                   = Convert.ToDecimal(dr["Exento0"]),
+                                FormaCobro                = dr["FormaCobro"].ToString(),
+                                NombreCliente             = dr["NombreCliente"].ToString(),
+                                DocumentoCliente          = dr["DocumentoCliente"].ToString(),
+                                NombreCajero              = dr["NombreCajero"].ToString(),
+                                NombreEmisor              = dr["NombreEmisor"].ToString(),
+                                RUCEmisor                 = dr["RUCEmisor"].ToString(),
+                                DireccionEmisor           = dr["DireccionEmisor"].ToString(),
+                                TelefonoEmisor            = dr["TelefonoEmisor"].ToString(),
+                                NumeroOV                  = dr["NumeroOV"] != DBNull.Value
+                                                          ? dr["NumeroOV"].ToString() : "",
+                                oListaDetalleVenta        = new System.Collections.Generic.List<DetalleVenta>()
+                            };
                         }
 
-                        dr.Close();
-
+                        // RS2: productos
+                        if (venta != null && dr.NextResult())
+                        {
+                            while (dr.Read())
+                            {
+                                venta.oListaDetalleVenta.Add(new DetalleVenta()
+                                {
+                                    IdProducto             = Convert.ToInt32(dr["IdProducto"]),
+                                    CodigoProducto         = dr["CodigoProducto"].ToString(),
+                                    NombreProducto         = dr["NombreProducto"].ToString(),
+                                    Cantidad               = Convert.ToInt32(dr["Cantidad"]),
+                                    PrecioUnidad           = Convert.ToDecimal(dr["PrecioUnidad"]),
+                                    IvaPorcentaje          = Convert.ToDecimal(dr["IvaPorcentaje"]),
+                                    MontoIva               = Convert.ToDecimal(dr["MontoIva"]),
+                                    ImporteSinIva          = Convert.ToDecimal(dr["ImporteSinIva"]),
+                                    ImporteTotal           = Convert.ToDecimal(dr["ImporteTotal"]),
+                                    ImporteTotalIvaIncluido= Convert.ToDecimal(dr["ImporteTotalIvaIncluido"])
+                                });
+                            }
+                        }
                     }
+                }
+                catch (Exception)
+                {
+                    venta = null;
+                }
+            }
+            return venta;
+        }
 
-                    return rptDetalleVenta;
+        // ----------------------------------------------------------------
+        //  ANULAR VENTA
+        // ----------------------------------------------------------------
+        public (bool resultado, string mensaje) AnularVenta(
+            int idVenta, int idUsuario, string motivoAnulacion)
+        {
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_AnularVenta", oConexion);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdVenta", idVenta);
+                    cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
+                    cmd.Parameters.AddWithValue("@MotivoAnulacion",
+                        string.IsNullOrWhiteSpace(motivoAnulacion) ? (object)DBNull.Value : motivoAnulacion);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 500).Direction = ParameterDirection.Output;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+
+                    bool ok = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    string msg = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
+                    return (ok, msg);
                 }
                 catch (Exception ex)
                 {
-                    rptDetalleVenta = null;
-                    return rptDetalleVenta;
+                    return (false, "Error al anular venta: " + ex.Message);
                 }
             }
         }
 
-        public List<Venta> ObtenerListaVenta(string Codigo, DateTime FechaInicio, DateTime FechaFin, string NumeroDocumento, string Nombre)
+        // ----------------------------------------------------------------
+        //  FORMAS DE COBRO
+        // ----------------------------------------------------------------
+        public List<FormaCobro> ObtenerFormasCobro()
         {
-            List<Venta> rptListaVenta = new List<Venta>();
+            List<FormaCobro> lista = new List<FormaCobro>();
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                SqlCommand cmd = new SqlCommand(
+                    "SELECT IdFormaCobro, Nombre, Activo FROM FORMA_COBRO WHERE Activo = 1 ORDER BY Nombre",
+                    oConexion);
+                cmd.CommandType = CommandType.Text;
+                try
+                {
+                    oConexion.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new FormaCobro()
+                            {
+                                IdFormaCobro = Convert.ToInt32(dr["IdFormaCobro"]),
+                                Nombre       = dr["Nombre"].ToString(),
+                                Activo       = Convert.ToBoolean(dr["Activo"])
+                            });
+                        }
+                    }
+                }
+                catch (Exception) { }
+            }
+            return lista;
+        }
+
+        // ----------------------------------------------------------------
+        //  MÉTODOS LEGACY (conservados para compatibilidad con vistas viejas)
+        // ----------------------------------------------------------------
+        public List<Venta> ObtenerListaVenta(string Codigo, DateTime FechaInicio, DateTime FechaFin,
+            string NumeroDocumento, string Nombre)
+        {
+            List<Venta> lista = new List<Venta>();
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 SqlCommand cmd = new SqlCommand("usp_ObtenerListaVenta", oConexion);
@@ -162,75 +366,36 @@ namespace CapaDatos
                 cmd.Parameters.AddWithValue("@NumeroDocumento", NumeroDocumento);
                 cmd.Parameters.AddWithValue("@Nombre", Nombre);
                 cmd.CommandType = CommandType.StoredProcedure;
-
                 try
                 {
                     oConexion.Open();
                     SqlDataReader dr = cmd.ExecuteReader();
-
                     while (dr.Read())
                     {
-                        rptListaVenta.Add(new Venta()
+                        lista.Add(new Venta()
                         {
-                            IdVenta = Convert.ToInt32(dr["IdVenta"].ToString()),
-                            TipoDocumento = dr["TipoDocumento"].ToString(),
-                            Codigo = dr["Codigo"].ToString(),
-                            FechaRegistro = Convert.ToDateTime(dr["FechaRegistro"].ToString()).ToString("dd/MM/yyyy"),
-                            VFechaRegistro = Convert.ToDateTime(dr["FechaRegistro"].ToString()),
-                            oCliente = new Cliente() { NumeroDocumento = dr["NumeroDocumento"].ToString(), Nombre = dr["Nombre"].ToString() },
-                            // FIX: Cambiado float.Parse → decimal.Parse para precisión monetaria correcta
-                            TotalCosto = decimal.Parse(dr["TotalCosto"].ToString()),
-                            ImporteTotalIvaIncluido = decimal.Parse(dr["ImporteIvaIncluido"].ToString())
+                            IdVenta          = Convert.ToInt32(dr["IdVenta"]),
+                            TipoDocumento    = dr["TipoDocumento"].ToString(),
+                            Codigo           = dr["Codigo"].ToString(),
+                            FechaRegistro    = Convert.ToDateTime(dr["FechaRegistro"]).ToString("dd/MM/yyyy"),
+                            VFechaRegistro   = Convert.ToDateTime(dr["FechaRegistro"]),
+                            oCliente         = new Cliente()
+                            {
+                                NumeroDocumento = dr["NumeroDocumento"].ToString(),
+                                Nombre          = dr["Nombre"].ToString()
+                            },
+                            TotalCosto             = decimal.Parse(dr["TotalCosto"].ToString()),
+                            ImporteTotalIvaIncluido= decimal.Parse(dr["ImporteIvaIncluido"].ToString())
                         });
                     }
                     dr.Close();
-
-                    return rptListaVenta;
-
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    rptListaVenta = null;
-                    return rptListaVenta;
+                    lista = null;
                 }
             }
+            return lista;
         }
-        public bool RegistrarSecuenciaFactura(int numeroTimbrado, DateTime fechaVencimientoTimbrado)
-        {
-            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
-            {
-                try
-                {
-                    SqlCommand cmd = new SqlCommand("usp_RegistrarDatosFiscales", oConexion);
-                    cmd.CommandType = CommandType.StoredProcedure;
-
-                    // Correct parameter names with @
-                    cmd.Parameters.Add("@NumeroTimbrado", SqlDbType.Int).Value = numeroTimbrado;
-                    cmd.Parameters.Add("@FechaVencimientoTimbrado", SqlDbType.Date).Value = fechaVencimientoTimbrado;
-
-                    // Add return value parameter
-                    SqlParameter resultParam = new SqlParameter("@Resultado", SqlDbType.Int);
-                    resultParam.Direction = ParameterDirection.ReturnValue;
-                    cmd.Parameters.Add(resultParam);
-
-                    oConexion.Open();
-                    cmd.ExecuteNonQuery();
-
-                    // Get the return value
-                    int respuesta = (int)resultParam.Value;
-
-                    return respuesta == 1; // Returns true if successful
-                }
-                catch (Exception ex)
-                {
-                    // Handle error
-                    Console.WriteLine("Error: " + ex.Message);
-                    return false;
-                }
-            }
-        }
-
     }
-
-
 }

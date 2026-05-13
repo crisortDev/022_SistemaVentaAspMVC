@@ -384,6 +384,15 @@
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/Content/PluginsJS")
     <!-- SweetAlert2 — disponible globalmente -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Shim de compatibilidad: redirige llamadas toastr → Swal -->
+    <script>
+        var toastr = {
+            success: function (msg) { Swal.fire({ icon: 'success', title: 'Éxito',    text: msg, timer: 2000, showConfirmButton: false }); },
+            error:   function (msg) { Swal.fire({ icon: 'error',   title: 'Error',    text: msg, confirmButtonColor: '#0984e3' }); },
+            warning: function (msg) { Swal.fire({ icon: 'warning', title: 'Atención', text: msg, confirmButtonColor: '#0984e3' }); },
+            info:    function (msg) { Swal.fire({ icon: 'info',    title: 'Info',     text: msg, timer: 1800, showConfirmButton: false }); }
+        };
+    </script>
 
     <!-- Configuración de URLs centralizadas -->
     <script type="text/javascript">
@@ -540,14 +549,45 @@
             _RG_DescargarPDF:  '@Url.Action("DescargarPDF",  "ReporteGerencia")'
         });
 
-        // ---- VENTA ----
+        // ---- VENTA DIRECTA ----
         $.MisUrls.urls({
-            _ObtenerUsuario: '@Url.Action("ObtenerUsuario", "Venta")',
-            _ObtenerProductoStockPorTienda: '@Url.Action("ObtenerProductoPorTienda", "Venta")',
-            _ControlarStockProducto: '@Url.Action("ControlarStock", "Venta")',
-            _RegistrarVenta: '@Url.Action("Guardar", "Venta")',
-            _DocumentoVenta: '@Url.Action("Documento", "Venta")',
-            _ObtenerVentas: '@Url.Action("Obtener", "Venta")'
+            _Venta_Crear:                  '@Url.Action("Crear",                    "Venta")',
+            _Venta_Consultar:              '@Url.Action("Consultar",                "Venta")',
+            _Venta_Documento:              '@Url.Action("Documento",                "Venta")',
+            _Venta_Obtener:                '@Url.Action("Obtener",                  "Venta")',
+            _Venta_GuardarDirecta:         '@Url.Action("GuardarVentaDirecta",      "Venta")',
+            _Venta_FacturarDesdeOV:        '@Url.Action("FacturarDesdeOV",          "Venta")',
+            _Venta_Anular:                 '@Url.Action("Anular",                   "Venta")',
+            _Venta_DatosTributarios:       '@Url.Action("ObtenerDatosTributarios",  "Venta")',
+            _Venta_ProductoStock:          '@Url.Action("ObtenerProductoStockPorTienda","Venta")',
+            _Venta_ObtenerClientes:        '@Url.Action("ObtenerClientes",           "Venta")',
+            _Venta_FormasCobro:            '@Url.Action("ObtenerFormasCobro",        "Venta")'
+        });
+
+        // ---- PRE-VENTA (ORDEN DE VENTA) ----
+        $.MisUrls.urls({
+            _OV_Crear:        '@Url.Action("Crear",          "OrdenVenta")',
+            _OV_Consultar:    '@Url.Action("Consultar",      "OrdenVenta")',
+            _OV_Guardar:      '@Url.Action("Guardar",        "OrdenVenta")',
+            _OV_Obtener:      '@Url.Action("Obtener",        "OrdenVenta")',
+            _OV_Detalle:      '@Url.Action("ObtenerDetalle", "OrdenVenta")',
+            _OV_Anular:       '@Url.Action("Anular",         "OrdenVenta")',
+            _OV_UrlFacturar:  '@Url.Action("Facturar",       "Venta")'
+        });
+
+        // ---- COMPROBANTE DE COBRO ----
+        $.MisUrls.urls({
+            _CC_Index:   '@Url.Action("Index",   "ComprobanteCobro")',
+            _CC_Obtener: '@Url.Action("Obtener", "ComprobanteCobro")'
+        });
+
+        // ---- NOTA DE CRÉDITO VENTA ----
+        $.MisUrls.urls({
+            _NCV_Index:          '@Url.Action("Index",          "NotaCreditoVenta")',
+            _NCV_Obtener:        '@Url.Action("Obtener",        "NotaCreditoVenta")',
+            _NCV_Registrar:      '@Url.Action("Registrar",      "NotaCreditoVenta")',
+            _NCV_AprobarRechazar:'@Url.Action("AprobarRechazar","NotaCreditoVenta")',
+            _NCV_Motivos:        '@Url.Action("ObtenerMotivos", "NotaCreditoVenta")'
         });
 
         // ---- PRECIOS VENTA ----

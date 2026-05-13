@@ -1,0 +1,65 @@
+@{
+    ViewBag.Title = "Comprobantes de Cobro";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Caja</a></li>
+        <li class="breadcrumb-item active">Comprobantes de Cobro</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <i class="fas fa-receipt mr-1"></i> Comprobantes de Cobro
+            </div>
+            <div class="card-body p-2">
+                <div class="row align-items-end mb-2">
+                    <div class="col-sm-3">
+                        <label class="col-form-label col-form-label-sm">Fecha Inicio:</label>
+                        <input type="text" class="form-control form-control-sm datepicker" id="txtFechaInicio" autocomplete="off">
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="col-form-label col-form-label-sm">Fecha Fin:</label>
+                        <input type="text" class="form-control form-control-sm datepicker" id="txtFechaFin" autocomplete="off">
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="col-form-label col-form-label-sm invisible">.</label>
+                        <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="buscarCC()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive-sm">
+                    <table id="tbCC" class="table table-striped table-bordered table-sm" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Nº Cobro</th>
+                                <th>Nº Factura</th>
+                                <th>Cliente</th>
+                                <th>Documento</th>
+                                <th>Forma Cobro</th>
+                                <th class="text-right">Total (Gs.)</th>
+                                <th class="text-right">Recibido (Gs.)</th>
+                                <th class="text-right">Cambio (Gs.)</th>
+                                <th>Cajero</th>
+                                <th>Tienda</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/ComprobanteCobro_Index.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

@@ -1,113 +1,85 @@
-﻿
-var tabladata;
+// Venta_Consultar.js
+var dtVentas = null;
 
-
-
-$(document).ready(function () {
-
-    $.datepicker.regional['es'] = {
-        closeText: 'Cerrar',
-        prevText: '< Ant',
-        nextText: 'Sig >',
-        currentText: 'Hoy',
-        monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-        monthNamesShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-        dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
-        dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Juv', 'Vie', 'Sáb'],
-        dayNamesMin: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'],
-        weekHeader: 'Sm',
-        dateFormat: 'dd/mm/yy',
-        firstDay: 1,
-        isRTL: false,
-        showMonthAfterYear: false,
-        yearSuffix: ''
-    };
-    $.datepicker.setDefaults($.datepicker.regional['es']);
-
-
-    $("#txtFechaInicio").datepicker();
-    $("#txtFechaFin").datepicker();
-    $("#txtFechaInicio").val(ObtenerFecha());
-    $("#txtFechaFin").val(ObtenerFecha());
-
-
-    tabladata = $('#tbVentas').DataTable({
-        "ajax": {
-            "url": $.MisUrls.url._ObtenerVentas + "?codigo=&fechainicio=" + ObtenerFecha() + "&fechafin=" + ObtenerFecha() + "&numerodocumento=&nombres=",
-            "type": "GET",
-            "datatype": "json"
-        },
-        "columns": [
-            {
-                "data": "IdVenta", render: function (data) {
-                    return "<button class='btn btn-success btn-sm ml-2' type='button' onclick='Imprimir(" + data + ")'><i class='far fa-clipboard'></i> Ver</button>"
-                }
-            },
-            { "data": "TipoDocumento" },
-            { "data": "Codigo" },
-            { "data": "FechaRegistro" },
-            {
-                "data": "oCliente", render: function (data) {
-                    return data.NumeroDocumento
-                }
-            },
-            {
-                "data": "oCliente", render: function (data) {
-                    return data.Nombre
-                }
-            },
-            {
-                "data": "TotalCosto", render: function (data) {
-
-                    return "G./ " + (data).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
-                }
-            },
-
-
-        ],
-        "language": {
-            "url": $.MisUrls.url.Url_datatable_spanish
-        },
-        responsive: true
-    });
-
-
-
-
+$(function () {
+    var hoy = new Date();
+    var hace30 = new Date(); hace30.setDate(hoy.getDate() - 30);
+    $('#txtFechaInicio').val(formatFecha(hace30));
+    $('#txtFechaFin').val(formatFecha(hoy));
+    iniciarTabla();
+    buscarVentas();
 });
 
-
-
-
-function buscar() {
-
-    if ($("#txtFechaInicio").val().trim() == "" || $("#txtFechaFin").val().trim() == "") {
-        swal("Mensaje", "Debe ingresar fechas", "warning")
-        return;
-    }
-
-    tabladata.ajax.url($.MisUrls.url._ObtenerVentas + "?" +
-        "codigo=" + $("#txtCodigoVenta").val().trim() +
-        "&fechainicio=" + $("#txtFechaInicio").val().trim() +
-        "&fechafin=" + $("#txtFechaFin").val().trim() +
-        "&numerodocumento=" + $("#txtDocumentoCliente").val() +
-        "&nombres=" + $("#txtNombreCliente").val()).load();
+function iniciarTabla() {
+    dtVentas = $('#tbVentas').DataTable({
+        data: [],
+        columns: [
+            {
+                data: null, orderable: false, searchable: false,
+                render: function (d) {
+                    var btns = '<a href="' + $.MisUrls.url._Venta_Documento + '?idVenta=' + d.IdVenta +
+                        '" target="_blank" class="btn btn-success btn-sm mr-1" title="Ver factura"><i class="fas fa-file-invoice"></i></a>';
+                    if (d.Estado === 'Activa') {
+                        btns += '<button class="btn btn-danger btn-sm" title="Anular" onclick="abrirAnular(' + d.IdVenta + ',\'' + escapar(d.NumeroFactura) + '\')"><i class="fas fa-ban"></i></button>';
+                    }
+                    return btns;
+                }
+            },
+            { data: 'NumeroFactura' },
+            { data: 'TipoFlujo', render: function (v) { return v === 'PreVenta' ? '<span class="badge badge-info">Pre-venta</span>' : '<span class="badge badge-success">Directa</span>'; } },
+            { data: 'NombreCliente' },
+            { data: 'FormaCobro', defaultContent: '' },
+            { data: 'TotalCosto', className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
+            { data: 'NombreUsuario' },
+            { data: 'NombreTienda' },
+            { data: 'FechaRegistro' },
+            {
+                data: 'Estado', render: function (v) {
+                    return v === 'Activa'
+                        ? '<span class="badge badge-success">Activa</span>'
+                        : '<span class="badge badge-danger">Anulada</span>';
+                }
+            }
+        ],
+        language: { url: $.MisUrls.url.Url_datatable_spanish },
+        order: [[8, 'desc']]
+    });
 }
 
-function ObtenerFecha() {
-
-    var d = new Date();
-    var month = d.getMonth() + 1;
-    var day = d.getDate();
-    var output = (('' + day).length < 2 ? '0' : '') + day + '/' + (('' + month).length < 2 ? '0' : '') + month + '/' + d.getFullYear();
-
-    return output;
+function buscarVentas() {
+    var params = {
+        fechainicio: $('#txtFechaInicio').val(),
+        fechafin: $('#txtFechaFin').val(),
+        numerofactura: $('#txtNumeroFactura').val(),
+        tipoflujo: $('#cboTipoFlujo').val(),
+        estado: $('#cboEstado').val()
+    };
+    $.get($.MisUrls.url._Venta_Obtener, params, function (r) {
+        dtVentas.clear().rows.add(r.data || []).draw();
+    });
 }
 
-
-function Imprimir(id) {
-
-    var url = $.MisUrls.url._DocumentoVenta + "?IdVenta=" + id;
-    window.open(url);
-
+function abrirAnular(id, factura) {
+    $('#hdnIdVentaAnular').val(id);
+    $('#lblFacturaAnular').text(factura);
+    $('#txtMotivoAnulacion').val('');
+    $('#modalAnular').modal('show');
 }
+
+function confirmarAnular() {
+    var motivo = $('#txtMotivoAnulacion').val().trim();
+    if (!motivo) { toastr.warning('Ingrese el motivo de anulación.'); return; }
+    $.post($.MisUrls.url._Venta_Anular, { idVenta: $('#hdnIdVentaAnular').val(), motivo: motivo }, function (r) {
+        if (r.resultado) {
+            toastr.success('Venta anulada correctamente.');
+            $('#modalAnular').modal('hide');
+            buscarVentas();
+        } else {
+            toastr.error(r.mensaje || 'Error al anular.');
+        }
+    });
+}
+
+function formatGs(n) { return Math.round(n || 0).toLocaleString('es-PY'); }
+function formatFecha(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+function escapar(s) { return (s || '').replace(/'/g, "\\'"); }

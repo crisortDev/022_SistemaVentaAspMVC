@@ -36,15 +36,28 @@ namespace VentasWeb.Filters
             { "Compra|Revision",                           "Revisión de Compras"        },
             { "Compra|OrdenPago",                          "Órdenes de Pago"            },
             { "Tienda|Crear",                              "Tiendas"                    },
-            { "Venta|Crear",                               "Registrar Venta"            },
-            { "Venta|Consultar",                           "Consultar Venta"            },
+            { "Venta|Crear",                               "Registrar Venta Directa"    },
+            { "Venta|Consultar",                           "Consultar Ventas"           },
             { "Reporte|Producto",                          "Productos por tienda"       },
             { "Reporte|Ventas",                            "Ventas"                     },
             { "ConsultarCajaCompra|ConsultarCajaCompra",   "Caja Compra"                },
             { "ConsultarCajaVenta|ConsultarCajaVenta",     "Caja Venta"                 },
             { "Usuario|CambioContraseña",                  "Cambio de Contraseña"       },
             { "NotaCredito|Index",                         "Gestión de NC"              },
-            { "ReporteGerencia|Index",                     "Reporte Gerencia Compras"   }
+            { "ReporteGerencia|Index",                     "Reporte Gerencia Compras"   },
+            // ── Módulo Ventas v2 ──────────────────────────────────────
+            { "Venta|Facturar",                            "Registrar Venta Directa"    },
+            { "Venta|Guardar",                             "Registrar Venta Directa"    },
+            { "Venta|Anular",                              "Consultar Ventas"           },
+            { "OrdenVenta|Crear",                          "Registrar Pre-venta"        },
+            { "OrdenVenta|Consultar",                      "Consultar Pre-ventas"       },
+            { "OrdenVenta|Guardar",                        "Registrar Pre-venta"        },
+            { "OrdenVenta|Anular",                         "Consultar Pre-ventas"       },
+            { "ComprobanteCobro|Index",                    "Comprobantes de Cobro"      },
+            { "ComprobanteCobro|Obtener",                  "Comprobantes de Cobro"      },
+            { "NotaCreditoVenta|Index",                    "Notas de Crédito Venta"     },
+            { "NotaCreditoVenta|Registrar",                "Notas de Crédito Venta"     },
+            { "NotaCreditoVenta|AprobarRechazar",          "Notas de Crédito Venta"     }
         };
 
         public AuthorizeRolAttribute(string controlador, string vista)

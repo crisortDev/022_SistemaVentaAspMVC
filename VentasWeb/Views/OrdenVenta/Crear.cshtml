@@ -1,38 +1,29 @@
 @{
-    ViewBag.Title = "Registrar Venta Directa";
+    ViewBag.Title = "Registrar Pre-venta";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var dt = ViewBag.DatosTributarios as CapaModelo.DatosTributarios;
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Venta</a></li>
-        <li class="breadcrumb-item active">Registrar Venta Directa</li>
+        <li class="breadcrumb-item active">Registrar Pre-venta</li>
     </ol>
 </nav>
 
-<input type="hidden" id="hdnTimbrado" value="@(dt?.NumeroTimbrado)" />
-<input type="hidden" id="hdnVencTimbrado" value="@(dt?.VencimientoTimbrado)" />
-<input type="hidden" id="hdnProximaFactura" value="@(dt?.ProximoNumeroFactura)" />
-
 <div class="row">
     <div class="col-sm-12">
-        <div class="card border-success">
-            <div class="card-header bg-success text-white">
-                <i class="fas fa-cash-register mr-1"></i> Registrar Venta Directa
-                <span class="float-right small">
-                    Timbrado: <strong id="lblTimbrado">@(dt?.NumeroTimbrado ?? "—")</strong> &nbsp;|&nbsp;
-                    Próxima Factura: <strong id="lblProximaFactura">@(dt?.ProximoNumeroFactura ?? "—")</strong>
-                </span>
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-clipboard-list mr-1"></i> Registrar Pre-venta / Presupuesto
             </div>
             <div class="card-body p-2">
 
-                <!-- Cliente + Cobro -->
+                <!-- Cliente + Vencimiento -->
                 <div class="row">
                     <div class="col-sm-6">
-                        <div class="card border-success">
+                        <div class="card border-info">
                             <div class="card-body p-2">
-                                <h6 class="card-title mb-1 text-success">Cliente</h6>
+                                <h6 class="card-title mb-1 text-info">Cliente <small class="text-muted">(opcional)</small></h6>
                                 <div class="row align-items-end">
                                     <input type="hidden" id="hdnIdCliente" value="0" />
                                     <div class="col-sm-4">
@@ -41,11 +32,11 @@
                                     </div>
                                     <div class="col-sm-5">
                                         <label class="col-form-label col-form-label-sm">Nombre:</label>
-                                        <input type="text" class="form-control form-control-sm" readonly id="txtNombreCliente" placeholder="Consumidor final">
+                                        <input type="text" class="form-control form-control-sm" readonly id="txtNombreCliente" placeholder="Sin especificar">
                                     </div>
                                     <div class="col-sm-3">
                                         <label class="col-form-label col-form-label-sm invisible">.</label>
-                                        <button type="button" class="btn btn-sm btn-success btn-block" onclick="buscarCliente()">
+                                        <button type="button" class="btn btn-sm btn-info btn-block" onclick="buscarCliente()">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
                                     </div>
@@ -54,23 +45,17 @@
                         </div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="card border-success">
+                        <div class="card border-info">
                             <div class="card-body p-2">
-                                <h6 class="card-title mb-1 text-success">Cobro</h6>
+                                <h6 class="card-title mb-1 text-info">Cabecera</h6>
                                 <div class="row align-items-end">
                                     <div class="col-sm-4">
-                                        <label class="col-form-label col-form-label-sm">Forma de Cobro:</label>
-                                        <select class="form-control form-control-sm" id="cboFormaCobro">
-                                            <option value="0">-- Seleccionar --</option>
-                                        </select>
+                                        <label class="col-form-label col-form-label-sm">Fecha Vencimiento: <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm datepicker" id="txtFechaVencimiento" autocomplete="off" placeholder="dd/mm/aaaa">
                                     </div>
-                                    <div class="col-sm-4">
-                                        <label class="col-form-label col-form-label-sm">Importe Recibido (Gs.):</label>
-                                        <input type="number" class="form-control form-control-sm" id="txtImporteRecibido" value="0" min="0" oninput="calcularCambio()">
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <label class="col-form-label col-form-label-sm">Cambio (Gs.):</label>
-                                        <input type="text" class="form-control form-control-sm text-success font-weight-bold" readonly id="txtCambio" value="0">
+                                    <div class="col-sm-8">
+                                        <label class="col-form-label col-form-label-sm">Observación:</label>
+                                        <input type="text" class="form-control form-control-sm" id="txtObservacion" maxlength="500">
                                     </div>
                                 </div>
                             </div>
@@ -81,14 +66,14 @@
                 <!-- Agregar productos -->
                 <div class="row mt-2 align-items-end">
                     <div class="col-sm-3">
-                        <button type="button" class="btn btn-success btn-sm btn-block" onclick="abrirModalProductos()">
+                        <button type="button" class="btn btn-info btn-sm btn-block" onclick="abrirModalProductos()">
                             <i class="fas fa-plus-circle"></i> Agregar Productos
                         </button>
                     </div>
                     <div class="col-sm-9 d-flex align-items-end pb-1">
                         <small class="text-muted">
-                            <i class="fas fa-info-circle text-success"></i>
-                            Precio de venta y stock cargados desde el sistema. El stock se descuenta al facturar.
+                            <i class="fas fa-info-circle text-info"></i>
+                            El cajero revisará el stock al momento de facturar. Acá solo se registra el presupuesto.
                         </small>
                     </div>
                 </div>
@@ -103,9 +88,8 @@
                                 <th style="width:40px"></th>
                                 <th style="width:80px">Código</th>
                                 <th>Producto</th>
-                                <th style="width:80px" class="text-center">Stock</th>
                                 <th style="width:90px" class="text-center">Cantidad</th>
-                                <th style="width:130px" class="text-right">Precio (Gs.)</th>
+                                <th style="width:130px" class="text-right">Precio Unit. (Gs.)</th>
                                 <th style="width:60px" class="text-center">IVA%</th>
                                 <th style="width:120px" class="text-right">Total (Gs.)</th>
                             </tr>
@@ -113,45 +97,33 @@
                         <tbody></tbody>
                         <tfoot>
                             <tr class="font-weight-bold bg-light">
-                                <td colspan="4" class="text-right">Subtotales:</td>
+                                <td colspan="3" class="text-right">Totales:</td>
                                 <td class="text-center" id="tfCantidad">0</td>
                                 <td></td>
                                 <td></td>
                                 <td class="text-right" id="tfTotal">Gs. 0</td>
                             </tr>
                             <tr>
-                                <td colspan="5" class="text-right text-muted small">Gravado 10%:</td>
-                                <td colspan="3" class="text-right small" id="tfGravado10">0</td>
-                            </tr>
-                            <tr>
                                 <td colspan="5" class="text-right text-muted small">IVA 10% (inc.):</td>
-                                <td colspan="3" class="text-right small" id="tfIva10">0</td>
-                            </tr>
-                            <tr>
-                                <td colspan="5" class="text-right text-muted small">Gravado 5%:</td>
-                                <td colspan="3" class="text-right small" id="tfGravado5">0</td>
+                                <td colspan="2" class="text-right small" id="tfIva10">0</td>
                             </tr>
                             <tr>
                                 <td colspan="5" class="text-right text-muted small">IVA 5% (inc.):</td>
-                                <td colspan="3" class="text-right small" id="tfIva5">0</td>
+                                <td colspan="2" class="text-right small" id="tfIva5">0</td>
                             </tr>
-                            <tr>
-                                <td colspan="5" class="text-right text-muted small">Exento:</td>
-                                <td colspan="3" class="text-right small" id="tfExento">0</td>
-                            </tr>
-                            <tr class="table-success">
-                                <td colspan="5" class="text-right font-weight-bold">TOTAL A COBRAR:</td>
-                                <td colspan="3" class="text-right font-weight-bold h5 mb-0" id="tfTotalFinal">Gs. 0</td>
+                            <tr class="table-info">
+                                <td colspan="5" class="text-right font-weight-bold">TOTAL ESTIMADO:</td>
+                                <td colspan="2" class="text-right font-weight-bold h5 mb-0" id="tfTotalFinal">Gs. 0</td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
 
             </div>
-            <div class="card-footer bg-white border-success d-flex justify-content-between align-items-center">
+            <div class="card-footer bg-white border-info d-flex justify-content-between align-items-center">
                 <small class="text-muted" id="lblValidacion"></small>
-                <button id="btnGuardar" class="btn btn-success" onclick="guardarVenta()">
-                    <i class="fas fa-cash-register"></i> Cobrar y Facturar
+                <button id="btnGuardar" class="btn btn-info" onclick="guardarPreVenta()">
+                    <i class="fas fa-save"></i> Guardar Pre-venta
                 </button>
             </div>
         </div>
@@ -162,7 +134,7 @@
 <div class="modal fade" id="modalCliente" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white py-2">
+            <div class="modal-header bg-info text-white py-2">
                 <h5 class="modal-title"><i class="fas fa-user-tag mr-1"></i> Seleccionar Cliente</h5>
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
@@ -182,7 +154,7 @@
 <div class="modal fade" id="modalProducto" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white py-2">
+            <div class="modal-header bg-info text-white py-2">
                 <h5 class="modal-title"><i class="fas fa-box-open mr-1"></i> Seleccionar Producto</h5>
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
@@ -203,13 +175,13 @@
                 </table>
             </div>
             <div class="modal-footer py-2">
-                <small class="text-muted mr-auto"><i class="fas fa-info-circle text-success"></i> Podés agregar múltiples productos.</small>
-                <button type="button" class="btn btn-success btn-sm" data-dismiss="modal"><i class="fas fa-check"></i> Listo</button>
+                <small class="text-muted mr-auto"><i class="fas fa-info-circle text-info"></i> Podés agregar múltiples productos.</small>
+                <button type="button" class="btn btn-info btn-sm" data-dismiss="modal"><i class="fas fa-check"></i> Listo</button>
             </div>
         </div>
     </div>
 </div>
 
 @section scripts{
-    <script src="@Url.Content("~/Scripts/Views/Venta_Crear.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/Views/OrdenVenta_Crear.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

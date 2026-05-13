@@ -88,6 +88,9 @@
     <Compile Include="MotivoRechazoOC.cs" />
     <Compile Include="OrdenPago.cs" />
     <Compile Include="LineaRecepcionOC.cs" />
+    <Compile Include="OrdenVenta.cs" />
+    <Compile Include="ComprobanteCobro.cs" />
+    <Compile Include="NotaCreditoVenta.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

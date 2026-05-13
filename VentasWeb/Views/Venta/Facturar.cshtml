@@ -1,0 +1,195 @@
+@model CapaModelo.OrdenVenta
+@{
+    ViewBag.Title = "Facturar Pre-venta";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var dt = ViewBag.DatosTributarios as CapaModelo.DatosTributarios;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Venta</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Consultar","OrdenVenta")">Pre-ventas</a></li>
+        <li class="breadcrumb-item active">Facturar Pre-venta</li>
+    </ol>
+</nav>
+
+<input type="hidden" id="hdnIdOrdenVenta" value="@Model.IdOrdenVenta" />
+<input type="hidden" id="hdnProximaFactura" value="@(dt?.ProximoNumeroFactura)" />
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-file-invoice-dollar mr-1"></i> Facturar Pre-venta: <strong>@Model.NumeroOV</strong>
+                <span class="float-right small">
+                    Próxima Factura: <strong>@(dt?.ProximoNumeroFactura ?? "—")</strong>
+                </span>
+            </div>
+            <div class="card-body p-2">
+
+                <!-- Resumen de la pre-venta -->
+                <div class="row mb-2">
+                    <div class="col-sm-4">
+                        <div class="card border-primary">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-primary">Datos de la Pre-venta</h6>
+                                <div><small class="text-muted">Registrada por:</small> <strong>@Model.NombreUsuario</strong></div>
+                                <div><small class="text-muted">Tienda:</small> <strong>@Model.NombreTienda</strong></div>
+                                <div><small class="text-muted">Vencimiento OV:</small>
+                                    <strong class="@(Model.AlertaVencimiento == "VENCIDA" ? "text-danger" : Model.AlertaVencimiento == "VENCE HOY" ? "text-warning" : "")">
+                                        @Model.FechaVencimiento
+                                        @if (!string.IsNullOrEmpty(Model.AlertaVencimiento))
+                                        {
+                                            <span class="badge badge-@(Model.AlertaVencimiento == "VENCIDA" ? "danger" : "warning")">@Model.AlertaVencimiento</span>
+                                        }
+                                    </strong>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Model.Observacion))
+                                {
+                                    <div><small class="text-muted">Obs:</small> @Model.Observacion</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card border-primary">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-primary">Cliente</h6>
+                                <input type="hidden" id="hdnIdCliente" value="@(Model.IdCliente ?? 0)" />
+                                <div><small class="text-muted">Doc.:</small> <strong>@Model.DocumentoCliente</strong></div>
+                                <div><small class="text-muted">Nombre:</small> <strong id="lblNombreCliente">@Model.NombreCliente</strong></div>
+                                <div class="mt-1">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="cambiarCliente()">
+                                        <i class="fas fa-exchange-alt"></i> Cambiar cliente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card border-primary">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 text-primary">Cobro</h6>
+                                <div class="form-group mb-1">
+                                    <label class="col-form-label col-form-label-sm">Forma de Cobro:</label>
+                                    <select class="form-control form-control-sm" id="cboFormaCobro">
+                                        <option value="0">-- Seleccionar --</option>
+                                    </select>
+                                </div>
+                                <div class="row align-items-end">
+                                    <div class="col-6">
+                                        <label class="col-form-label col-form-label-sm">Importe Recibido:</label>
+                                        <input type="number" class="form-control form-control-sm" id="txtImporteRecibido" value="0" min="0" oninput="calcularCambio()">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="col-form-label col-form-label-sm">Cambio:</label>
+                                        <input type="text" class="form-control form-control-sm text-success font-weight-bold" readonly id="txtCambio" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalle de productos (readonly) -->
+                <div class="section-title font-weight-bold mb-1">Detalle de Productos</div>
+                <div class="table-responsive-sm">
+                    <table class="table table-striped table-bordered table-sm" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-right">Precio Unit. (Gs.)</th>
+                                <th class="text-center">IVA%</th>
+                                <th class="text-right">Total (Gs.)</th>
+                                <th class="text-center">Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.oDetalle != null)
+                            {
+                                foreach (var item in Model.oDetalle)
+                                {
+                                    <tr class="@(item.StockDisponible < item.Cantidad ? "table-warning" : "")">
+                                        <td>@item.Codigo</td>
+                                        <td>@item.NombreProducto</td>
+                                        <td class="text-center">@item.Cantidad</td>
+                                        <td class="text-right">@item.PrecioUnidad.ToString("N0")</td>
+                                        <td class="text-center">@item.IvaPorcentaje%</td>
+                                        <td class="text-right">@item.TotalLinea.ToString("N0")</td>
+                                        <td class="text-center @(item.StockDisponible < item.Cantidad ? "text-danger font-weight-bold" : "")">
+                                            @item.StockDisponible
+                                            @if (item.StockDisponible < item.Cantidad)
+                                            {
+                                                <i class="fas fa-exclamation-triangle text-warning" title="Stock insuficiente"></i>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-primary font-weight-bold">
+                                <td colspan="5" class="text-right">TOTAL:</td>
+                                <td class="text-right h6 mb-0">Gs. @Model.TotalEstimado.ToString("N0")</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" class="text-right text-muted small">IVA 10% (inc.):</td>
+                                <td class="text-right small">Gs. @Model.IVA10.ToString("N0")</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" class="text-right text-muted small">IVA 5% (inc.):</td>
+                                <td class="text-right small">Gs. @Model.IVA5.ToString("N0")</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" class="text-right text-muted small">Exento:</td>
+                                <td class="text-right small">Gs. @Model.Exento0.ToString("N0")</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <p id="lblStockAlerta" class="text-warning d-none">
+                    <i class="fas fa-exclamation-triangle"></i> Algunos productos tienen stock insuficiente. Verificar antes de facturar.
+                </p>
+
+            </div>
+            <div class="card-footer bg-white border-primary d-flex justify-content-between align-items-center">
+                <a href="@Url.Action("Consultar","OrdenVenta")" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+                <button id="btnFacturar" class="btn btn-primary" onclick="facturar()">
+                    <i class="fas fa-file-invoice-dollar"></i> Confirmar y Facturar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CAMBIAR CLIENTE -->
+<div class="modal fade" id="modalCliente" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title">Cambiar Cliente</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body py-2">
+                <table id="tbCliente" class="table table-striped table-bordered table-sm" style="width:100%">
+                    <thead>
+                        <tr><th style="width:50px"></th><th>Documento</th><th>Nombre</th><th>Teléfono</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/Venta_Facturar.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

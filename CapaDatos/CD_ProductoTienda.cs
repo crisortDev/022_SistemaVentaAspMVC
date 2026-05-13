@@ -48,32 +48,36 @@ namespace CapaDatos
                     {
                         rptListaProductoTienda.Add(new ProductoTienda()
                         {
-                            IdProductoTienda = Convert.ToInt32(dr["IdProductoTienda"].ToString()),
+                            IdProductoTienda = Convert.ToInt32(dr["IdProductoTienda"]),
                             oProducto = new Producto()
                             {
-                                IdProducto = Convert.ToInt32(dr["IdProducto"].ToString()),
+                                IdProducto = Convert.ToInt32(dr["IdProducto"]),
                                 Codigo = dr["CodigoProducto"].ToString(),
                                 Nombre = dr["NombreProducto"].ToString(),
                                 Descripcion = dr["DescripcionProducto"].ToString(),
                             },
                             oTienda = new Tienda()
                             {
-                                IdTienda = Convert.ToInt32(dr["IdTienda"].ToString()),
+                                IdTienda = Convert.ToInt32(dr["IdTienda"]),
                                 RUC = dr["RUC"].ToString(),
                                 Nombre = dr["NombreTienda"].ToString(),
                                 Direccion = dr["DireccionTienda"].ToString(),
                             },
-                            PrecioUnidadCompra = Convert.ToInt32(
-                            Convert.ToDecimal(dr["PrecioUnidadCompra"].ToString(), new CultureInfo("es-PY"))),
-                            PrecioVenta = Math.Truncate(Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PY"))),
-                            //PrecioIvaIncluido = Math.Truncate(Convert.ToDecimal(dr["PrecioIvaIncluido"].ToString(), new CultureInfo("es-PY"))),
-                            PrecioCompraIvaIncluido = Math.Truncate(Convert.ToDecimal(dr["PrecioCompraIvaIncluido"].ToString(), new CultureInfo("es-PY"))),
-                            PrecioVentaIvaIncluido = Math.Truncate(Convert.ToDecimal(dr["PrecioVentaIvaIncluido"].ToString(), new CultureInfo("es-PY"))),
-                            Stock = Convert.ToInt32(dr["Stock"].ToString()),
-                            PorcentajeIva = Convert.ToInt32(dr["Porcentaje"].ToString()),
-                            Iniciado = Convert.ToBoolean(dr["Iniciado"].ToString()),
-
-                            //PrecioUnidadVenta = Convert.ToDecimal(dr["PrecioVenta"].ToString(), new CultureInfo("es-PE")),
+                            PrecioUnidadCompra = dr["PrecioUnidadCompra"] == DBNull.Value ? 0
+                                : Convert.ToInt32(Convert.ToDecimal(dr["PrecioUnidadCompra"], new CultureInfo("es-PY"))),
+                            PrecioVenta = dr["PrecioVenta"] == DBNull.Value ? 0
+                                : Math.Truncate(Convert.ToDecimal(dr["PrecioVenta"], new CultureInfo("es-PY"))),
+                            PrecioCompraIvaIncluido = dr["PrecioCompraIvaIncluido"] == DBNull.Value ? 0
+                                : Math.Truncate(Convert.ToDecimal(dr["PrecioCompraIvaIncluido"], new CultureInfo("es-PY"))),
+                            PrecioVentaIvaIncluido = dr["PrecioVentaIvaIncluido"] == DBNull.Value ? 0
+                                : Math.Truncate(Convert.ToDecimal(dr["PrecioVentaIvaIncluido"], new CultureInfo("es-PY"))),
+                            Stock = dr["Stock"] == DBNull.Value ? 0 : Convert.ToInt32(dr["Stock"]),
+                            PorcentajeIva = dr["Porcentaje"] == DBNull.Value ? 0 : Convert.ToInt32(dr["Porcentaje"]),
+                            Iniciado = dr["Iniciado"] != DBNull.Value && Convert.ToBoolean(dr["Iniciado"]),
+                            PrecioVentaSugerido = dr["PrecioVentaSugerido"] == DBNull.Value ? 0
+                                : Math.Truncate(Convert.ToDecimal(dr["PrecioVentaSugerido"], new CultureInfo("es-PY"))),
+                            PorcentajeGananciaCategoria = dr["PorcentajeGanancia"] == DBNull.Value ? 0
+                                : Convert.ToDecimal(dr["PorcentajeGanancia"], new CultureInfo("es-PY")),
                         });
                     }
                     dr.Close();

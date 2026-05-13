@@ -1,8 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CapaModelo
 {
@@ -10,8 +7,9 @@ namespace CapaModelo
     {
         public int IdVenta { get; set; }
         public string TipoDocumento { get; set; }
+        public string TipoFlujo { get; set; }       // Directa | PreVenta
+        public string Estado { get; set; }           // Activa | Anulada
         public string Codigo { get; set; }
-        // FIX: Cambiado de float a decimal para evitar pérdida de precisión en montos monetarios.
         public decimal TotalCosto { get; set; }
         public string TextoTotalCosto { get; set; }
         public decimal ImporteRecibido { get; set; }
@@ -23,11 +21,51 @@ namespace CapaModelo
         public string NumeroTimbrado { get; set; }
         public string VencimientoTimbrado { get; set; }
         public decimal ImporteTotalIvaIncluido { get; set; }
+        // IVA desglosado Paraguay
+        public decimal IVA10 { get; set; }
+        public decimal IVA5 { get; set; }
+        public decimal Exento0 { get; set; }
+        public decimal Gravado10 { get; set; }
+        public decimal Gravado5Base { get; set; }
+        // Datos tributarios SET
+        public string Establecimiento { get; set; }
+        public string PuntoExpedicion { get; set; }
+        // Forma de cobro y flujo
+        public string FormaCobro { get; set; }
+        public string NumeroOV { get; set; }
+        // Resumen para lista
+        public string NombreCliente { get; set; }
+        public string DocumentoCliente { get; set; }
+        public string NombreUsuario { get; set; }
+        public string NombreTienda { get; set; }
+        // Datos KuDE
+        public string NombreCajero { get; set; }
+        public string NombreEmisor { get; set; }
+        public string RUCEmisor { get; set; }
+        public string DireccionEmisor { get; set; }
+        public string TelefonoEmisor { get; set; }
         public DateTime VFechaRegistro { get; set; }
+        // Objetos relacionados
         public Usuario oUsuario { get; set; }
         public Tienda oTienda { get; set; }
         public Cliente oCliente { get; set; }
         public List<DetalleVenta> oListaDetalleVenta { get; set; }
+    }
 
+    public class DatosTributarios
+    {
+        public string NumeroTimbrado { get; set; }
+        public string VencimientoTimbrado { get; set; }
+        public string Establecimiento { get; set; }
+        public string PuntoExpedicion { get; set; }
+        public int SecuenciaActual { get; set; }
+        public string ProximoNumeroFactura { get; set; }
+    }
+
+    public class FormaCobro
+    {
+        public int IdFormaCobro { get; set; }
+        public string Nombre { get; set; }
+        public bool Activo { get; set; }
     }
 }

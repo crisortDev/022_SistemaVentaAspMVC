@@ -150,6 +150,9 @@
     <Compile Include="Controllers\CompraController.Revision.cs" />
     <Compile Include="Controllers\OrdenPagoController.cs" />
     <Compile Include="Controllers\NotaCreditoController.cs" />
+    <Compile Include="Controllers\OrdenVentaController.cs" />
+    <Compile Include="Controllers\ComprobanteCobroController.cs" />
+    <Compile Include="Controllers\NotaCreditoVentaController.cs" />
     <Compile Include="Controllers\ReporteGerenciaController.cs" />
     <Compile Include="Filters\AuthorizeRol.cs" />
     <Compile Include="Filters\VerificarSession.cs" />
@@ -2038,6 +2041,13 @@
     <Content Include="Scripts\Views\Compra_Consultar.js" />
     <Content Include="Scripts\Views\Compra_Crear.js" />
     <Content Include="Scripts\Views\OrdenCompra_Crear.js" />
+    <Content Include="Scripts\Views\Venta_Crear.js" />
+    <Content Include="Scripts\Views\Venta_Consultar.js" />
+    <Content Include="Scripts\Views\Venta_Facturar.js" />
+    <Content Include="Scripts\Views\OrdenVenta_Crear.js" />
+    <Content Include="Scripts\Views\OrdenVenta_Consultar.js" />
+    <Content Include="Scripts\Views\ComprobanteCobro_Index.js" />
+    <Content Include="Scripts\Views\NotaCreditoVenta_Index.js" />
     <Content Include="Scripts\Views\OrdenCompra_Consultar.js" />
     <Content Include="Scripts\Views\OrdenCompra_Aprobaciones.js" />
     <Content Include="Scripts\Views\Precio_Venta.js" />
@@ -2117,6 +2127,11 @@
     <Content Include="Views\OrdenPago\Consultar.cshtml" />
     <Content Include="Views\OrdenPago\Documento.cshtml" />
     <Content Include="Views\NotaCredito\Index.cshtml" />
+    <Content Include="Views\OrdenVenta\Crear.cshtml" />
+    <Content Include="Views\OrdenVenta\Consultar.cshtml" />
+    <Content Include="Views\Venta\Facturar.cshtml" />
+    <Content Include="Views\ComprobanteCobro\Index.cshtml" />
+    <Content Include="Views\NotaCreditoVenta\Index.cshtml" />
     <Content Include="Views\ReporteGerencia\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
@@ -2182,6 +2197,6 @@
     <PropertyGroup>
       <ErrorText>Este proyecto hace referencia a los paquetes NuGet que faltan en este equipo. Use la restauración de paquetes NuGet para descargarlos. Para obtener más información, consulte http://go.microsoft.com/fwlink/?LinkID=322105. El archivo que falta es {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Codedom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets'))" />
   </Target>
 </Project>

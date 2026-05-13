@@ -1,194 +1,195 @@
-﻿@model CapaModelo.Venta
+@model CapaModelo.Venta
 @{
     Layout = null;
+    string estado = Model?.Estado ?? "Activa";
 }
-
-
 <!DOCTYPE html>
-
 <html>
 <head>
-    <meta name="viewport" content="width=device-width" />
-    <title>Documento</title>
-    @Styles.Render("~/Content/PluginsCSS")
-    <style type="text/css">
-        .btn:not(:disabled):not(.disabled) {
-            cursor: pointer;
-        }
-
-        .btn-secondary {
-            color: #fff;
-            background-color: #6c757d;
-            border-color: #6c757d;
-        }
-
-        .btn {
-            display: inline-block;
-            font-weight: 400;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: middle;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            border: 1px solid transparent;
-            padding: .375rem .75rem;
-            font-size: 1rem;
-            line-height: 1.5;
-            border-radius: .25rem;
-            transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-        }
+    <meta charset="utf-8" />
+    <title>Factura Electrónica - KuDE</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding: 10px; color: #222; }
+        .kude-container { max-width: 780px; margin: 0 auto; border: 2px solid #333; padding: 8px; }
+        .kude-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #333; padding-bottom: 6px; margin-bottom: 6px; }
+        .kude-emisor { flex: 1; }
+        .kude-emisor h2 { margin: 0 0 2px; font-size: 14px; }
+        .kude-factura-box { border: 2px solid #333; padding: 6px 12px; text-align: center; min-width: 180px; }
+        .kude-factura-box .tipo { font-size: 12px; font-weight: bold; }
+        .kude-factura-box .numero { font-size: 16px; font-weight: bold; color: #0a5; }
+        .kude-factura-box .timbrado { font-size: 10px; margin-top: 4px; }
+        .kude-anulada { background: #ffe0e0; border: 2px solid red; padding: 4px; text-align: center; color: red; font-weight: bold; font-size:13px; margin-bottom: 6px; }
+        .section-title { font-weight: bold; background: #eee; padding: 2px 4px; margin-bottom: 4px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px; }
+        .info-row { display: flex; gap: 4px; }
+        .info-label { font-weight: bold; white-space: nowrap; }
+        table.detalle { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+        table.detalle th { background: #ddd; border: 1px solid #bbb; padding: 3px 5px; text-align: left; }
+        table.detalle td { border: 1px solid #ccc; padding: 3px 5px; }
+        table.detalle .text-right { text-align: right; }
+        .totales-box { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; }
+        .iva-table { border: 1px solid #bbb; border-collapse: collapse; }
+        .iva-table th, .iva-table td { border: 1px solid #bbb; padding: 2px 8px; text-align: right; font-size: 10px; }
+        .iva-table th { background: #eee; }
+        .total-final { font-size: 16px; font-weight: bold; text-align: right; border: 2px solid #333; padding: 4px 10px; }
+        .qr-box { border: 1px solid #aaa; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; font-size: 9px; text-align: center; color: #888; }
+        .footer-kude { border-top: 1px dashed #aaa; margin-top: 8px; padding-top: 4px; font-size: 9px; color: #666; }
+        @@media print { body { padding: 0; } .no-print { display: none; } }
+        .gs { font-family: monospace; }
     </style>
 </head>
 <body>
-    <div style="font-size: 11px; text-align: right;">
-        <center>
-            <button type="button" id="Imprimir" class="btn btn-secondary" onclick="javascript:imprSelec('seleccion')"><i class="fas fa-print"></i> Imprimir</button>
-        </center>
-        <br>
-    </div>
-    <div id="seleccion">
-        <center>
-            <table style="width: 650px; border:2px solid #17a2b8;padding: 10px;">
-                <tr>
-                    <td>
-                        <table id="cabezera">
-                            <tr>
-                                <td style="width:140px">
-                                    <img src="@Url.Content("~/Imagenes/tienda.png")" alt="" height="70">
-                                </td>
-                                <td style="width:290px">
-                                    <table style="width:100%">
-                                        <tr><td><label style="font-size:16px;font-weight:bold;text-align:center;width:100%;display:block">COMPU SPACE</label></td></tr>
-                                        <tr><td colspan="4" align="center" style="font-size:14px">Atendido por: <span>@Html.DisplayTextFor(model => model.oUsuario.Nombres) @Html.DisplayTextFor(model => model.oUsuario.Apellidos)</span></td> </tr>
-                                        <tr><td colspan="4" align="center" style="font-size:14px"><span>@Html.DisplayTextFor(model => model.oTienda.Direccion)</span></td> </tr>
-                                    </table>
-                                </td>
-                                <td style="width:200px;">
-                                    <table style="width: 100%; height: 100px; font-weight: bold; border: 2px solid #17a2b8; font-size: 14px;">
-                                        <!-- R.U.C. -->
-                                        <tr><td align="center">R.U.C. <span>@Html.DisplayTextFor(model => model.oTienda.RUC)</span></td></tr>
+    @if (Model == null || Model.IdVenta == 0)
+    {
+        <p style="color:red;text-align:center;">No se encontró la venta solicitada.</p>
+    }
+    else
+    {
+        <div class="kude-container">
 
-                                        <!-- Tipo de Documento -->
-                                        <tr style="color:#fff; background-color:#17a2b8; -webkit-print-color-adjust: exact; font-size: 16px !important;">
-                                            <td align="center"><span>@Html.DisplayTextFor(model => model.TipoDocumento)</span></td>
-                                        </tr>
-                                        <!-- NumeroFactura -->
-                                        <tr><td align="center">Número Factura: <span>@Html.DisplayTextFor(model => model.NumeroFactura)</span></td></tr>
+            @if (estado == "Anulada")
+            {
+                <div class="kude-anulada">⚠ DOCUMENTO ANULADO ⚠</div>
+            }
 
-                                        <!-- NumeroTimbrado -->
-                                        <tr><td align="center">Timbrado: <span>@Html.DisplayTextFor(model => model.NumeroTimbrado)</span></td></tr>
+            <!-- ENCABEZADO -->
+            <div class="kude-header">
+                <div class="kude-emisor">
+                    <h2>@Model.NombreEmisor</h2>
+                    <div><span class="info-label">RUC:</span> @Model.RUCEmisor</div>
+                    <div><span class="info-label">Dirección:</span> @Model.DireccionEmisor</div>
+                    <div><span class="info-label">Teléfono:</span> @Model.TelefonoEmisor</div>
+                </div>
+                <div style="text-align:center;margin:0 12px;">
+                    <div class="qr-box">
+                        <span>QR<br/>SET<br/>(reservado)</span>
+                    </div>
+                    <div style="font-size:9px;margin-top:2px;">Consulte en set.gov.py</div>
+                </div>
+                <div class="kude-factura-box">
+                    <div class="tipo">FACTURA ELECTRÓNICA</div>
+                    <div style="font-size:10px;">Documento Tributario Electrónico</div>
+                    <div class="numero">@Model.NumeroFactura</div>
+                    <div class="timbrado">
+                        Timbrado Nº: <strong>@Model.NumeroTimbrado</strong><br/>
+                        Vto.: @Model.VencimientoTimbrado<br/>
+                        Est.: @Model.Establecimiento &nbsp;|&nbsp; Pto.: @Model.PuntoExpedicion
+                    </div>
+                    @if (Model.NumeroOV != null && Model.NumeroOV != "")
+                    {
+                        <div class="timbrado" style="margin-top:4px;color:#555;">Pre-venta: @Model.NumeroOV</div>
+                    }
+                </div>
+            </div>
 
-                                        <!-- VencimientoTimbrado -->
-                                        <tr><td align="center">Vencimiento: <span>@Html.DisplayTextFor(model => model.VencimientoTimbrado)</span></td></tr>
-                                    </table>
-                                </td>
+            <!-- DATOS EMISIÓN + CLIENTE -->
+            <div class="info-grid">
+                <div>
+                    <div class="section-title">Datos de Emisión</div>
+                    <div class="info-row"><span class="info-label">Fecha y Hora:</span> &nbsp;@Model.FechaRegistro</div>
+                    <div class="info-row"><span class="info-label">Cajero:</span> &nbsp;@Model.NombreCajero</div>
+                    <div class="info-row"><span class="info-label">Forma de Pago:</span> &nbsp;@Model.FormaCobro</div>
+                    <div class="info-row"><span class="info-label">Condición:</span> &nbsp;Contado</div>
+                </div>
+                <div>
+                    <div class="section-title">Datos del Receptor</div>
+                    <div class="info-row"><span class="info-label">Nombre / Razón Social:</span> &nbsp;@Model.NombreCliente</div>
+                    <div class="info-row"><span class="info-label">RUC / C.I.:</span> &nbsp;@Model.DocumentoCliente</div>
+                </div>
+            </div>
 
-                            </tr>
-                        </table>
-
-                    </td>
-                </tr>
-                <tr style="height: 20px;"><td><br></td></tr>
-                <tr>
-                    <td>
-                        <table style=" width: 100%;" border="0">
+            <!-- DETALLE DE PRODUCTOS -->
+            <div class="section-title">Detalle de Productos</div>
+            <table class="detalle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th class="text-right">Cantidad</th>
+                        <th class="text-right">Precio Unit. (Gs.)</th>
+                        <th class="text-right">IVA%</th>
+                        <th class="text-right">Exento</th>
+                        <th class="text-right">Gravado</th>
+                        <th class="text-right">Total (Gs.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.oListaDetalleVenta != null)
+                    {
+                        int fila = 1;
+                        foreach (var item in Model.oListaDetalleVenta)
+                        {
                             <tr>
-                                <td colspan="1" style="width:50px !important">Cliente:</td>
-                                <td colspan="5" style="border-bottom:1px solid #000"><span>@Html.DisplayTextFor(model => model.oCliente.Nombre)</span></td>
+                                <td>@fila</td>
+                                <td>@item.CodigoProducto</td>
+                                <td>@item.NombreProducto</td>
+                                <td class="text-right">@item.Cantidad</td>
+                                <td class="text-right gs">@item.PrecioUnidad.ToString("N0")</td>
+                                <td class="text-right">@item.IvaPorcentaje%</td>
+                                <td class="text-right gs">@(item.IvaPorcentaje == 0 ? item.ImporteTotal.ToString("N0") : "0")</td>
+                                <td class="text-right gs">@item.ImporteSinIva.ToString("N0")</td>
+                                <td class="text-right gs">@item.ImporteTotal.ToString("N0")</td>
                             </tr>
-                            <tr>
-                                <td colspan="1" style="width:50px !important">Direccion:</td>
-                                <td colspan="5" style="border-bottom:1px solid #000"><span>@Html.DisplayTextFor(model => model.oCliente.Direccion)</span></td>
-                            </tr>
-                            <tr>
-                                <td style="width:50px">Nro.Documento:</td>
-                                <td style="border-bottom:1px solid #000"><span>@Html.DisplayTextFor(model => model.oCliente.NumeroDocumento)</span></td>
-                                <td style="width:50px"> Telefono:</td>
-                                <td style="border-bottom:1px solid #000"><span>@Html.DisplayTextFor(model => model.oCliente.Telefono)</span></td>
-                                <td style="width:50px"> Fecha:</td>
-                                <td style="border-bottom:1px solid #000"><span>@Html.DisplayTextFor(model => model.FechaRegistro)</span></td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                <tr><td><hr /></td></tr>
-                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
-                    <td style="padding:4px">
-                        <u>Detalle Productos</u>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <table id="tbCompras" border="1" style=" width: 100%;">
-                            <thead>
-                                <tr style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">
-                                    <th style="width: 15%;">Cantidad</th>
-                                    <th style="width: 45%;">Descripcion</th>
-                                    <th style="width: 20%;">P.Unit</th>
-                                    <th style="width: 20%;">Importe Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in Model.oListaDetalleVenta)
-                                {
-                                    <tr>
-                                        <td>@Html.DisplayFor(modelItem => item.Cantidad)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.NombreProducto)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.PrecioUnidad)</td>
-                                        <td>@Html.DisplayFor(modelItem => item.ImporteTotalIvaIncluido)</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </td>
-                </tr>
-                <tr style="height: 10px;"><td colspan="6"><br /><br /></td></tr>
-                <tr>
-                    <td>
-                        <table style="font-weight: bold; width:100%">
-                            <tr>
-                                <td colspan="4">
-                                    <table width='250' style="border:1px solid #17a2b8;">
-                                        <tr style="border:1px solid #17a2b8;">
-                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Pago en G/.</td>
-                                            <td><span>@Html.DisplayTextFor(model => model.ImporteRecibido)</span></td>
-                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;">Cambio G/.</td>
-                                            <td><span>@Html.DisplayTextFor(model => model.ImporteCambio)</span></td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td colspan="2" align="right">
-                                    <table style="font-weight: bold; width: 150px;border:1px solid #17a2b8;">
-                                        <tr>
-                                            <td>Total G/.</td>
-                                            <td style="color:#fff;background-color:#17a2b8; -webkit-print-color-adjust: exact;border:1px solid #17a2b8;">
-                                                <span>@Html.DisplayTextFor(model => model.ImporteTotalIvaIncluido)</span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
+                            fila++;
+                        }
+                    }
+                </tbody>
             </table>
-        </center>
-    </div>
-    @Scripts.Render("~/Content/PluginsJS")
-    <script>
 
-        function imprSelec(nombre) {
-            var printContents = document.getElementById(nombre).innerHTML;
-            var originalContents = document.body.innerHTML;
+            <!-- TOTALES + IVA DESGLOSADO -->
+            <div class="totales-box">
+                <table class="iva-table">
+                    <thead>
+                        <tr><th>IVA%</th><th>Gravado</th><th>IVA</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>10%</td>
+                            <td class="gs">@Model.Gravado10.ToString("N0")</td>
+                            <td class="gs">@Model.IVA10.ToString("N0")</td>
+                        </tr>
+                        <tr>
+                            <td>5%</td>
+                            <td class="gs">@Model.Gravado5Base.ToString("N0")</td>
+                            <td class="gs">@Model.IVA5.ToString("N0")</td>
+                        </tr>
+                        <tr>
+                            <td>Exento</td>
+                            <td class="gs">@Model.Exento0.ToString("N0")</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div>
+                    <div style="text-align:right;font-size:10px;margin-bottom:4px;">
+                        Importe Recibido: <span class="gs">Gs. @Model.ImporteRecibido.ToString("N0")</span> &nbsp;|&nbsp;
+                        Cambio: <span class="gs">Gs. @Model.ImporteCambio.ToString("N0")</span>
+                    </div>
+                    <div class="total-final">
+                        TOTAL: <span class="gs">Gs. @Model.TotalCosto.ToString("N0")</span>
+                    </div>
+                </div>
+            </div>
 
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-        }
+            <!-- PIE -->
+            <div class="footer-kude">
+                Este documento es una representación gráfica del Documento Tributario Electrónico (DTE) emitido bajo el régimen de facturación electrónica de la SET - Paraguay.
+                Verifique la autenticidad en <strong>set.gov.py</strong> | Sistema: SistemaVenta v2
+            </div>
+        </div>
 
-    </script>
+        <!-- Botones (no imprimen) -->
+        <div class="no-print" style="text-align:center;margin-top:12px;">
+            <button onclick="window.print()" class="btn btn-primary btn-sm">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <button onclick="window.close()" class="btn btn-secondary btn-sm ml-2">
+                Cerrar
+            </button>
+        </div>
+    }
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
 </body>
 </html>
