@@ -35,10 +35,8 @@ namespace VentasWeb.Controllers
         {
             int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
 
-            DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
-                ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);
-            DateTime ff = string.IsNullOrWhiteSpace(fechafin)
-                ? DateTime.Today : Convert.ToDateTime(fechafin);
+            DateTime fi = ParseFecha(fechainicio, DateTime.Today.AddDays(-30));
+            DateTime ff = ParseFecha(fechafin,   DateTime.Today);
 
             var lista = CD_NotaCreditoVenta.Instancia.ObtenerListaNotaCreditoVenta(
                 idTienda, estado, fi, ff);
@@ -95,6 +93,18 @@ namespace VentasWeb.Controllers
         // ============================================================
         //  JSON — MOTIVOS DE NC (para el select del modal)
         // ============================================================
+
+        // ── Helper: parsea fechas dd/MM/yyyy del datepicker ──
+        private static DateTime ParseFecha(string valor, DateTime fallback)
+        {
+            if (string.IsNullOrWhiteSpace(valor)) return fallback;
+            DateTime resultado;
+            if (DateTime.TryParseExact(valor, "dd/MM/yyyy",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out resultado))
+                return resultado;
+            return DateTime.TryParse(valor, out resultado) ? resultado : fallback;
+        }
 
         [HttpGet]
         public JsonResult ObtenerMotivos()

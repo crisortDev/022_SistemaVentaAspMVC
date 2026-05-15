@@ -74,6 +74,17 @@ function facturar() {
     var recibido = parseFloat($('#txtImporteRecibido').val()) || 0;
     if (recibido <= 0) { toastr.warning('Ingrese el importe recibido.'); return; }
 
+    // Validar stock insuficiente
+    if ($('.table-warning').length > 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Stock insuficiente',
+            text: 'Uno o más productos no tienen stock suficiente. No se puede facturar.',
+            confirmButtonColor: '#0984e3'
+        });
+        return;
+    }
+
     if (!confirm('¿Confirmar la facturación de esta pre-venta?')) return;
 
     $('#btnFacturar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Facturando...');
