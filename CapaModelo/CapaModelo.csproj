@@ -91,6 +91,7 @@
     <Compile Include="OrdenVenta.cs" />
     <Compile Include="ComprobanteCobro.cs" />
     <Compile Include="NotaCreditoVenta.cs" />
+    <Compile Include="CajaVenta.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

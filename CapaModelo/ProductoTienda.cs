@@ -23,7 +23,8 @@ namespace CapaModelo
         public decimal PorcentajeIva { get; set; }
         public bool Iniciado { get; set; }
         // Precio calculado por margen mínimo de la categoría (IVA incluido)
-        public decimal PrecioVentaSugerido { get; set; }
-        public decimal PorcentajeGananciaCategoria { get; set; }
+        public decimal PrecioSugerido { get; set; }
+        // Porcentaje de ganancia de la categoría a la que pertenece el producto
+        public decimal MargenCategoria { get; set; }
     }
 }

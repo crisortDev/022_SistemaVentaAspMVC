@@ -157,6 +157,7 @@ namespace CapaDatos
                                 NombreTienda         = dr["NombreTienda"].ToString(),
                                 RUCTienda            = dr["RUCTienda"].ToString(),
                                 NombreUsuario        = dr["NombreUsuario"].ToString(),
+                                IdCliente            = dr["IdCliente"] == DBNull.Value ? (int?)null : Convert.ToInt32(dr["IdCliente"]),
                                 NombreCliente        = dr["NombreCliente"].ToString(),
                                 DocumentoCliente     = dr["DocumentoCliente"].ToString(),
                                 DireccionCliente     = dr["DireccionCliente"].ToString(),

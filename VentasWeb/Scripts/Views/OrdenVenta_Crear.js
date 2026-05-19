@@ -59,13 +59,13 @@ function iniciarTablaProducto() {
                 render: function (d) {
                     var existe = itemsDetalle.some(function (x) { return x.id === d.oProducto.IdProducto; });
                     if (existe) return '<span class="badge badge-info"><i class="fas fa-check"></i></span>';
-                    // Usar PrecioVentaSugerido (margen de categoría); fallback a PrecioVenta
-                    var precio = (d.PrecioVentaSugerido && d.PrecioVentaSugerido > 0)
-                        ? d.PrecioVentaSugerido : (d.PrecioVenta || 0);
+                    // Usar PrecioSugerido (margen de categoría); fallback a PrecioVenta
+                    var precio = (d.PrecioSugerido && d.PrecioSugerido > 0)
+                        ? d.PrecioSugerido : (d.PrecioVenta || 0);
                     return '<button class="btn btn-info btn-sm" onclick="agregarProducto(' +
                         d.oProducto.IdProducto + ',\'' + escapar(d.oProducto.Codigo) + '\',\'' +
                         escapar(d.oProducto.Nombre) + '\',' + precio + ',' +
-                        (d.oProducto.IvaPorcentaje || 10) + ',' + d.Stock +
+                        (d.PorcentajeIva || 10) + ',' + d.Stock +
                         ')"><i class="fas fa-plus"></i></button>';
                 }
             },
@@ -74,17 +74,17 @@ function iniciarTablaProducto() {
             {
                 data: null, className: 'text-right',
                 render: function (d) {
-                    var precio = (d.PrecioVentaSugerido && d.PrecioVentaSugerido > 0)
-                        ? d.PrecioVentaSugerido : (d.PrecioVenta || 0);
+                    var precio = (d.PrecioSugerido && d.PrecioSugerido > 0)
+                        ? d.PrecioSugerido : (d.PrecioVenta || 0);
                     return formatGs(precio);
                 }
             },
             {
-                data: 'PorcentajeGananciaCategoria', className: 'text-center',
+                data: 'MargenCategoria', className: 'text-center',
                 render: function (v) { return (v || 0) + '%'; }
             },
             { data: 'Stock', className: 'text-center' },
-            { data: 'oProducto.IvaPorcentaje', className: 'text-center', render: function (v) { return v + '%'; } }
+            { data: 'PorcentajeIva', className: 'text-center', render: function (v) { return (v || 10) + '%'; } }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish }, order: [[2, 'asc']]
     });
@@ -97,6 +97,10 @@ function abrirModalProductos() {
 
 function agregarProducto(id, codigo, nombre, precio, iva, stock) {
     if (itemsDetalle.some(function (x) { return x.id === id; })) { toastr.info('Ya está en el detalle.'); return; }
+    if (stock <= 0) {
+        toastr.warning('"' + nombre + '" no tiene stock disponible y no puede agregarse a la pre-venta.');
+        return;
+    }
     itemsDetalle.push({ id: id, codigo: codigo, nombre: nombre, precio: precio, iva: iva, stock: stock, cantidad: 1 });
     renderizarDetalle();
     if (dtProducto) dtProducto.draw(false);
@@ -121,6 +125,11 @@ function quitarItem(idx) { itemsDetalle.splice(idx, 1); renderizarDetalle(); if 
 
 function actualizarCantidad(idx, val) {
     var cant = parseInt(val); if (isNaN(cant) || cant < 1) cant = 1;
+    var stockDisp = itemsDetalle[idx].stock || 0;
+    if (stockDisp > 0 && cant > stockDisp) {
+        toastr.warning('La cantidad supera el stock disponible (' + stockDisp + '). Se ajustó al máximo.');
+        cant = stockDisp;
+    }
     itemsDetalle[idx].cantidad = cant;
     renderizarDetalle();
 }
@@ -142,6 +151,12 @@ function actualizarTotales() {
 function guardarPreVenta() {
     if (itemsDetalle.length === 0) {
         Swal.fire({ icon: 'warning', title: 'Atención', text: 'Agregue al menos un producto.', confirmButtonColor: '#0984e3' });
+        return;
+    }
+    var idCliente = parseInt($('#hdnIdCliente').val()) || 0;
+    if (idCliente === 0) {
+        Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debe seleccionar un cliente para registrar la pre-venta.', confirmButtonColor: '#0984e3' })
+            .then(function () { buscarCliente(); });
         return;
     }
     var fecVenc = $('#txtFechaVencimiento').val().trim();

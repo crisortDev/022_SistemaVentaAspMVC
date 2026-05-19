@@ -590,6 +590,21 @@
             _NCV_Motivos:        '@Url.Action("ObtenerMotivos", "NotaCreditoVenta")'
         });
 
+        // ---- CAJA VENTA ----
+        $.MisUrls.urls({
+            _CajaVenta_Index:       '@Url.Action("Index",             "CajaVenta")',
+            _CajaVenta_Abrir:       '@Url.Action("Abrir",             "CajaVenta")',
+            _CajaVenta_Cerrar:      '@Url.Action("Cerrar",            "CajaVenta")',
+            _CajaVenta_Operaciones: '@Url.Action("ObtenerOperaciones","CajaVenta")',
+            _CajaVenta_Historial:   '@Url.Action("Historial",         "CajaVenta")',
+            _CajaVenta_Reporte:     '@Url.Action("Reporte",           "CajaVenta")'
+        });
+
+        // ---- PARÁMETROS TRIBUTARIOS ----
+        $.MisUrls.urls({
+            _ParamTrib_Guardar: '@Url.Action("Guardar", "ParametrosTributarios")'
+        });
+
         // ---- PRECIOS VENTA ----
         $.MisUrls.urls({
             _ObtenerHistorialPreciosVenta: '@Url.Action("ObtenerHistorial", "PreciosVenta")',

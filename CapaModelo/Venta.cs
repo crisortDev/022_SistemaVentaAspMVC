@@ -54,12 +54,16 @@ namespace CapaModelo
 
     public class DatosTributarios
     {
-        public string NumeroTimbrado { get; set; }
-        public string VencimientoTimbrado { get; set; }
-        public string Establecimiento { get; set; }
-        public string PuntoExpedicion { get; set; }
-        public int SecuenciaActual { get; set; }
-        public string ProximoNumeroFactura { get; set; }
+        public string NumeroTimbrado        { get; set; }
+        public string VencimientoTimbrado   { get; set; }
+        public string Establecimiento       { get; set; }
+        public string PuntoExpedicion       { get; set; }
+        public int    SecuenciaActual       { get; set; }
+        public string ProximoNumeroFactura  { get; set; }
+        // Campos adicionales para el CRUD de Parametrización Tributaria
+        public string RazonSocial           { get; set; }
+        public int    DiasParaVencer        { get; set; }
+        public string EstadoTimbrado        { get; set; }  // VIGENTE / POR VENCER / VENCIDO
     }
 
     public class FormaCobro

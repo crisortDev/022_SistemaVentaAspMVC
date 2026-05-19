@@ -61,9 +61,7 @@
                     <div><span class="info-label">Teléfono:</span> @Model.TelefonoEmisor</div>
                 </div>
                 <div style="text-align:center;margin:0 12px;">
-                    <div class="qr-box">
-                        <span>QR<br/>SET<br/>(reservado)</span>
-                    </div>
+                    <div id="qrcode" style="width:90px;height:90px;"></div>
                     <div style="font-size:9px;margin-top:2px;">Consulte en set.gov.py</div>
                 </div>
                 <div class="kude-factura-box">
@@ -191,5 +189,26 @@
     }
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        (function () {
+            // QR de ejemplo — en producción real se usaría el CDC del DTE emitido por la SET
+            var nroFactura = '@Html.Raw(Model?.NumeroFactura ?? "000-000-0000000")';
+            var ruc        = '@Html.Raw(Model?.RUCEmisor ?? "00000000-0")';
+            var fecha      = '@Html.Raw(Model?.FechaRegistro ?? "")';
+            // Datos de ejemplo en formato similar al CDC de la SET Paraguay
+            var cdcEjemplo = '01' + ruc.replace('-','').replace(/\D/g,'') +
+                             '001001' + nroFactura.replace(/\D/g,'') + '1';
+            var urlConsulta = 'https://ekuatia.set.gov.py/consultas/de?cdc=' + cdcEjemplo;
+            new QRCode(document.getElementById('qrcode'), {
+                text:           urlConsulta,
+                width:          90,
+                height:         90,
+                colorDark:      '#000000',
+                colorLight:     '#ffffff',
+                correctLevel:   QRCode.CorrectLevel.M
+            });
+        })();
+    </script>
 </body>
 </html>

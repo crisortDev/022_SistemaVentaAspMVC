@@ -1,0 +1,257 @@
+@{
+    ViewBag.Title = "Caja de Ventas";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var cajaActiva  = ViewBag.CajaActiva as CapaModelo.SesionCaja;
+    bool hayaCaja   = cajaActiva != null;
+    var tiendas     = ViewBag.Tiendas as List<CapaModelo.Tienda>;
+    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Caja</a></li>
+        <li class="breadcrumb-item active">Caja de Ventas</li>
+    </ol>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  PANEL: SIN CAJA ABIERTA                               -->
+<!-- ═══════════════════════════════════════════════════════ -->
+@if (!hayaCaja)
+{
+    <div class="row justify-content-center" id="panelApertura">
+        <div class="col-sm-6">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-cash-register mr-1"></i> Apertura de Caja
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">No hay ninguna caja abierta. Ingresá el monto inicial en efectivo para comenzar el turno.</p>
+
+                    @if (esSuperAdmin && tiendas != null && tiendas.Count > 0)
+                    {
+                        <div class="form-group">
+                            <label class="col-form-label col-form-label-sm font-weight-bold">
+                                Tienda <span class="text-danger">*</span>
+                            </label>
+                            <select id="ddlTiendaApertura" class="form-control form-control-sm">
+                                <option value="0">-- Seleccioná una tienda --</option>
+                                @foreach (var t in tiendas)
+                                {
+                                    <option value="@t.IdTienda">@t.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Monto de Apertura (Gs.) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" id="txtMontoApertura" class="form-control"
+                               placeholder="0" min="0" value="0" />
+                        <small class="text-muted">Ingresá el efectivo disponible al inicio del turno.</small>
+                    </div>
+                    <button class="btn btn-success btn-block mt-3" onclick="abrirCaja()">
+                        <i class="fas fa-lock-open mr-1"></i> Abrir Caja
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!--  PANEL: CAJA ABIERTA                                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="panelCajaAbierta">
+        <!-- Resumen de la caja activa -->
+        <div class="row mb-3">
+            <div class="col-sm-3">
+                <div class="card border-success text-center">
+                    <div class="card-body py-2">
+                        <div class="text-muted" style="font-size:11px;">APERTURA</div>
+                        <div class="font-weight-bold text-success" style="font-size:18px;">
+                            Gs. @cajaActiva.MontoApertura.ToString("N0")
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="card border-primary text-center">
+                    <div class="card-body py-2">
+                        <div class="text-muted" style="font-size:11px;">VENTAS DEL TURNO</div>
+                        <div class="font-weight-bold text-primary" style="font-size:18px;" id="lblTotalVentas">
+                            Gs. @cajaActiva.TotalVentas.ToString("N0")
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="card border-warning text-center">
+                    <div class="card-body py-2">
+                        <div class="text-muted" style="font-size:11px;">SALDO ESPERADO</div>
+                        <div class="font-weight-bold text-warning" style="font-size:18px;" id="lblSaldoEsperado">
+                            Gs. @((cajaActiva.MontoApertura + cajaActiva.TotalVentas).ToString("N0"))
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="card border-info text-center">
+                    <div class="card-body py-2">
+                        <div class="text-muted" style="font-size:11px;">OPERACIONES</div>
+                        <div class="font-weight-bold text-info" style="font-size:18px;" id="lblCantidadVentas">
+                            @cajaActiva.CantidadVentas
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info de sesión -->
+        <div class="alert alert-light border mb-3 py-2">
+            <i class="fas fa-info-circle text-success mr-1"></i>
+            Caja abierta por <strong>@cajaActiva.NombreUsuario</strong>
+            el <strong>@cajaActiva.FechaApertura.ToString("dd/MM/yyyy HH:mm")</strong>
+            — Tienda: <strong>@cajaActiva.NombreTienda</strong>
+            &nbsp;|&nbsp;
+            <a href="@Url.Action("Reporte","CajaVenta", new { idCaja = cajaActiva.IdCaja })">
+                <i class="fas fa-list-alt mr-1"></i>Ver operaciones detalladas
+            </a>
+        </div>
+
+        <!-- Tabla de operaciones del turno -->
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-receipt mr-1"></i> Operaciones del turno</span>
+                <button class="btn btn-outline-secondary btn-sm" onclick="recargarOperaciones()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+            <div class="card-body p-2">
+                <div class="table-responsive">
+                    <table id="tbOperaciones" class="table table-striped table-sm table-bordered" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Hora</th>
+                                <th>Nº Factura</th>
+                                <th>Cliente</th>
+                                <th>Forma Cobro</th>
+                                <th class="text-right">Monto (Gs.)</th>
+                                <th class="text-right">Recibido (Gs.)</th>
+                                <th class="text-right">Cambio (Gs.)</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyOperaciones"></tbody>
+                        <tfoot>
+                            <tr class="font-weight-bold bg-light">
+                                <td colspan="5" class="text-right">TOTAL:</td>
+                                <td class="text-right" id="tfMonto">Gs. 0</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón cierre -->
+        <div class="text-right">
+            <button class="btn btn-danger" onclick="abrirModalCierre()">
+                <i class="fas fa-lock mr-1"></i> Cerrar Caja
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL CIERRE -->
+    <div class="modal fade" id="modalCierre" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white py-2">
+                    <h5 class="modal-title"><i class="fas fa-lock mr-1"></i> Cierre de Caja</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="hdnIdCaja" value="@cajaActiva.IdCaja" />
+
+                    <div class="row mb-3 text-center">
+                        <div class="col-6">
+                            <div class="text-muted small">Monto apertura</div>
+                            <div class="font-weight-bold">Gs. @cajaActiva.MontoApertura.ToString("N0")</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">Total ventas sistema</div>
+                            <div class="font-weight-bold text-primary" id="lblSistemaCierre">
+                                Gs. @cajaActiva.TotalVentas.ToString("N0")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Monto Contado (Gs.) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" id="txtMontoContado" class="form-control" min="0" value="0"
+                               oninput="calcularDiferencia()" />
+                        <small class="text-muted">Ingresá el efectivo contado físicamente en la caja.</small>
+                    </div>
+
+                    <div class="alert py-2 mb-2" id="alertDiferencia" style="display:none;">
+                        Diferencia: <strong id="lblDiferencia">Gs. 0</strong>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm">Observación:</label>
+                        <textarea id="txtObservacionCierre" class="form-control form-control-sm" rows="2" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="cerrarCaja()">
+                        <i class="fas fa-lock"></i> Confirmar Cierre
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- HISTORIAL (siempre visible) -->
+<div class="card mt-3">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-history mr-1"></i> Historial de Cajas</span>
+        <button class="btn btn-outline-secondary btn-sm" onclick="cargarHistorial()">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+    <div class="card-body p-2">
+        <div class="table-responsive">
+            <table id="tbHistorial" class="table table-sm table-bordered table-hover" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Tienda</th>
+                        <th>Aperturista</th>
+                        <th>Apertura</th>
+                        <th class="text-right">Monto Apertura</th>
+                        <th>Cierre</th>
+                        <th class="text-right">Sist.</th>
+                        <th class="text-right">Contado</th>
+                        <th class="text-right">Diferencia</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyHistorial"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/CajaVenta_Index.js?v=" + DateTime.Now.Ticks)"></script>
+}

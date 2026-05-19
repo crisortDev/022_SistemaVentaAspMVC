@@ -74,9 +74,9 @@ namespace CapaDatos
                             Stock = dr["Stock"] == DBNull.Value ? 0 : Convert.ToInt32(dr["Stock"]),
                             PorcentajeIva = dr["Porcentaje"] == DBNull.Value ? 0 : Convert.ToInt32(dr["Porcentaje"]),
                             Iniciado = dr["Iniciado"] != DBNull.Value && Convert.ToBoolean(dr["Iniciado"]),
-                            PrecioVentaSugerido = dr["PrecioVentaSugerido"] == DBNull.Value ? 0
-                                : Math.Truncate(Convert.ToDecimal(dr["PrecioVentaSugerido"], new CultureInfo("es-PY"))),
-                            PorcentajeGananciaCategoria = dr["PorcentajeGanancia"] == DBNull.Value ? 0
+                            PrecioSugerido = dr["PrecioSugerido"] == DBNull.Value ? 0
+                                : Math.Truncate(Convert.ToDecimal(dr["PrecioSugerido"], new CultureInfo("es-PY"))),
+                            MargenCategoria = dr["PorcentajeGanancia"] == DBNull.Value ? 0
                                 : Convert.ToDecimal(dr["PorcentajeGanancia"], new CultureInfo("es-PY")),
                         });
                     }

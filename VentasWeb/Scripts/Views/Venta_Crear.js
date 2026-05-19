@@ -67,13 +67,13 @@ function iniciarTablaProducto() {
                 render: function (d) {
                     var existe = itemsDetalle.some(function (x) { return x.id === d.oProducto.IdProducto; });
                     if (existe) return '<span class="badge badge-success"><i class="fas fa-check"></i> Agregado</span>';
-                    // Usar PrecioVentaSugerido (margen de categoría); fallback a PrecioVenta si no está disponible
-                    var precio = (d.PrecioVentaSugerido && d.PrecioVentaSugerido > 0)
-                        ? d.PrecioVentaSugerido : (d.PrecioVenta || 0);
+                    // Usar PrecioSugerido (margen de categoría); fallback a PrecioVenta si no está disponible
+                    var precio = (d.PrecioSugerido && d.PrecioSugerido > 0)
+                        ? d.PrecioSugerido : (d.PrecioVenta || 0);
                     return '<button class="btn btn-info btn-sm" onclick="agregarProducto(' +
                         d.oProducto.IdProducto + ',\'' + escapar(d.oProducto.Codigo) + '\',\'' +
                         escapar(d.oProducto.Nombre) + '\',' + precio + ',' +
-                        (d.oProducto.IvaPorcentaje || 10) + ',' + d.Stock +
+                        (d.PorcentajeIva || 10) + ',' + d.Stock +
                         ')"><i class="fas fa-plus"></i> Agregar</button>';
                 }
             },
@@ -82,17 +82,17 @@ function iniciarTablaProducto() {
             {
                 data: null, className: 'text-right',
                 render: function (d) {
-                    var precio = (d.PrecioVentaSugerido && d.PrecioVentaSugerido > 0)
-                        ? d.PrecioVentaSugerido : (d.PrecioVenta || 0);
+                    var precio = (d.PrecioSugerido && d.PrecioSugerido > 0)
+                        ? d.PrecioSugerido : (d.PrecioVenta || 0);
                     return formatGs(precio);
                 }
             },
             {
-                data: 'PorcentajeGananciaCategoria', className: 'text-center',
+                data: 'MargenCategoria', className: 'text-center',
                 render: function (v) { return (v || 0) + '%'; }
             },
             { data: 'Stock', className: 'text-center' },
-            { data: 'oProducto.IvaPorcentaje', className: 'text-center', render: function (v) { return v + '%'; } }
+            { data: 'PorcentajeIva', className: 'text-center', render: function (v) { return (v || 10) + '%'; } }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish },
         order: [[2, 'asc']]

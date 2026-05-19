@@ -7,7 +7,7 @@
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">Venta</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Crear","Venta")">Venta</a></li>
         <li class="breadcrumb-item"><a href="@Url.Action("Consultar","OrdenVenta")">Pre-ventas</a></li>
         <li class="breadcrumb-item active">Facturar Pre-venta</li>
     </ol>
@@ -56,11 +56,22 @@
                             <div class="card-body p-2">
                                 <h6 class="card-title mb-1 text-primary">Cliente</h6>
                                 <input type="hidden" id="hdnIdCliente" value="@(Model.IdCliente ?? 0)" />
-                                <div><small class="text-muted">Doc.:</small> <strong>@Model.DocumentoCliente</strong></div>
-                                <div><small class="text-muted">Nombre:</small> <strong id="lblNombreCliente">@Model.NombreCliente</strong></div>
+                                @{
+                                    bool sinCliente = (Model.IdCliente == null || Model.IdCliente == 0)
+                                                   && string.IsNullOrEmpty(Model.NombreCliente);
+                                }
+                                @if (sinCliente)
+                                {
+                                    <div class="alert alert-warning py-1 px-2 mb-1" style="font-size:12px;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        Esta pre-venta no tiene cliente asignado. <strong>Seleccioná uno antes de facturar.</strong>
+                                    </div>
+                                }
+                                <div><small class="text-muted">Doc.:</small> <strong>@(string.IsNullOrEmpty(Model.DocumentoCliente) ? "—" : Model.DocumentoCliente)</strong></div>
+                                <div><small class="text-muted">Nombre:</small> <strong id="lblNombreCliente">@(string.IsNullOrEmpty(Model.NombreCliente) ? "Sin cliente" : Model.NombreCliente)</strong></div>
                                 <div class="mt-1">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="cambiarCliente()">
-                                        <i class="fas fa-exchange-alt"></i> Cambiar cliente
+                                    <button type="button" class="btn btn-sm @(sinCliente ? "btn-warning" : "btn-outline-primary")" onclick="cambiarCliente()">
+                                        <i class="fas fa-exchange-alt"></i> @(sinCliente ? "Seleccionar cliente" : "Cambiar cliente")
                                     </button>
                                 </div>
                             </div>
@@ -116,7 +127,7 @@
                                         <td>@item.NombreProducto</td>
                                         <td class="text-center">@item.Cantidad</td>
                                         <td class="text-right">@item.PrecioUnidad.ToString("N0")</td>
-                                        <td class="text-center">@item.IvaPorcentaje%</td>
+                                        <td class="text-center">@item.IvaPorcentaje.ToString("N2")%</td>
                                         <td class="text-right">@item.TotalLinea.ToString("N0")</td>
                                         <td class="text-center @(item.StockDisponible < item.Cantidad ? "text-danger font-weight-bold" : "")">
                                             @item.StockDisponible

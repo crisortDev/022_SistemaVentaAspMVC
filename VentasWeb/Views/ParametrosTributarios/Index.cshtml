@@ -1,0 +1,196 @@
+@model CapaModelo.DatosTributarios
+@{
+    ViewBag.Title = "Parámetros Tributarios";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string badgeColor    = "success";
+    string icono         = "fa-check-circle";
+    string alertVencClass = "warning";
+    if (Model != null)
+    {
+        if (Model.EstadoTimbrado == "VENCIDO")
+        {
+            badgeColor    = "danger";
+            icono         = "fa-times-circle";
+            alertVencClass = "danger";
+        }
+        else if (Model.EstadoTimbrado == "POR VENCER")
+        {
+            badgeColor    = "warning";
+            icono         = "fa-exclamation-triangle";
+            alertVencClass = "warning";
+        }
+    }
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Administración</a></li>
+        <li class="breadcrumb-item active">Parámetros Tributarios</li>
+    </ol>
+</nav>
+
+@if (Model == null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        No se encontraron datos tributarios en la base de datos. Ejecute el Script 38 para inicializarlos.
+    </div>
+}
+else
+{
+    <!-- ═══════════════════ ESTADO ACTUAL ═══════════════════ -->
+    <div class="row mb-3">
+        <div class="col-sm-3">
+            <div class="card border-@badgeColor text-center h-100">
+                <div class="card-body py-3">
+                    <i class="fas @icono text-@badgeColor" style="font-size:32px;"></i>
+                    <div class="mt-2 font-weight-bold text-@badgeColor" style="font-size:16px;">
+                        @Model.EstadoTimbrado
+                    </div>
+                    <div class="text-muted small">Estado del Timbrado</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card border-primary text-center h-100">
+                <div class="card-body py-3">
+                    <div class="text-muted small mb-1">NÚMERO DE TIMBRADO</div>
+                    <div class="font-weight-bold" style="font-size:20px;">@Model.NumeroTimbrado</div>
+                    <div class="text-muted small">Vence: @Model.VencimientoTimbrado</div>
+                    @if (Model.DiasParaVencer <= 60 && Model.DiasParaVencer >= 0)
+                    {
+                        <span class="badge badge-@badgeColor mt-1">
+                            @Model.DiasParaVencer días restantes
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card border-secondary text-center h-100">
+                <div class="card-body py-3">
+                    <div class="text-muted small mb-1">ESTABLECIMIENTO / PUNTO EXP.</div>
+                    <div class="font-weight-bold" style="font-size:20px;">
+                        @Model.Establecimiento - @Model.PuntoExpedicion
+                    </div>
+                    <div class="text-muted small">Próx. Factura: <strong>@Model.ProximoNumeroFactura</strong></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card border-info text-center h-100">
+                <div class="card-body py-3">
+                    <div class="text-muted small mb-1">SECUENCIA ACTUAL</div>
+                    <div class="font-weight-bold text-info" style="font-size:24px;">
+                        @Model.SecuenciaActual.ToString("N0")
+                    </div>
+                    <div class="text-muted small">Facturas emitidas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ FORMULARIO EDICIÓN ═══════════════════ -->
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white py-2">
+            <i class="fas fa-cog mr-1"></i> Configuración Tributaria
+            <small class="float-right">SET Paraguay — Timbrado y Numeración</small>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Razón Social <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="txtRazonSocial" class="form-control form-control-sm"
+                               value="@Model.RazonSocial" maxlength="200"
+                               placeholder="Nombre o razón social del emisor" />
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Número de Timbrado <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="txtNumeroTimbrado" class="form-control form-control-sm"
+                               value="@Model.NumeroTimbrado" maxlength="20"
+                               placeholder="Ej: 12958745" />
+                        <small class="text-muted">
+                            ⚠ Cambiar el número de timbrado reiniciará la secuencia de facturas a 0.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Fecha de Vencimiento <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="txtVencimiento" class="form-control form-control-sm"
+                               value="@(Model.VencimientoTimbrado)" placeholder="dd/mm/aaaa" maxlength="10" />
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Establecimiento <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="txtEstablecimiento" class="form-control form-control-sm"
+                               value="@Model.Establecimiento" maxlength="3"
+                               placeholder="001" />
+                        <small class="text-muted">3 dígitos</small>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Punto de Expedición <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="txtPuntoExpedicion" class="form-control form-control-sm"
+                               value="@Model.PuntoExpedicion" maxlength="3"
+                               placeholder="001" />
+                        <small class="text-muted">3 dígitos</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista previa de factura -->
+            <div class="alert alert-light border mt-1 mb-3 py-2">
+                <small class="text-muted">Vista previa del próximo número de factura:</small>
+                <strong id="lblPreviewFactura" class="ml-2 text-primary">
+                    @Model.ProximoNumeroFactura
+                </strong>
+            </div>
+
+            <div class="text-right">
+                <button class="btn btn-primary" onclick="guardarConfiguracion()">
+                    <i class="fas fa-save mr-1"></i> Guardar Configuración
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ ALERTA VENCIMIENTO ═══════════════════ -->
+    if (Model.EstadoTimbrado != "VIGENTE")
+    {
+        <div class="alert alert-@alertVencClass mt-3">
+            <i class="fas fa-exclamation-triangle mr-1"></i>
+            @if (Model.EstadoTimbrado == "VENCIDO")
+            {
+                <strong>Timbrado VENCIDO.</strong><text> El sistema no podrá emitir facturas hasta que se registre un nuevo timbrado vigente del SET.</text>
+            }
+            else
+            {
+                <strong>Timbrado por vencer en @Model.DiasParaVencer días.</strong>
+                <text> Gestione la renovación ante el SET antes del @Model.VencimientoTimbrado.</text>
+            }
+        </div>
+    }
+}
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/ParametrosTributarios_Index.js?v=" + DateTime.Now.Ticks)"></script>
+}

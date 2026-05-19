@@ -69,33 +69,47 @@ function calcularCambio() {
 }
 
 function facturar() {
+    var idCliente  = parseInt($('#hdnIdCliente').val()) || 0;
+    var nombreCli  = $('#lblNombreCliente').text().trim();
+    var sinCliente = idCliente === 0 && (nombreCli === '' || nombreCli === 'Sin cliente');
+    if (sinCliente) {
+        toastr.warning('Debe seleccionar un cliente antes de facturar.');
+        $('#modalCliente').modal('show');
+        return;
+    }
     var formaCobro = parseInt($('#cboFormaCobro').val());
     if (!formaCobro) { toastr.warning('Seleccione la forma de cobro.'); return; }
     var recibido = parseFloat($('#txtImporteRecibido').val()) || 0;
     if (recibido <= 0) { toastr.warning('Ingrese el importe recibido.'); return; }
 
-    // Validar stock insuficiente
+    // Advertir stock insuficiente (no bloquear — el cajero decide)
     if ($('.table-warning').length > 0) {
         Swal.fire({
-            icon: 'error',
+            icon: 'warning',
             title: 'Stock insuficiente',
-            text: 'Uno o más productos no tienen stock suficiente. No se puede facturar.',
-            confirmButtonColor: '#0984e3'
+            html: 'Uno o más productos no tienen stock suficiente en el sistema.<br><br>¿Querés continuar de todas formas?',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, facturar igual',
+            confirmButtonColor: '#e67e22',
+            cancelButtonText: 'Cancelar'
+        }).then(function (res) {
+            if (res.isConfirmed) enviarFacturacion(idCliente, formaCobro, recibido);
         });
         return;
     }
 
-    if (!confirm('¿Confirmar la facturación de esta pre-venta?')) return;
+    enviarFacturacion(idCliente, formaCobro, recibido);
+}
 
+function enviarFacturacion(idCliente, formaCobro, recibido) {
     $('#btnFacturar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Facturando...');
-
     $.ajax({
         url: $.MisUrls.url._Venta_FacturarDesdeOV,
         method: 'POST',
         data: {
-            idOrdenVenta: $('#hdnIdOrdenVenta').val(),
-            idCliente: parseInt($('#hdnIdCliente').val()) || 0,
-            idFormaCobro: formaCobro,
+            idOrdenVenta:    $('#hdnIdOrdenVenta').val(),
+            idCliente:       idCliente,
+            idFormaCobro:    formaCobro,
             importeRecibido: recibido
         },
         success: function (r) {
