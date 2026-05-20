@@ -5,22 +5,69 @@ var markerForm = null;
 $(document).ready(function () {
     activarMenu("Clientes");
 
-    // Validación del formulario con jQuery Validate
+    // ── Método: solo letras y espacios ────────────────────────
+    $.validator.addMethod('soloLetras', function (value) {
+        return /^[a-zA-ZÁÉÍÓÚáéíóúÑñÜü\s]+$/.test(value.trim());
+    }, 'Solo se permiten letras y espacios.');
+
+    // ── Método: número de documento según tipo seleccionado ───
+    $.validator.addMethod('documentoValido', function (value) {
+        var tipo = $('#cboclientetipodocumento').val();
+        value = value.trim();
+        if (tipo === 'CI')                 return /^\d{6,8}$/.test(value);
+        if (tipo === 'RUC')                return /^\d{6,8}-\d$/.test(value);
+        if (tipo === 'Carnet Extranjeria') return value.length >= 4;
+        return true;
+    }, function () {
+        var tipo = $('#cboclientetipodocumento').val();
+        if (tipo === 'CI')                 return 'CI: ingresá entre 6 y 8 dígitos numéricos.';
+        if (tipo === 'RUC')                return 'RUC: formato XXXXXXXX-X (ej: 80012345-1).';
+        if (tipo === 'Carnet Extranjeria') return 'Mínimo 4 caracteres.';
+        return 'Documento inválido.';
+    });
+
+    // ── Método: teléfono paraguayo ────────────────────────────
+    $.validator.addMethod('telefonoParaguay', function (value) {
+        // Acepta: 0981123456 / 021123456 / 021-123456 / 0981-123456 / +595981123456
+        return /^(\+595|0)[\d\-]{7,12}$/.test(value.trim());
+    }, 'Ingresá un teléfono válido (ej: 0981-123456 o 021-234567).');
+
+    // ── Validación principal del formulario ───────────────────
     $("#form").validate({
         rules: {
-            numerodocumento: "required",
-            nombres: "required",
-            direccion: "required",
-            telefono: "required"
+            numerodocumento: { required: true, documentoValido: true },
+            nombres:         { required: true, soloLetras: true, minlength: 3 },
+            direccion:       { required: true, minlength: 5 },
+            telefono:        { required: true, telefonoParaguay: true }
         },
         messages: {
-            numerodocumento: "(*)",
-            nombres: "(*)",
-            direccion: "(*)",
-            telefono: "(*)"
+            numerodocumento: { required: 'El número de documento es obligatorio.' },
+            nombres:         { required: 'El nombre es obligatorio.', minlength: 'Mínimo 3 caracteres.' },
+            direccion:       { required: 'La dirección es obligatoria.', minlength: 'Mínimo 5 caracteres.' },
+            telefono:        { required: 'El teléfono es obligatorio.' }
         },
-        errorElement: 'span'
+        errorElement: 'small',
+        errorClass: 'text-danger d-block',
+        highlight: function (element) {
+            $(element).addClass('is-invalid').removeClass('is-valid');
+        },
+        unhighlight: function (element) {
+            $(element).addClass('is-valid').removeClass('is-invalid');
+        }
     });
+
+    // Revalidar documento al cambiar el tipo (CI → RUC → Carnet)
+    $('#cboclientetipodocumento').on('change', function () {
+        var $nro = $('#txtNumeroDocumento');
+        if ($nro.val().trim() !== '') $nro.valid();
+
+        // Actualizar placeholder según tipo
+        var tipo = $(this).val();
+        var hint = tipo === 'CI'  ? 'Ej: 1234567'
+                 : tipo === 'RUC' ? 'Ej: 80012345-1'
+                 :                  'Número de carnet';
+        $nro.attr('placeholder', hint);
+    }).trigger('change');
 
     // Inicializar DataTable con scroll horizontal y vertical
     tabladata = $('#tbdata').DataTable({
@@ -146,44 +193,40 @@ function Guardar() {
             if (data.resultado) {
                 tabladata.ajax.reload();
                 $('#FormModal').modal('hide');
-                swal("Éxito", "Los cambios se guardaron correctamente.", "success");
+                toastr.success('Cliente guardado correctamente.');
             } else {
-                swal("Mensaje", "No se pudo guardar los cambios", "warning");
+                toastr.error(data.mensaje || 'No se pudo guardar el cliente.');
             }
-        }
-
+        },
+        error: function () { toastr.error('Error de conexión.'); }
     });
 }
 
 function eliminar(id) {
-    swal({
-        title: "Mensaje",
-        text: "¿Desea eliminar el cliente seleccionado?",
-        type: "warning",
+    Swal.fire({
+        title: '¿Eliminar cliente?',
+        text: 'Esta acción no se puede deshacer.',
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: "Sí",
-        cancelButtonText: "No",
-        closeOnConfirm: false
-    }, function (isConfirm) {
-        if (isConfirm) {
-            $.ajax({
-                url: $.MisUrls.url._EliminarCliente + "?id=" + id,
-                type: "GET",
-                dataType: "json",
-                success: function (data) {
-                    if (data.resultado) {
-                        tabladata.ajax.reload();
-                        swal("Eliminado!", "El cliente ha sido eliminado.", "success");
-                    } else {
-                        swal("Error", "No se pudo eliminar el cliente.", "error");
-                    }
-                },
-                error: function (err) {
-                    console.log("ERROR:", err);
-                    swal("Error", "Ocurrió un error en el servidor.", "error");
+        confirmButtonText: 'Sí, eliminar',
+        confirmButtonColor: '#e74c3c',
+        cancelButtonText: 'Cancelar'
+    }).then(function (res) {
+        if (!res.isConfirmed) return;
+        $.ajax({
+            url: $.MisUrls.url._EliminarCliente + '?id=' + id,
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                if (data.resultado) {
+                    tabladata.ajax.reload();
+                    toastr.success('Cliente eliminado.');
+                } else {
+                    toastr.error('No se pudo eliminar el cliente.');
                 }
-            });
-        }
+            },
+            error: function () { toastr.error('Error de conexión.'); }
+        });
     });
 }
 

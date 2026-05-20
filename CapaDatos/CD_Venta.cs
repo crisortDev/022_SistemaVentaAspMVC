@@ -61,7 +61,7 @@ namespace CapaDatos
         // ----------------------------------------------------------------
         public (bool resultado, string mensaje, int idVenta, string numeroFactura) RegistrarVentaDirecta(
             int idTienda, int idUsuario, int? idCliente, int idFormaCobro,
-            decimal importeRecibido, string detalleXml)
+            decimal importeRecibido, string detalleXml, int idCaja = 0)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -77,6 +77,8 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("@IdFormaCobro", idFormaCobro);
                     cmd.Parameters.AddWithValue("@ImporteRecibido", importeRecibido);
                     cmd.Parameters.Add("@DetalleXml", SqlDbType.Xml).Value = detalleXml;
+                    cmd.Parameters.AddWithValue("@IdCaja",
+                        idCaja > 0 ? (object)idCaja : DBNull.Value);
 
                     cmd.Parameters.Add("@IdVentaGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@NumeroFactura", SqlDbType.VarChar, 20).Direction = ParameterDirection.Output;
@@ -106,7 +108,7 @@ namespace CapaDatos
         // ----------------------------------------------------------------
         public (bool resultado, string mensaje, int idVenta, string numeroFactura) FacturarDesdeOrdenVenta(
             int idOrdenVenta, int idUsuarioCajero, int? idCliente,
-            int idFormaCobro, decimal importeRecibido)
+            int idFormaCobro, decimal importeRecibido, int idCaja = 0)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -121,6 +123,8 @@ namespace CapaDatos
                         idCliente.HasValue ? (object)idCliente.Value : DBNull.Value);
                     cmd.Parameters.AddWithValue("@IdFormaCobro", idFormaCobro);
                     cmd.Parameters.AddWithValue("@ImporteRecibido", importeRecibido);
+                    cmd.Parameters.AddWithValue("@IdCaja",
+                        idCaja > 0 ? (object)idCaja : DBNull.Value);
 
                     cmd.Parameters.Add("@IdVentaGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@NumeroFactura", SqlDbType.VarChar, 20).Direction = ParameterDirection.Output;

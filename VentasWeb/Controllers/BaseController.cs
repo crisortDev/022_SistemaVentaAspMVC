@@ -24,10 +24,33 @@ namespace VentasWeb.Controllers
         /// <summary>
         /// Retorna el IdTienda activo en sesión.
         /// 0 significa acceso global (SuperAdmin).
-        /// Usa pattern matching seguro para evitar excepciones por tipo incorrecto en sesión.
         /// </summary>
         protected int TiendaActiva =>
             Session["TiendaActiva"] is int tienda ? tienda : 0;
+
+        /// <summary>
+        /// Retorna el IdTienda operativo para registrar ventas y pre-ventas.
+        /// Prioridad: tienda de la caja abierta > TiendaActiva > 1 (central).
+        /// Garantiza que ventas y pre-ventas siempre queden en la misma sucursal que la caja.
+        /// </summary>
+        protected int TiendaOperativa
+        {
+            get
+            {
+                if (Session["CajaIdTienda"] is int cajaTienda && cajaTienda > 0)
+                    return cajaTienda;
+                if (TiendaActiva > 0)
+                    return TiendaActiva;
+                return 1;
+            }
+        }
+
+        /// <summary>
+        /// Retorna el IdCaja de la sesión de caja actualmente abierta por este usuario.
+        /// 0 si no hay caja abierta (p.ej. venta sin caja, o rol sin caja).
+        /// </summary>
+        protected int CajaId =>
+            Session["CajaId"] is int id && id > 0 ? id : 0;
 
         /// <summary>
         /// Retorna el usuario logueado desde sesión, o null si no hay sesión.

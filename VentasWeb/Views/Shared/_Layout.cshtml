@@ -405,9 +405,14 @@
 
         // ── SESIÓN USUARIO — disponible globalmente en todo el JS ─
         var AppSession = {
-            esSuperAdmin: @(Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"] ? "true" : "false"),
-            idTienda: @(Session["TiendaActiva"] != null ? Session["TiendaActiva"].ToString() : "0")
+            esSuperAdmin:  @(Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"] ? "true" : "false"),
+            idTienda:      @(Session["TiendaActiva"]  != null ? Session["TiendaActiva"].ToString()  : "0"),
+            cajaIdTienda:  @(Session["CajaIdTienda"]  != null ? Session["CajaIdTienda"].ToString()  : "0")
         };
+        // Tienda operativa para cargar productos: caja activa > tienda de sesión > 1 (central)
+        AppSession.tiendaOperativa = AppSession.cajaIdTienda > 0 ? AppSession.cajaIdTienda
+                                   : AppSession.idTienda     > 0 ? AppSession.idTienda
+                                   : 1;
 
         // ---- ROL ----
         $.MisUrls.urls({
@@ -592,17 +597,26 @@
 
         // ---- CAJA VENTA ----
         $.MisUrls.urls({
-            _CajaVenta_Index:       '@Url.Action("Index",             "CajaVenta")',
-            _CajaVenta_Abrir:       '@Url.Action("Abrir",             "CajaVenta")',
-            _CajaVenta_Cerrar:      '@Url.Action("Cerrar",            "CajaVenta")',
-            _CajaVenta_Operaciones: '@Url.Action("ObtenerOperaciones","CajaVenta")',
-            _CajaVenta_Historial:   '@Url.Action("Historial",         "CajaVenta")',
-            _CajaVenta_Reporte:     '@Url.Action("Reporte",           "CajaVenta")'
+            _CajaVenta_Index:               '@Url.Action("Index",               "CajaVenta")',
+            _CajaVenta_Abrir:               '@Url.Action("Abrir",               "CajaVenta")',
+            _CajaVenta_Cerrar:              '@Url.Action("Cerrar",              "CajaVenta")',
+            _CajaVenta_Operaciones:         '@Url.Action("ObtenerOperaciones",  "CajaVenta")',
+            _CajaVenta_Historial:           '@Url.Action("Historial",           "CajaVenta")',
+            _CajaVenta_Reporte:             '@Url.Action("Reporte",             "CajaVenta")',
+            _CajaVenta_ComprobanteApertura: '@Url.Action("ComprobanteApertura", "CajaVenta")',
+            _CajaVenta_Arqueo:              '@Url.Action("Arqueo",              "CajaVenta")'
         });
 
         // ---- PARÁMETROS TRIBUTARIOS ----
         $.MisUrls.urls({
             _ParamTrib_Guardar: '@Url.Action("Guardar", "ParametrosTributarios")'
+        });
+
+        // ---- PUNTOS DE CAJA ----
+        $.MisUrls.urls({
+            _PuntoCaja_Obtener:  '@Url.Action("Obtener",  "PuntoCaja")',
+            _PuntoCaja_Sesiones: '@Url.Action("Sesiones", "PuntoCaja")',
+            _PuntoCaja_Guardar:  '@Url.Action("Guardar",  "PuntoCaja")'
         });
 
         // ---- PRECIOS VENTA ----

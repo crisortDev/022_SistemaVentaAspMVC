@@ -92,6 +92,7 @@
     <Compile Include="ComprobanteCobro.cs" />
     <Compile Include="NotaCreditoVenta.cs" />
     <Compile Include="CajaVenta.cs" />
+    <Compile Include="PuntoCaja.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

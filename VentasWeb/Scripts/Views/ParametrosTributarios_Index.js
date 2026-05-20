@@ -2,16 +2,6 @@
 'use strict';
 
 $(function () {
-    // Inicializar datepicker para vencimiento
-    if ($.fn.datepicker) {
-        $('#txtVencimiento').datepicker({
-            format: 'dd/mm/yyyy',
-            autoclose: true,
-            language: 'es',
-            startDate: new Date()
-        });
-    }
-
     // Preview en tiempo real del próximo número de factura
     $('#txtEstablecimiento, #txtPuntoExpedicion').on('input', actualizarPreview);
 });

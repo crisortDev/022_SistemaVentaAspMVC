@@ -1,0 +1,392 @@
+@model CapaModelo.DetalleCaja
+@{
+    Layout = null;
+    bool esCerrada = Model.Estado == "Cerrada";
+    string difClass = Model.Diferencia == 0 ? "sin-dif" : (Model.Diferencia > 0 ? "sobrante" : "faltante");
+    string difTexto = Model.Diferencia == 0
+        ? "Sin diferencia"
+        : (Model.Diferencia > 0
+            ? "+ Gs. " + Model.Diferencia.ToString("N0") + " (sobrante)"
+            : "- Gs. " + Math.Abs(Model.Diferencia).ToString("N0") + " (faltante)");
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Arqueo de Caja #@Model.IdCaja — @Model.NombreTienda</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            color: #000;
+            background: #fff;
+            padding: 20px 30px;
+        }
+        /* ── Cabecera empresa ── */
+        .empresa-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        .empresa-header .izq .razon-social {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .empresa-header .izq .tienda-info {
+            font-size: 10px;
+            color: #444;
+            margin-top: 2px;
+        }
+        .empresa-header .der {
+            text-align: right;
+        }
+        .empresa-header .der .doc-titulo {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid #000;
+            padding: 4px 8px;
+        }
+        .empresa-header .der .doc-sesion {
+            font-size: 10px;
+            color: #555;
+            margin-top: 3px;
+        }
+        /* ── Sección de cabecera datos sesión ── */
+        .seccion-titulo {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: #000;
+            color: #fff;
+            padding: 3px 6px;
+            margin: 10px 0 5px 0;
+        }
+        .datos-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 20px;
+            margin-bottom: 8px;
+        }
+        .dato-item {
+            display: flex;
+            gap: 4px;
+        }
+        .dato-item .lbl {
+            font-weight: bold;
+            color: #333;
+            min-width: 120px;
+        }
+        .dato-item .val {
+            border-bottom: 1px dotted #999;
+            flex: 1;
+        }
+        /* ── Tabla operaciones ── */
+        table.ops {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 10px;
+        }
+        table.ops thead tr {
+            background: #333;
+            color: #fff;
+        }
+        table.ops thead th {
+            padding: 3px 5px;
+            text-align: left;
+        }
+        table.ops tbody tr:nth-child(even) { background: #f7f7f7; }
+        table.ops tbody tr.anulada { text-decoration: line-through; color: #999; }
+        table.ops tbody td {
+            padding: 2px 5px;
+            border-bottom: 1px solid #eee;
+        }
+        table.ops tfoot td {
+            padding: 3px 5px;
+            font-weight: bold;
+            border-top: 2px solid #000;
+        }
+        .text-right { text-align: right; }
+        /* ── Tabla resumen por forma cobro ── */
+        table.resumen {
+            width: 280px;
+            margin-left: auto;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        table.resumen th, table.resumen td {
+            padding: 3px 6px;
+            border: 1px solid #ccc;
+        }
+        table.resumen thead { background: #555; color: #fff; }
+        table.resumen tfoot { font-weight: bold; background: #eee; }
+        /* ── Cuadre de caja ── */
+        .cuadre-tabla {
+            width: 320px;
+            margin-left: auto;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-bottom: 12px;
+        }
+        .cuadre-tabla td {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+        }
+        .cuadre-tabla .lbl { font-weight: bold; background: #f0f0f0; }
+        .cuadre-tabla .val { text-align: right; }
+        .cuadre-tabla .total-row td { background: #000; color: #fff; font-weight: bold; font-size: 12px; }
+        .sin-dif  { background: #d4edda !important; color: #155724 !important; }
+        .sobrante { background: #fff3cd !important; color: #856404 !important; }
+        .faltante { background: #f8d7da !important; color: #721c24 !important; }
+        /* ── Observaciones ── */
+        .observacion-box {
+            border: 1px solid #ccc;
+            padding: 5px 8px;
+            min-height: 30px;
+            font-size: 10px;
+            margin-bottom: 15px;
+        }
+        /* ── Firmas ── */
+        .firmas {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 5px;
+        }
+        .firma-bloque {
+            text-align: center;
+            width: 180px;
+        }
+        .firma-linea {
+            border-top: 1px solid #000;
+            margin-bottom: 4px;
+        }
+        .firma-label { font-size: 10px; }
+        .firma-nombre { font-size: 11px; font-weight: bold; }
+        /* ── Pie ── */
+        .pie-pagina {
+            text-align: center;
+            font-size: 9px;
+            color: #888;
+            border-top: 1px solid #ccc;
+            padding-top: 5px;
+            margin-top: 10px;
+        }
+        /* ── Botones pantalla ── */
+        .btn-zona {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-imprimir {
+            background: #28a745; color: #fff; border: none;
+            padding: 8px 20px; font-size: 13px; cursor: pointer; border-radius: 4px; margin-right: 8px;
+        }
+        .btn-cerrar {
+            background: #6c757d; color: #fff; border: none;
+            padding: 8px 20px; font-size: 13px; cursor: pointer; border-radius: 4px;
+        }
+        @@media print {
+            .btn-zona { display: none; }
+            body { padding: 5px 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── Cabecera empresa ── -->
+    <div class="empresa-header">
+        <div class="izq">
+            <div class="razon-social">@Model.RazonSocial</div>
+            @if (!string.IsNullOrWhiteSpace(Model.DireccionTienda))
+            {
+                <div class="tienda-info">@Model.DireccionTienda</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.TelefonoTienda))
+            {
+                <div class="tienda-info">Tel.: @Model.TelefonoTienda</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.NumeroTimbrado))
+            {
+                <div class="tienda-info">Timbrado: @Model.NumeroTimbrado &nbsp;|&nbsp; Est. @Model.Establecimiento - Pto. @Model.PuntoExpedicion</div>
+            }
+        </div>
+        <div class="der">
+            <div class="doc-titulo">Arqueo de Caja</div>
+            <div class="doc-sesion">Sesión N.º @Model.IdCaja.ToString("D6")</div>
+            <div class="doc-sesion">@(esCerrada ? "CERRADA" : "ABIERTA")</div>
+        </div>
+    </div>
+
+    <!-- ── Datos de la sesión ── -->
+    <div class="seccion-titulo">Datos de la sesión</div>
+    <div class="datos-grid">
+        <div class="dato-item"><span class="lbl">Tienda:</span><span class="val">@Model.NombreTienda</span></div>
+        <div class="dato-item"><span class="lbl">Cajero apertura:</span><span class="val">@Model.Aperturista</span></div>
+        <div class="dato-item"><span class="lbl">Fecha apertura:</span><span class="val">@Model.FechaApertura.ToString("dd/MM/yyyy HH:mm:ss")</span></div>
+        @if (esCerrada && Model.FechaCierre.HasValue)
+        {
+            <div class="dato-item"><span class="lbl">Fecha cierre:</span><span class="val">@Model.FechaCierre.Value.ToString("dd/MM/yyyy HH:mm:ss")</span></div>
+            <div class="dato-item"><span class="lbl">Responsable cierre:</span><span class="val">@Model.UsuarioCierre</span></div>
+        }
+        <div class="dato-item"><span class="lbl">Total operaciones:</span><span class="val">@Model.CantidadVentas venta(s)</span></div>
+    </div>
+
+    <!-- ── Detalle operaciones ── -->
+    <div class="seccion-titulo">Detalle de operaciones</div>
+    <table class="ops">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Fecha/Hora</th>
+                <th>N.º Factura</th>
+                <th>Cliente</th>
+                <th>Forma de cobro</th>
+                <th class="text-right">Monto (Gs.)</th>
+                <th class="text-right">Recibido (Gs.)</th>
+                <th class="text-right">Cambio (Gs.)</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Operaciones == null || !Model.Operaciones.Any())
+            {
+                <tr><td colspan="9" style="text-align:center; padding:8px; color:#999;">Sin operaciones en este turno.</td></tr>
+            }
+            else
+            {
+                int fila = 1;
+                decimal totalActivas = 0;
+                foreach (var op in Model.Operaciones)
+                {
+                    bool anulada = op.Estado != "Activa";
+                    if (anulada == false) { totalActivas += op.Monto; }
+                    string trClass = anulada ? "anulada" : "";
+                    <tr class="@trClass">
+                        <td>@fila</td>
+                        <td>@op.FechaRegistro.ToString("dd/MM HH:mm")</td>
+                        <td><code>@op.NumeroFactura</code></td>
+                        <td>@op.NombreCliente</td>
+                        <td>@op.FormaCobro</td>
+                        <td class="text-right">@op.Monto.ToString("N0")</td>
+                        <td class="text-right">@op.MontoRecibido.ToString("N0")</td>
+                        <td class="text-right">@op.MontoCambio.ToString("N0")</td>
+                        <td>@op.Estado</td>
+                    </tr>
+                    fila++;
+                }
+                <tr>
+                    <td colspan="5" class="text-right" style="font-weight:bold;">TOTAL VENTAS ACTIVAS:</td>
+                    <td class="text-right" style="font-weight:bold;">@totalActivas.ToString("N0")</td>
+                    <td colspan="3"></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- ── Resumen por forma de cobro ── -->
+    @if (Model.Resumen != null && Model.Resumen.Any())
+    {
+        <div class="seccion-titulo">Resumen por forma de cobro</div>
+        <table class="resumen">
+            <thead>
+                <tr>
+                    <th>Forma de cobro</th>
+                    <th class="text-right">Cant.</th>
+                    <th class="text-right">Total (Gs.)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var rs in Model.Resumen)
+                {
+                    <tr>
+                        <td>@rs.FormaCobro</td>
+                        <td class="text-right">@rs.Cantidad</td>
+                        <td class="text-right">@rs.TotalMonto.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>TOTAL</td>
+                    <td class="text-right">@Model.Resumen.Sum(x => x.Cantidad)</td>
+                    <td class="text-right">@Model.Resumen.Sum(x => x.TotalMonto).ToString("N0")</td>
+                </tr>
+            </tfoot>
+        </table>
+    }
+
+    <!-- ── Cuadre de caja ── -->
+    <div class="seccion-titulo">Cuadre de caja</div>
+    <table class="cuadre-tabla">
+        <tr>
+            <td class="lbl">Monto de apertura (Gs.)</td>
+            <td class="val">@Model.MontoApertura.ToString("N0")</td>
+        </tr>
+        <tr>
+            <td class="lbl">Total sistema — ventas activas (Gs.)</td>
+            <td class="val">@(esCerrada ? Model.MontoSistema.ToString("N0") : Model.TotalVentas.ToString("N0"))</td>
+        </tr>
+        @if (esCerrada)
+        {
+            <tr>
+                <td class="lbl">Monto contado físico (Gs.)</td>
+                <td class="val">@Model.MontoContado.ToString("N0")</td>
+            </tr>
+            <tr class="total-row">
+                <td class="lbl @difClass">Diferencia (Gs.)</td>
+                <td class="val @difClass">@difTexto</td>
+            </tr>
+        }
+        else
+        {
+            <tr>
+                <td class="lbl" colspan="2" style="text-align:center; color:#856404; background:#fff3cd;">
+                    Caja aún abierta — cuadre definitivo disponible al cierre
+                </td>
+            </tr>
+        }
+    </table>
+
+    <!-- ── Observaciones ── -->
+    @if (!string.IsNullOrWhiteSpace(Model.Observacion))
+    {
+        <div class="seccion-titulo">Observaciones</div>
+        <div class="observacion-box">@Model.Observacion</div>
+    }
+
+    <!-- ── Firmas ── -->
+    <div class="firmas">
+        <div class="firma-bloque">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Responsable de caja</div>
+            <div class="firma-nombre">@Model.Aperturista</div>
+        </div>
+        <div class="firma-bloque">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Supervisado por</div>
+            <div class="firma-nombre">&nbsp;</div>
+        </div>
+    </div>
+
+    <!-- ── Pie de página ── -->
+    <div class="pie-pagina">
+        Impreso: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") &nbsp;|&nbsp; @Model.RazonSocial &nbsp;|&nbsp; Sistema de Ventas
+    </div>
+
+    <!-- ── Botones (solo pantalla) ── -->
+    <div class="btn-zona">
+        <button class="btn-imprimir" onclick="window.print()">&#128438; Imprimir</button>
+        <button class="btn-cerrar"   onclick="window.close()">Cerrar</button>
+    </div>
+
+</body>
+</html>

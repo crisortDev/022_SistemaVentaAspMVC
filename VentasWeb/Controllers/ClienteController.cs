@@ -12,12 +12,13 @@ namespace VentasWeb.Controllers
     [AuthorizeRol("Cliente", "*")]
     public class ClienteController : BaseController
     {
-        // GET: Cliente
+        [AuthorizeRol("Cliente", "Crear")]
         public ActionResult Crear()
         {
             return View();
         }
 
+        [AuthorizeRol("Cliente", "Crear")]
         public JsonResult Obtener()
         {
             List<Cliente> oListaCliente = CD_Cliente.Instancia.ObtenerClientes();
@@ -25,28 +26,24 @@ namespace VentasWeb.Controllers
         }
 
         [HttpPost]
+        [AuthorizeRol("Cliente", "Crear")]
         public JsonResult Guardar(Cliente objeto)
         {
-            bool respuesta = false;
+            if (objeto == null)
+                return Json(new { resultado = false, mensaje = "Datos inválidos." });
 
-            if (objeto.IdCliente == 0)
-            {
-                respuesta = CD_Cliente.Instancia.RegistrarCliente(objeto);
-            }
-            else
-            {
-                respuesta = CD_Cliente.Instancia.ModificarCliente(objeto);
-            }
+            bool respuesta = objeto.IdCliente == 0
+                ? CD_Cliente.Instancia.RegistrarCliente(objeto)
+                : CD_Cliente.Instancia.ModificarCliente(objeto);
 
-
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            return Json(new { resultado = respuesta, mensaje = respuesta ? "OK" : "No se pudo guardar." });
         }
 
         [HttpGet]
+        [AuthorizeRol("Cliente", "Crear")]
         public JsonResult Eliminar(int id = 0)
         {
             bool respuesta = CD_Cliente.Instancia.EliminarCliente(id);
-
             return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
         }
     }

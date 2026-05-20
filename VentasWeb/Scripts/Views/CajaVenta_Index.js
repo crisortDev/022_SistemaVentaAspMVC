@@ -43,6 +43,10 @@ function abrirCaja() {
             success: function (res) {
                 if (res.resultado) {
                     toastr.success(res.mensaje);
+                    // Abrir comprobante de apertura en nueva pestaña y recargar ésta
+                    if (res.idCaja) {
+                        window.open($.MisUrls.url._CajaVenta_ComprobanteApertura + '?idCaja=' + res.idCaja, '_blank');
+                    }
                     setTimeout(function () { location.reload(); }, 800);
                 } else {
                     toastr.error(res.mensaje);
@@ -144,6 +148,8 @@ function cerrarCaja() {
                 if (res.resultado) {
                     $('#modalCierre').modal('hide');
                     toastr.success(res.mensaje);
+                    // Abrir arqueo de cierre en nueva pestaña
+                    window.open($.MisUrls.url._CajaVenta_Arqueo + '?idCaja=' + idCaja, '_blank');
                     setTimeout(function () { location.reload(); }, 1200);
                 } else {
                     toastr.error(res.mensaje);
@@ -184,7 +190,10 @@ function cargarHistorial() {
                 '<td class="text-right">' + (c.MontoContado != null ? 'Gs. ' + formatGs(c.MontoContado) : '—') + '</td>' +
                 '<td class="text-right">' + diff + '</td>' +
                 '<td>' + estado + '</td>' +
-                '<td><a href="' + $.MisUrls.url._CajaVenta_Reporte + '?idCaja=' + c.IdCaja + '" class="btn btn-xs btn-outline-primary btn-sm"><i class="fas fa-eye"></i></a></td>' +
+                '<td>' +
+                '<a href="' + $.MisUrls.url._CajaVenta_Reporte + '?idCaja=' + c.IdCaja + '" class="btn btn-xs btn-outline-primary btn-sm mr-1" title="Ver detalle"><i class="fas fa-eye"></i></a>' +
+                '<a href="' + $.MisUrls.url._CajaVenta_Arqueo  + '?idCaja=' + c.IdCaja + '" target="_blank" class="btn btn-xs btn-outline-secondary btn-sm" title="Arqueo de cierre"><i class="fas fa-print"></i></a>' +
+                '</td>' +
                 '</tr>'
             );
         });

@@ -38,11 +38,12 @@ namespace VentasWeb.Controllers
             if (string.IsNullOrWhiteSpace(numeroTimbrado))
                 return Json(new { resultado = false, mensaje = "El número de timbrado es obligatorio." });
 
-            if (!DateTime.TryParseExact(vencimientoTimbrado, "dd/MM/yyyy",
+            if (!DateTime.TryParseExact(vencimientoTimbrado,
+                    new[] { "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy" },
                     System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.None, out DateTime venc))
             {
-                return Json(new { resultado = false, mensaje = "Formato de fecha inválido. Use dd/mm/aaaa." });
+                return Json(new { resultado = false, mensaje = "Formato de fecha inválido." });
             }
 
             var r = CD_ParametrosTributarios.Instancia.Actualizar(

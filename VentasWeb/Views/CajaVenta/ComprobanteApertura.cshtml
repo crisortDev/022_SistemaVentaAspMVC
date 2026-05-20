@@ -1,0 +1,224 @@
+@model CapaModelo.DetalleCaja
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Comprobante de Apertura — Caja #@Model.IdCaja</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #000;
+            background: #fff;
+            padding: 20px;
+        }
+        .page {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        /* ── Cabecera empresa ── */
+        .empresa-header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .empresa-header .razon-social {
+            font-size: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .empresa-header .tienda-nombre {
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        .empresa-header .tienda-info {
+            font-size: 10px;
+            color: #444;
+            margin-top: 1px;
+        }
+        /* ── Título del comprobante ── */
+        .comprobante-titulo {
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: 2px solid #000;
+            padding: 5px;
+            margin: 8px 0;
+        }
+        /* ── Datos del comprobante ── */
+        .datos-tabla {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        .datos-tabla td {
+            padding: 3px 4px;
+            font-size: 11px;
+        }
+        .datos-tabla td.label {
+            font-weight: bold;
+            width: 45%;
+            color: #333;
+        }
+        .datos-tabla td.valor {
+            border-bottom: 1px dotted #ccc;
+        }
+        /* ── Monto destacado ── */
+        .monto-apertura {
+            text-align: center;
+            border: 2px solid #000;
+            padding: 8px;
+            margin: 10px 0;
+        }
+        .monto-apertura .monto-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .monto-apertura .monto-valor {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+        /* ── Número de sesión ── */
+        .sesion-numero {
+            text-align: center;
+            font-size: 10px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        /* ── Separador ── */
+        .separador {
+            border-top: 1px dashed #000;
+            margin: 8px 0;
+        }
+        /* ── Pie ── */
+        .pie {
+            text-align: center;
+            font-size: 10px;
+            color: #555;
+            margin-top: 10px;
+        }
+        .pie .impreso-en {
+            font-size: 9px;
+            color: #888;
+            margin-top: 3px;
+        }
+        /* ── Botones (solo en pantalla) ── */
+        .btn-zona {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-imprimir {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        .btn-cerrar {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        @@media print {
+            .btn-zona { display: none; }
+            body { padding: 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+
+        <!-- Cabecera empresa -->
+        <div class="empresa-header">
+            <div class="razon-social">@Model.RazonSocial</div>
+            @if (Model.NombreTienda != Model.RazonSocial)
+            {
+                <div class="tienda-nombre">Sucursal: @Model.NombreTienda</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.DireccionTienda))
+            {
+                <div class="tienda-info">@Model.DireccionTienda</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.TelefonoTienda))
+            {
+                <div class="tienda-info">Tel.: @Model.TelefonoTienda</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.NumeroTimbrado))
+            {
+                <div class="tienda-info">Timbrado: @Model.NumeroTimbrado &nbsp;|&nbsp; Est. @Model.Establecimiento - Pto. @Model.PuntoExpedicion</div>
+            }
+        </div>
+
+        <!-- Título -->
+        <div class="comprobante-titulo">Comprobante de Apertura de Caja</div>
+
+        <!-- Número de sesión -->
+        <div class="sesion-numero">Sesión N.º @Model.IdCaja.ToString("D6")</div>
+
+        <!-- Datos -->
+        <table class="datos-tabla">
+            <tr>
+                <td class="label">Tienda:</td>
+                <td class="valor">@Model.NombreTienda</td>
+            </tr>
+            <tr>
+                <td class="label">Cajero:</td>
+                <td class="valor">@Model.Aperturista</td>
+            </tr>
+            <tr>
+                <td class="label">Fecha apertura:</td>
+                <td class="valor">@Model.FechaApertura.ToString("dd/MM/yyyy")</td>
+            </tr>
+            <tr>
+                <td class="label">Hora apertura:</td>
+                <td class="valor">@Model.FechaApertura.ToString("HH:mm:ss")</td>
+            </tr>
+        </table>
+
+        <div class="separador"></div>
+
+        <!-- Monto destacado -->
+        <div class="monto-apertura">
+            <div class="monto-label">Monto de apertura declarado</div>
+            <div class="monto-valor">Gs. @Model.MontoApertura.ToString("N0")</div>
+        </div>
+
+        <div class="separador"></div>
+
+        <!-- Pie -->
+        <div class="pie">
+            La caja se encuentra abierta y lista para operar.<br />
+            Este comprobante certifica el inicio del turno.
+            <div class="impreso-en">Impreso: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</div>
+        </div>
+
+        <!-- Botones pantalla -->
+        <div class="btn-zona">
+            <button class="btn-imprimir" onclick="window.print()">
+                &#128438; Imprimir
+            </button>
+            <button class="btn-cerrar" onclick="window.close()">
+                Cerrar
+            </button>
+        </div>
+
+    </div>
+</body>
+</html>

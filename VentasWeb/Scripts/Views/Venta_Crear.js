@@ -58,7 +58,7 @@ function iniciarTablaProducto() {
     dtProducto = $('#tbProducto').DataTable({
         ajax: {
             url: $.MisUrls.url._Venta_ProductoStock,
-            data: { soloConStock: true, idtienda: AppSession.idTienda > 0 ? AppSession.idTienda : 1 },
+            data: { soloConStock: true, idtienda: AppSession.tiendaOperativa },
             dataSrc: 'data', type: 'GET'
         },
         columns: [

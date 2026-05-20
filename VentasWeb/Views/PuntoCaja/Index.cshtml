@@ -1,0 +1,162 @@
+@{
+    ViewBag.Title = "Gestión de Cajas";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var tiendas     = ViewBag.Tiendas  as List<CapaModelo.Tienda>;
+    int idTiendaActual = (int)(ViewBag.IdTienda ?? 0);
+    bool esSuperAdmin  = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Caja</a></li>
+        <li class="breadcrumb-item active">Gestión de Cajas</li>
+    </ol>
+</nav>
+
+<!-- ═══ CABECERA ═══ -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0"><i class="fas fa-cash-register mr-2 text-primary"></i>Puntos de Caja</h5>
+    <button class="btn btn-primary btn-sm" onclick="abrirModalNuevo()">
+        <i class="fas fa-plus mr-1"></i> Nueva Caja
+    </button>
+</div>
+
+@if (esSuperAdmin && tiendas != null)
+{
+    <div class="form-inline mb-3">
+        <label class="mr-2 font-weight-bold">Filtrar por Tienda:</label>
+        <select id="ddlFiltroTienda" class="form-control form-control-sm" onchange="recargarPuntos()">
+            <option value="0">— Todas —</option>
+            @foreach (var t in tiendas)
+            {
+                <option value="@t.IdTienda">@t.Nombre</option>
+            }
+        </select>
+    </div>
+}
+
+<!-- ═══ TABLA MAESTRO ═══ -->
+<div class="card border-primary mb-3">
+    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list mr-1"></i> Lista de Cajas Registradas</span>
+        <button class="btn btn-outline-light btn-sm" onclick="recargarPuntos()">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+    <div class="card-body p-2">
+        <div class="table-responsive">
+            <table id="tbPuntos" class="table table-bordered table-sm table-hover" style="width:100%">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width:40px"></th>
+                        <th>Tienda</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th class="text-center">Sesiones</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Última Apertura</th>
+                        <th class="text-center" style="width:90px">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyPuntos"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ PANEL DETALLE (sesiones del punto seleccionado) ═══ -->
+<div class="card border-secondary" id="panelDetalle" style="display:none;">
+    <div class="card-header bg-secondary text-white py-2">
+        <i class="fas fa-history mr-1"></i>
+        Sesiones de: <strong id="lblPuntoSeleccionado"></strong>
+        <button class="btn btn-outline-light btn-sm float-right" onclick="cerrarDetalle()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="card-body p-2">
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered table-striped" style="width:100%">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Aperturista</th>
+                        <th>Fecha Apertura</th>
+                        <th class="text-right">Monto Apertura</th>
+                        <th>Fecha Cierre</th>
+                        <th class="text-right">Total Sistema</th>
+                        <th class="text-right">Contado</th>
+                        <th class="text-right">Diferencia</th>
+                        <th class="text-center">Ventas</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Informe</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodySesiones"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ MODAL CREAR / EDITAR ═══ -->
+<div class="modal fade" id="modalPunto" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title" id="modalTitulo">Nueva Caja</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnIdPuntoCaja" value="0" />
+
+                @if (esSuperAdmin && tiendas != null)
+                {
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Tienda <span class="text-danger">*</span>
+                        </label>
+                        <select id="ddlTiendaModal" class="form-control form-control-sm">
+                            <option value="0">-- Seleccioná una tienda --</option>
+                            @foreach (var t in tiendas)
+                            {
+                                <option value="@t.IdTienda">@t.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <input type="hidden" id="ddlTiendaModal" value="@idTiendaActual" />
+                }
+
+                <div class="form-group">
+                    <label class="col-form-label col-form-label-sm font-weight-bold">
+                        Nombre <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" id="txtNombrePunto" class="form-control form-control-sm"
+                           maxlength="50" placeholder="Ej: Caja 1, Caja Principal" />
+                </div>
+                <div class="form-group">
+                    <label class="col-form-label col-form-label-sm">Descripción</label>
+                    <input type="text" id="txtDescripcionPunto" class="form-control form-control-sm"
+                           maxlength="200" placeholder="Opcional" />
+                </div>
+                <div class="form-group" id="rowActivo" style="display:none;">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="chkActivo" checked />
+                        <label class="custom-control-label" for="chkActivo">Activo</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="guardarPunto()">
+                    <i class="fas fa-save mr-1"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/PuntoCaja_Index.js?v=" + DateTime.Now.Ticks)"></script>
+}

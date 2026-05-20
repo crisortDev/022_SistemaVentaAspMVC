@@ -84,8 +84,8 @@ namespace VentasWeb.Controllers
             if (string.IsNullOrWhiteSpace(detalleXml))
                 return Json(new { resultado = false, mensaje = "Debe agregar al menos un producto." });
 
-            // SuperAdmin (TiendaActiva=0): usar tienda 1 por defecto
-            int idTiendaVenta = TiendaActiva > 0 ? TiendaActiva : 1;
+            // Usar la tienda operativa: caja activa > TiendaActiva > 1 (central)
+            int idTiendaVenta = TiendaOperativa;
 
             var r = CD_Venta.Instancia.RegistrarVentaDirecta(
                 idTiendaVenta,
@@ -93,7 +93,8 @@ namespace VentasWeb.Controllers
                 idCliente > 0 ? (int?)idCliente : null,
                 idFormaCobro,
                 importeRecibido,
-                detalleXml);
+                detalleXml,
+                CajaId);   // vincula la venta a la caja del cajero
 
             return Json(new
             {
@@ -125,7 +126,8 @@ namespace VentasWeb.Controllers
                 UsuarioActual.IdUsuario,
                 idCliente > 0 ? (int?)idCliente : null,
                 idFormaCobro,
-                importeRecibido);
+                importeRecibido,
+                CajaId);   // vincula la venta a la caja del cajero
 
             return Json(new
             {

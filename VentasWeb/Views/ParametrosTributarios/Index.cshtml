@@ -3,6 +3,30 @@
     ViewBag.Title = "Parámetros Tributarios";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    // Convertir VencimientoTimbrado a formato yyyy-MM-dd para input type="date"
+    string vencIso = "";
+    if (Model != null && !string.IsNullOrWhiteSpace(Model.VencimientoTimbrado))
+    {
+        DateTime vencDt;
+        bool parsed = DateTime.TryParseExact(Model.VencimientoTimbrado, "yyyy-MM-dd",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out vencDt);
+        if (!parsed)
+        {
+            parsed = DateTime.TryParseExact(Model.VencimientoTimbrado, "dd/MM/yyyy",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out vencDt);
+        }
+        if (parsed)
+        {
+            vencIso = vencDt.ToString("yyyy-MM-dd");
+        }
+        else
+        {
+            vencIso = Model.VencimientoTimbrado;
+        }
+    }
+
     string badgeColor    = "success";
     string icono         = "fa-check-circle";
     string alertVencClass = "warning";
@@ -129,8 +153,8 @@ else
                         <label class="col-form-label col-form-label-sm font-weight-bold">
                             Fecha de Vencimiento <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="txtVencimiento" class="form-control form-control-sm"
-                               value="@(Model.VencimientoTimbrado)" placeholder="dd/mm/aaaa" maxlength="10" />
+                        <input type="date" id="txtVencimiento" class="form-control form-control-sm"
+                               value="@vencIso" />
                     </div>
                 </div>
                 <div class="col-sm-4">
@@ -178,7 +202,7 @@ else
     {
         <div class="alert alert-@alertVencClass mt-3">
             <i class="fas fa-exclamation-triangle mr-1"></i>
-            @if (Model.EstadoTimbrado == "VENCIDO")
+            @@if (Model.EstadoTimbrado == "VENCIDO")
             {
                 <strong>Timbrado VENCIDO.</strong><text> El sistema no podrá emitir facturas hasta que se registre un nuevo timbrado vigente del SET.</text>
             }

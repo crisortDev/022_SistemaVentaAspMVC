@@ -155,6 +155,7 @@
     <Compile Include="Controllers\NotaCreditoVentaController.cs" />
     <Compile Include="Controllers\CajaVentaController.cs" />
     <Compile Include="Controllers\ParametrosTributariosController.cs" />
+    <Compile Include="Controllers\PuntoCajaController.cs" />
     <Compile Include="Controllers\ReporteGerenciaController.cs" />
     <Compile Include="Filters\AuthorizeRol.cs" />
     <Compile Include="Filters\VerificarSession.cs" />
@@ -2053,6 +2054,7 @@
     <Content Include="Scripts\Views\CajaVenta_Index.js" />
     <Content Include="Scripts\Views\CajaVenta_Reporte.js" />
     <Content Include="Scripts\Views\ParametrosTributarios_Index.js" />
+    <Content Include="Scripts\Views\PuntoCaja_Index.js" />
     <Content Include="Scripts\Views\OrdenCompra_Consultar.js" />
     <Content Include="Scripts\Views\OrdenCompra_Aprobaciones.js" />
     <Content Include="Scripts\Views\Precio_Venta.js" />
@@ -2139,7 +2141,10 @@
     <Content Include="Views\NotaCreditoVenta\Index.cshtml" />
     <Content Include="Views\CajaVenta\Index.cshtml" />
     <Content Include="Views\CajaVenta\Reporte.cshtml" />
+    <Content Include="Views\CajaVenta\ComprobanteApertura.cshtml" />
+    <Content Include="Views\CajaVenta\Arqueo.cshtml" />
     <Content Include="Views\ParametrosTributarios\Index.cshtml" />
+    <Content Include="Views\PuntoCaja\Index.cshtml" />
     <Content Include="Views\ReporteGerencia\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>

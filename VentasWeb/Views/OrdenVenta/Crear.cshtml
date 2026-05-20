@@ -36,9 +36,15 @@
                                     </div>
                                     <div class="col-sm-3">
                                         <label class="col-form-label col-form-label-sm invisible">.</label>
-                                        <button type="button" class="btn btn-sm btn-info btn-block" onclick="buscarCliente()">
-                                            <i class="fas fa-search"></i> Buscar
-                                        </button>
+                                        <div class="btn-group btn-block" role="group">
+                                            <button type="button" class="btn btn-sm btn-info" onclick="buscarCliente()" title="Buscar cliente registrado">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
+                                            <a href="@Url.Action("Crear","Cliente")" target="_blank"
+                                               class="btn btn-sm btn-outline-info" title="Registrar nuevo cliente (abre en nueva pestaña)">
+                                                <i class="fas fa-user-plus"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

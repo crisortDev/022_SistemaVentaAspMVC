@@ -53,8 +53,8 @@ namespace VentasWeb.Controllers
             if (string.IsNullOrWhiteSpace(fechaVencimiento))
                 return Json(new { resultado = false, mensaje = "Debe indicar la fecha de vencimiento." });
 
-            // SuperAdmin (TiendaActiva=0): usar tienda 1 por defecto
-            int idTienda = TiendaActiva > 0 ? TiendaActiva : 1;
+            // Usar la tienda operativa: caja activa > TiendaActiva > 1 (central)
+            int idTienda = TiendaOperativa;
 
             var r = CD_OrdenVenta.Instancia.RegistrarOrdenVenta(
                 idTienda,

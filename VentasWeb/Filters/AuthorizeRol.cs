@@ -57,7 +57,25 @@ namespace VentasWeb.Filters
             { "ComprobanteCobro|Obtener",                  "Comprobantes de Cobro"      },
             { "NotaCreditoVenta|Index",                    "Notas de Crédito Venta"     },
             { "NotaCreditoVenta|Registrar",                "Notas de Crédito Venta"     },
-            { "NotaCreditoVenta|AprobarRechazar",          "Notas de Crédito Venta"     }
+            { "NotaCreditoVenta|AprobarRechazar",          "Notas de Crédito Venta"     },
+            // ── Módulo Caja de Ventas ─────────────────────────────
+            { "CajaVenta|Index",                           "Caja de Ventas"             },
+            { "CajaVenta|Abrir",                           "Caja de Ventas"             },
+            { "CajaVenta|Cerrar",                          "Caja de Ventas"             },
+            { "CajaVenta|ComprobanteApertura",             "Caja de Ventas"             },
+            { "CajaVenta|Arqueo",                          "Caja de Ventas"             },
+            { "CajaVenta|Reporte",                         "Caja de Ventas"             },
+            { "CajaVenta|ObtenerOperaciones",              "Caja de Ventas"             },
+            { "CajaVenta|Historial",                       "Caja de Ventas"             },
+            // ── Gestión de Cajas (PuntoCaja) ─────────────────────
+            { "PuntoCaja|Index",                           "Gestión de Cajas"           },
+            { "PuntoCaja|Guardar",                         "Gestión de Cajas"           },
+            { "PuntoCaja|Obtener",                         "Gestión de Cajas"           },
+            { "PuntoCaja|Eliminar",                        "Gestión de Cajas"           },
+            // ── Parámetros Tributarios ────────────────────────────
+            { "ParametrosTributarios|Index",               "Parámetros Tributarios"     },
+            { "ParametrosTributarios|Guardar",             "Parámetros Tributarios"     },
+            { "ParametrosTributarios|Obtener",             "Parámetros Tributarios"     }
         };
 
         public AuthorizeRolAttribute(string controlador, string vista)

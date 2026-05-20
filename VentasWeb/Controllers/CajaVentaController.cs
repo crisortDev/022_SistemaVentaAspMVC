@@ -19,10 +19,10 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("CajaVenta", "Index")]
         public ActionResult Index()
         {
+            // SuperAdmin: busca cualquier caja abierta (idTienda=0)
+            // Otros roles: busca solo en su tienda activa
             int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
-            ViewBag.CajaActiva = idTienda > 0
-                ? CD_CajaVenta.Instancia.ObtenerCajaActiva(idTienda)
-                : null;
+            ViewBag.CajaActiva = CD_CajaVenta.Instancia.ObtenerCajaActiva(idTienda);
             ViewBag.Tiendas = CD_Tienda.Instancia.ObtenerTiendas();
             return View();
         }
@@ -48,7 +48,49 @@ namespace VentasWeb.Controllers
             var r = CD_CajaVenta.Instancia.AbrirCaja(
                 idTienda, UsuarioActual.IdUsuario, montoApertura);
 
+            // Guardar en sesión la tienda de la caja abierta
+            // para que ventas y pre-ventas queden en la misma sucursal
+            if (r.resultado)
+            {
+                Session["CajaIdTienda"] = idTienda;
+                Session["CajaId"]       = r.idCaja;   // para vincular ventas a esta caja
+            }
+
             return Json(new { resultado = r.resultado, mensaje = r.mensaje, idCaja = r.idCaja });
+        }
+
+        // ============================================================
+        //  COMPROBANTE DE APERTURA — impresión tras abrir caja
+        // ============================================================
+
+        [AuthorizeRol("CajaVenta", "Index")]
+        public ActionResult ComprobanteApertura(int idCaja = 0)
+        {
+            if (idCaja == 0)
+                return RedirectToAction("Index");
+
+            var detalle = CD_CajaVenta.Instancia.ObtenerDetalleCaja(idCaja);
+            if (detalle == null)
+                return RedirectToAction("Index");
+
+            return View(detalle);
+        }
+
+        // ============================================================
+        //  ARQUEO DE CIERRE — impresión del arqueo formal
+        // ============================================================
+
+        [AuthorizeRol("CajaVenta", "Index")]
+        public ActionResult Arqueo(int idCaja = 0)
+        {
+            if (idCaja == 0)
+                return RedirectToAction("Index");
+
+            var detalle = CD_CajaVenta.Instancia.ObtenerDetalleCaja(idCaja);
+            if (detalle == null)
+                return RedirectToAction("Index");
+
+            return View(detalle);
         }
 
         // ============================================================
@@ -99,6 +141,13 @@ namespace VentasWeb.Controllers
 
             var r = CD_CajaVenta.Instancia.CerrarCaja(
                 idCaja, UsuarioActual.IdUsuario, montoContado, observacion);
+
+            // Limpiar la tienda de caja al cerrar
+            if (r.resultado)
+            {
+                Session.Remove("CajaIdTienda");
+                Session.Remove("CajaId");
+            }
 
             return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }

@@ -1,7 +1,43 @@
 using System;
+using System.Collections.Generic;
 
 namespace CapaModelo
 {
+    /// <summary>
+    /// Cabecera completa de una sesión de caja (para Comprobante de Apertura y Arqueo de Cierre).
+    /// </summary>
+    public class DetalleCaja
+    {
+        // ── Datos de la sesión ──
+        public int       IdCaja          { get; set; }
+        public int       IdTienda        { get; set; }
+        public string    NombreTienda    { get; set; }
+        public string    DireccionTienda { get; set; }
+        public string    TelefonoTienda  { get; set; }
+        public string    Aperturista     { get; set; }
+        public DateTime  FechaApertura   { get; set; }
+        public decimal   MontoApertura   { get; set; }
+        public DateTime? FechaCierre     { get; set; }
+        public string    UsuarioCierre   { get; set; }
+        public decimal   MontoSistema    { get; set; }
+        public decimal   MontoContado    { get; set; }
+        public decimal   Diferencia      { get; set; }
+        public string    Estado          { get; set; }
+        public string    Observacion     { get; set; }
+        // ── Datos empresa / tributarios ──
+        public string    RazonSocial     { get; set; }
+        public string    NumeroTimbrado  { get; set; }
+        public string    Establecimiento { get; set; }
+        public string    PuntoExpedicion { get; set; }
+        // ── Totales calculados ──
+        public int       CantidadVentas  { get; set; }
+        public decimal   TotalVentas     { get; set; }
+        // ── Listas adjuntas ──
+        public List<OperacionCaja>    Operaciones { get; set; } = new List<OperacionCaja>();
+        public List<ResumenFormaCobro> Resumen    { get; set; } = new List<ResumenFormaCobro>();
+    }
+
+
     /// <summary>
     /// Representa una sesión de caja (apertura → cierre).
     /// </summary>
