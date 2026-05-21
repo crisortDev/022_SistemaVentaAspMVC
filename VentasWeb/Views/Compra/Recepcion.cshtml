@@ -53,6 +53,11 @@
                             <label class="col-form-label col-form-label-sm">Tienda:</label>
                             <input type="text" id="txtTienda" class="form-control form-control-sm" readonly />
                         </div>
+                        <div class="col-sm-2">
+                            <label class="col-form-label col-form-label-sm">Fecha OC:</label>
+                            <input type="text" id="txtFechaOC" class="form-control form-control-sm bg-light text-muted" readonly
+                                   title="La fecha de factura no puede ser anterior a esta fecha" />
+                        </div>
                     </div>
 
                     @* Datos fiscales de la factura del proveedor *@
@@ -63,9 +68,13 @@
                         <div class="card-body py-2">
                             <div class="row align-items-end">
                                 <div class="col-sm-2">
-                                    <label class="col-form-label col-form-label-sm">N° Factura <span class="text-danger">*</span></label>
+                                    <label class="col-form-label col-form-label-sm">
+                                        N° Factura <span class="text-danger">*</span>
+                                        <small class="text-muted">(xxx-xxx-xxxxxxx)</small>
+                                    </label>
                                     <input type="text" id="txtNumeroFactura" class="form-control form-control-sm"
-                                           placeholder="001-001-0000001" />
+                                           placeholder="001-001-0000001" maxlength="17"
+                                           oninput="formatearNumFactura(this)" autocomplete="off" />
                                 </div>
                                 <div class="col-sm-2">
                                     <label class="col-form-label col-form-label-sm">N° Timbrado <span class="text-danger">*</span></label>

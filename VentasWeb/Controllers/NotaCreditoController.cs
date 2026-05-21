@@ -74,6 +74,30 @@ namespace VentasWeb.Controllers
                     CultureInfo.InvariantCulture, DateTimeStyles.None, out fems))
                 return Json(new { resultado = false, mensaje = "Fecha de Emisión inválida." });
 
+            // ── (a) Validar que el timbrado esté vigente al momento de la emisión ──
+            if (fems > fvt)
+                return Json(new { resultado = false,
+                    mensaje = string.Format(
+                        "El timbrado venció el {0:dd/MM/yyyy} y la NC fue emitida el {1:dd/MM/yyyy}. El timbrado debe estar vigente al emitir la NC.",
+                        fvt, fems) });
+
+            // ── (h) Validar que fecha emisión NC >= fecha de factura origen ──
+            var nc = CD_NotaCredito.Instancia.ObtenerPorId(idnc);
+            if (nc != null && !string.IsNullOrWhiteSpace(nc.FechaFactura))
+            {
+                DateTime fechaFact;
+                // FechaFactura puede venir como ISO "yyyy-MM-dd" o "dd/MM/yyyy"
+                if (!DateTime.TryParse(nc.FechaFactura, out fechaFact))
+                    DateTime.TryParseExact(nc.FechaFactura, "dd/MM/yyyy",
+                        CultureInfo.InvariantCulture, DateTimeStyles.None, out fechaFact);
+
+                if (fechaFact != default(DateTime) && fems < fechaFact.Date)
+                    return Json(new { resultado = false,
+                        mensaje = string.Format(
+                            "La fecha de emisión de la NC ({0:dd/MM/yyyy}) no puede ser anterior a la fecha de la factura ({1:dd/MM/yyyy}).",
+                            fems, fechaFact) });
+            }
+
             var rpt = CD_NotaCredito.Instancia.ConfirmarRecepcion(
                 idnc, numeronc, numerotimbrado, fvt, fems, observacion,
                 UsuarioActual.IdUsuario);

@@ -8,6 +8,7 @@
 var tablaproveedor;
 var tablatienda;
 var tablaproducto;
+var _proveedorConDeuda = false;   // flag para bloquear guardado si proveedor tiene deuda
 
 // ─── Utilidades ───────────────────────────────────────────────────────
 function lenguajeDataTable() {
@@ -47,7 +48,7 @@ function validarFechas(mostrarError) {
     var strEntrega = $("#txtFechaEntrega").val().trim();
     var strTope    = $("#txtFechaTopeEntrega").val().trim();
 
-    var hoy     = new Date(); hoy.setHours(0, 0, 0, 0);
+    var hoy     = _fechaServidorObj || (function(){ var d=new Date(); d.setHours(0,0,0,0); return d; })();
     var minTope = new Date(hoy); minTope.setDate(minTope.getDate() + 7);
 
     // ── Validar Fecha Tope ────────────────────────────────────────────
@@ -88,13 +89,15 @@ function validarFechas(mostrarError) {
 var _stockTimers = {};   // timers por fila para debounce individual
 
 function verificarStockFila(tr) {
-    var idProducto = parseInt(tr.data('idproducto')) || 0;
-    var idTienda   = parseInt($("#txtIdTienda").val()) || 0;
-    var cantidad   = parseInt(tr.find('.inp-cantidad').val()) || 0;
-    var $alerta    = tr.find('.stock-alert-fila');
+    var idProducto  = parseInt(tr.data('idproducto')) || 0;
+    var idTienda    = parseInt($("#txtIdTienda").val()) || 0;
+    var cantidad    = parseInt(tr.find('.inp-cantidad').val()) || 0;
+    var $inp        = tr.find('.inp-cantidad');
+    var $alerta     = tr.find('.stock-alert-fila');
 
     if (idProducto <= 0 || idTienda <= 0 || cantidad <= 0) {
         $alerta.hide();
+        $inp.removeClass('is-invalid border-warning');
         return;
     }
 
@@ -104,20 +107,76 @@ function verificarStockFila(tr) {
         dataType: "json",
         data:     { idtienda: idTienda, idproducto: idProducto, cantidad: cantidad },
         success: function (res) {
+            if (res.stockMax <= 0) {
+                // Sin stock máximo configurado — sin restricción
+                $alerta.hide();
+                $inp.removeClass('is-invalid border-warning');
+                return;
+            }
+
             if (res.supera) {
-                $alerta
-                    .html('<i class="fas fa-exclamation-triangle"></i> '
-                        + 'Stock máx: <strong>' + res.stockMax + '</strong> | '
-                        + 'Actual: ' + res.stockActual + ' | '
-                        + 'Proyectado: <strong class="text-danger">' + res.proyectado + '</strong>')
-                    .show();
-                tr.find('.inp-cantidad').addClass('border-warning');
+                // Calcular cuánto se puede pedir como máximo
+                var maxPedible = Math.max(0, res.stockMax - res.stockActual);
+
+                if (maxPedible <= 0) {
+                    // Ya está en stock máximo — no se puede pedir nada más
+                    $alerta
+                        .removeClass('text-warning').addClass('text-danger')
+                        .html('<i class="fas fa-times-circle"></i> '
+                            + 'El stock ya alcanzó el máximo permitido (<strong>' + res.stockMax + '</strong>). '
+                            + '<strong>No se puede pedir más de este producto.</strong>')
+                        .show();
+                    $inp.val(0).addClass('is-invalid').removeClass('border-warning');
+                } else {
+                    // Ajustar automáticamente al máximo posible
+                    $inp.val(maxPedible).removeClass('is-invalid').addClass('border-warning');
+                    actualizarFilaTotales(tr);
+                    recalcularTotales();
+                    $alerta
+                        .removeClass('text-danger').addClass('text-warning')
+                        .html('<i class="fas fa-exclamation-triangle"></i> '
+                            + 'Cantidad ajustada al máximo posible: <strong>' + maxPedible + '</strong> '
+                            + '<small class="text-muted">(Stock actual: ' + res.stockActual
+                            + ' · Stock máx: ' + res.stockMax + ')</small>')
+                        .show();
+                }
             } else {
                 $alerta.hide();
-                tr.find('.inp-cantidad').removeClass('border-warning');
+                $inp.removeClass('is-invalid border-warning');
             }
         },
-        error: function () { $alerta.hide(); }
+        error: function () {
+            $alerta.hide();
+            $inp.removeClass('is-invalid border-warning');
+        }
+    });
+}
+
+// ─── Fecha mínima desde servidor ─────────────────────────────────────
+// Se obtiene una sola vez al cargar la página para que todos los
+// datepickers usen la hora del servidor, no la del navegador del cliente.
+var _fechaServidorStr = null;  // "dd/mm/yyyy"
+var _fechaServidorObj = null;  // Date object (sin hora)
+
+function cargarFechaServidor(callback) {
+    $.ajax({
+        url:      $.MisUrls.url._OC_FechaServidor,
+        type:     'GET',
+        dataType: 'json',
+        success: function (r) {
+            _fechaServidorStr = r.fecha;
+            _fechaServidorObj = parseFechaDDMMYYYY(r.fecha);
+            if (callback) callback();
+        },
+        error: function () {
+            // Fallback al cliente si el servidor no responde
+            var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+            var dd  = String(hoy.getDate()).padStart(2, '0');
+            var mm  = String(hoy.getMonth() + 1).padStart(2, '0');
+            _fechaServidorStr = dd + '/' + mm + '/' + hoy.getFullYear();
+            _fechaServidorObj = hoy;
+            if (callback) callback();
+        }
     });
 }
 
@@ -127,20 +186,28 @@ $(document).ready(function () {
 
     $.datepicker.setDefaults($.datepicker.regional['es']);
 
-    // Fecha Entrega Estimada — sin restricción de mínimo
-    $("#txtFechaEntrega").datepicker({
-        dateFormat: 'dd/mm/yy',
-        minDate:    0   // no puede ser en el pasado
-    });
+    // Primero obtener la fecha del servidor, luego inicializar datepickers
+    cargarFechaServidor(function () {
 
-    // Fecha Tope de Entrega — mínimo 7 días desde hoy
-    $("#txtFechaTopeEntrega").datepicker({
-        dateFormat: 'dd/mm/yy',
-        minDate:    '+7d',
-        onSelect: function () {
-            // Cuando se cambia el tope, revalidar la estimada si ya tiene valor
-            validarFechas(false);
-        }
+        // Fecha Entrega Estimada — mínimo = hoy, valor por defecto = hoy
+        $("#txtFechaEntrega").datepicker({
+            dateFormat:  'dd/mm/yy',
+            minDate:     _fechaServidorObj
+        });
+        $("#txtFechaEntrega").datepicker('setDate', _fechaServidorObj);
+
+        // Fecha Tope de Entrega — mínimo = hoy + 7 días, valor por defecto = hoy + 7 días
+        var minTope = new Date(_fechaServidorObj);
+        minTope.setDate(minTope.getDate() + 7);
+
+        $("#txtFechaTopeEntrega").datepicker({
+            dateFormat: 'dd/mm/yy',
+            minDate:    minTope,
+            onSelect: function () {
+                validarFechas(false);
+            }
+        });
+        $("#txtFechaTopeEntrega").datepicker('setDate', minTope);
     });
 
     inicializarDataTables();
@@ -210,10 +277,40 @@ function inicializarDataTables() {
     });
 
     $(document).on('click', '.sel-proveedor-oc', function () {
-        $("#txtIdProveedor").val($(this).data('id'));
-        $("#txtRucProveedor").val($(this).data('ruc'));
-        $("#txtRazonSocialProveedor").val($(this).data('razon'));
+        var idProv  = $(this).data('id');
+        var ruc     = $(this).data('ruc');
+        var razon   = $(this).data('razon');
+
+        $("#txtIdProveedor").val(idProv);
+        $("#txtRucProveedor").val(ruc);
+        $("#txtRazonSocialProveedor").val(razon);
         $('#modalProveedor').modal('hide');
+
+        // ── Verificar deuda pendiente del proveedor ─────────────────
+        _proveedorConDeuda = false;
+        $('#alertaDeudaProveedor').remove();   // limpiar alerta anterior
+
+        $.ajax({
+            url:      $.MisUrls.url._OC_VerificarDeuda,
+            type:     'GET',
+            dataType: 'json',
+            data:     { idproveedor: idProv },
+            success: function (res) {
+                if (res.tieneDeuda) {
+                    _proveedorConDeuda = true;
+                    var total = Math.round(res.total).toLocaleString('es-PY');
+                    var alerta = '<div id="alertaDeudaProveedor" class="alert alert-danger mt-2 py-2" style="font-size:0.88rem">'
+                        + '<i class="fas fa-exclamation-circle mr-1"></i>'
+                        + '<strong>Atención:</strong> El proveedor <strong>' + razon + '</strong> tiene '
+                        + '<strong>' + res.cantidad + '</strong> orden(es) de pago pendiente(s) '
+                        + 'por un total de <strong>Gs. ' + total + '</strong>. '
+                        + 'No se puede registrar una nueva OC hasta regularizar la deuda.'
+                        + '</div>';
+                    // Insertar alerta debajo del card de proveedor
+                    $('.card.border-info:first').after(alerta);
+                }
+            }
+        });
     });
 
     // Tiendas (solo SuperAdmin)
@@ -250,16 +347,17 @@ function inicializarDataTables() {
         });
     }
 
-    // Productos
+    // Productos — usa endpoint propio que incluye EstadoStock (sin revelar cantidad exacta)
     tablaproducto = $('#tbProducto').DataTable({
         "ajax": {
-            "url": $.MisUrls.url._ObtenerProductos,
-            "type": "GET",
+            "url":      $.MisUrls.url._OC_ProductosParaOC,
+            "type":     "GET",
             "datatype": "json",
+            "data":     function () {
+                return { idtienda: parseInt($("#txtIdTienda").val()) || 0 };
+            },
             "dataSrc": function (json) {
-                if (json && json.data) return json.data;
-                if (Array.isArray(json)) return json;
-                return [];
+                return (json && json.data) ? json.data : [];
             }
         },
         "columns": [
@@ -276,15 +374,22 @@ function inicializarDataTables() {
                 },
                 "orderable": false, "searchable": false, "width": "50px"
             },
-            { "data": "Codigo",      "width": "80px" },
-            { "data": "Nombre" },
-            { "data": "Descripcion" },
-            { "data": "oCategoria",  "render": function(d) { return d ? d.Descripcion : ""; } },
+            { "data": "Codigo",    "width": "80px" },
+            { "data": "Nombre",    "width": "20%" },
+            {
+                "data": "Descripcion",
+                "render": function (val) {
+                    if (!val) return '';
+                    var corto = val.length > 55 ? val.substring(0, 55) + '…' : val;
+                    return '<span title="' + val.replace(/"/g, '&quot;') + '">' + corto + '</span>';
+                }
+            },
+            { "data": "Categoria", "width": "18%" },
             {
                 "data": "IvaPorcentaje",
                 "render": function(d) { return (d != null ? d : 10) + ' %'; },
                 "className": "text-center",
-                "width": "70px",
+                "width": "65px",
                 "orderable": false,
                 "searchable": false
             }
@@ -379,11 +484,10 @@ function buscarProveedor()     { $('#modalProveedor').modal('show'); }
 function buscarTienda()        { $('#modalTienda').modal('show'); }
 
 function recargarProductosPorTienda(idTienda) {
-    // En una OC se pueden pedir todos los productos (no solo los de esa tienda)
-    // por lo que siempre cargamos el listado completo
+    // Recargar productos con el estado de stock de la tienda seleccionada
     try {
         if (tablaproducto) {
-            tablaproducto.ajax.url($.MisUrls.url._ObtenerProductos).load();
+            tablaproducto.ajax.reload();
         }
     } catch (e) { console.error("Error al recargar productos:", e); }
 }
@@ -456,6 +560,12 @@ $(document).on('click', '#btnBuscarProveedor[disabled], #btnBuscarTienda[disable
             $("#tbDetalle tbody").empty();
             recalcularTotales();
             actualizarLockEstado();
+            // Si se cambia el proveedor, limpiar también la alerta de deuda
+            _proveedorConDeuda = false;
+            $('#alertaDeudaProveedor').remove();
+            $("#txtIdProveedor").val('0');
+            $("#txtRucProveedor").val('');
+            $("#txtRazonSocialProveedor").val('');
         }
     });
 });
@@ -500,8 +610,28 @@ function guardarOrden() {
     if (idProveedor <= 0) { Swal.fire({ title: "Atención", text: "Debe seleccionar un proveedor.", icon: "warning" }); return; }
     if (idTienda    <= 0) { Swal.fire({ title: "Atención", text: "Debe seleccionar una tienda.",    icon: "warning" }); return; }
 
+    // ── Bloquear si el proveedor tiene deuda pendiente ────────────────
+    if (_proveedorConDeuda) {
+        Swal.fire({
+            title: 'Proveedor con deuda pendiente',
+            text:  'No se puede registrar una Orden de Compra. El proveedor tiene órdenes de pago pendientes. Regularizá la deuda antes de continuar.',
+            icon:  'error'
+        });
+        return;
+    }
+
     // ── Validar coherencia de fechas ──────────────────────────────────
     if (!validarFechas(true)) return;
+
+    // ── Bloquear si algún ítem supera el stock máximo (cantidad = 0) ──
+    if ($("#tbDetalle tbody .inp-cantidad.is-invalid").length > 0) {
+        Swal.fire({
+            title: 'Stock máximo alcanzado',
+            text:  'Hay uno o más productos cuya cantidad es 0 porque el stock ya alcanzó el máximo permitido. Quitá esos ítems o ajustá las cantidades antes de guardar.',
+            icon:  'error'
+        });
+        return;
+    }
 
     // Construir detalle desde inputs inline
     var detalle = [];

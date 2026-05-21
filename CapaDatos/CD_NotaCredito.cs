@@ -140,6 +140,57 @@ namespace CapaDatos
         }
 
         // ════════════════════════════════════════════════════════════════
+        //  OBTENER NC INDIVIDUAL (para validaciones server-side)
+        // ════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Obtiene una Nota de Crédito por su IdNC.
+        /// Se usa en el controller para validar fecha de emisión vs. fecha de factura.
+        /// </summary>
+        public NotaCredito ObtenerPorId(int idNC)
+        {
+            try
+            {
+                using (var cn = new SqlConnection(Conexion.CN))
+                {
+                    cn.Open();
+                    var cmd = new SqlCommand(
+                        @"SELECT nc.IdNC, nc.IdCompra,
+                                 c.NumeroFactura, c.FechaFactura,
+                                 c.MontoTotal    AS MontoFactura,
+                                 nc.NumeroNC, nc.NumeroTimbrado,
+                                 nc.FechaVencTimbrado, nc.FechaEmision,
+                                 nc.MontoNC, nc.Estado, nc.Observacion,
+                                 nc.FechaRegistro, nc.FechaConfirmacion,
+                                 DATEDIFF(DAY, c.FechaFactura, GETDATE()) AS DiasTranscurridos,
+                                 CASE WHEN nc.Estado='Pendiente'
+                                       AND DATEDIFF(DAY, c.FechaFactura, GETDATE()) > 30
+                                      THEN 1 ELSE 0 END AS EsMorosa,
+                                 u.Nombre        AS UsuarioRegistro,
+                                 mn.Descripcion  AS MotivoNC,
+                                 p.RazonSocial   AS Proveedor,
+                                 p.RUC           AS RucProveedor,
+                                 t.Nombre        AS Tienda
+                          FROM   dbo.NOTA_CREDITO nc
+                          JOIN   dbo.COMPRA        c  ON c.IdCompra   = nc.IdCompra
+                          JOIN   dbo.PROVEEDOR     p  ON p.IdProveedor = c.IdProveedor
+                          JOIN   dbo.TIENDA        t  ON t.IdTienda   = c.IdTienda
+                          LEFT JOIN dbo.USUARIO    u  ON u.IdUsuario  = nc.IdUsuarioRegistro
+                          LEFT JOIN dbo.MOTIVO_NC  mn ON mn.IdMotivoNC = nc.IdMotivoNC
+                          WHERE  nc.IdNC = @IdNC", cn);
+                    cmd.Parameters.AddWithValue("@IdNC", idNC);
+
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read()) return MapearNC(dr);
+                    }
+                }
+            }
+            catch { /* log si se desea */ }
+            return null;
+        }
+
+        // ════════════════════════════════════════════════════════════════
         //  HELPER PRIVADO — MAPEAR DATAREADER → MODELO
         // ════════════════════════════════════════════════════════════════
 

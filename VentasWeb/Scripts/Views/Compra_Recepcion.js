@@ -25,9 +25,16 @@ $(function () {
 
     // Recalcular total al cambiar cantidades
     $(document).on('input', '.txtRecibida', recalcularTotal);
+
+    // Limpiar is-invalid al corregir el número de factura
+    $('#txtNumeroFactura').on('input', function () {
+        $(this).removeClass('is-invalid');
+    });
 });
 
 // ── Cargar líneas desde la OC ─────────────────────────
+var _fechaOC = null;   // Date — fecha de registro de la OC, para validar fecha factura
+
 function cargarLineasOC(idOC) {
     $.getJSON($.MisUrls.url._Compra_LineasOC, { idordencompra: idOC })
         .done(function (res) {
@@ -38,10 +45,26 @@ function cargarLineasOC(idOC) {
 
             var oc = res.data;
 
+            // Guardar fecha de la OC para validación posterior (punto b)
+            if (oc.FechaRegistro) {
+                var m = String(oc.FechaRegistro).match(/(\d{4})-(\d{2})-(\d{2})/);
+                if (m) _fechaOC = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+            } else {
+                _fechaOC = null;
+            }
+
             // Cabecera
             $('#txtProveedor').val(oc.oProveedor ? oc.oProveedor.RazonSocial : '');
             $('#txtNumeroOrden').val(oc.NumeroOrden);
             $('#txtTienda').val(oc.oTienda ? oc.oTienda.Nombre : '');
+
+            // Mostrar fecha OC como referencia visual
+            if (_fechaOC) {
+                var dd = String(_fechaOC.getDate()).padStart(2,'0');
+                var mm = String(_fechaOC.getMonth()+1).padStart(2,'0');
+                var aaaa = _fechaOC.getFullYear();
+                $('#txtFechaOC').val(dd + '/' + mm + '/' + aaaa);
+            }
 
             // Líneas
             var tbody = $('#tbodyLineas').empty();
@@ -110,10 +133,35 @@ function guardarRecepcion() {
     var ff  = $('#txtFechaFactura').val().trim();
     var fe  = $('#txtFechaEntrega').val().trim();
 
-    if (!nf)  { Swal.fire({ title: 'Atención', text: 'Ingrese el N° de Factura.',            icon: 'warning' }); return; }
-    if (!nt)  { Swal.fire({ title: 'Atención', text: 'Ingrese el N° de Timbrado.',           icon: 'warning' }); return; }
-    if (!fvt) { Swal.fire({ title: 'Atención', text: 'Ingrese la Fecha de Venc. Timbrado.',  icon: 'warning' }); return; }
-    if (!ff)  { Swal.fire({ title: 'Atención', text: 'Ingrese la Fecha de Factura.',         icon: 'warning' }); return; }
+    // ── Validaciones de campos obligatorios ────────────────────────────
+    if (!nf) {
+        Swal.fire({ title: 'Atención', text: 'Ingrese el N° de Factura.', icon: 'warning' }); return;
+    }
+    if (!validarFormatoFactura(nf)) {
+        Swal.fire({ title: 'Formato inválido', text: 'El número de factura debe tener el formato SET PY: xxx-xxx-xxxxxxx (ej: 001-001-0000001).', icon: 'warning' });
+        $('#txtNumeroFactura').addClass('is-invalid').focus();
+        return;
+    }
+    if (!nt)  { Swal.fire({ title: 'Atención', text: 'Ingrese el N° de Timbrado.',          icon: 'warning' }); return; }
+    if (!fvt) { Swal.fire({ title: 'Atención', text: 'Ingrese la Fecha de Venc. Timbrado.', icon: 'warning' }); return; }
+    if (!ff)  { Swal.fire({ title: 'Atención', text: 'Ingrese la Fecha de Factura.',        icon: 'warning' }); return; }
+
+    // ── Validar que fecha de factura >= fecha de OC (punto b) ──────────
+    if (_fechaOC) {
+        var dtFF = parseFechaRec(ff);
+        if (dtFF && dtFF < _fechaOC) {
+            var strOC = String(_fechaOC.getDate()).padStart(2,'0') + '/' +
+                        String(_fechaOC.getMonth()+1).padStart(2,'0') + '/' +
+                        _fechaOC.getFullYear();
+            Swal.fire({
+                title: 'Fecha inválida',
+                text:  'La fecha de la factura (' + ff + ') no puede ser anterior a la fecha de la Orden de Compra (' + strOC + ').',
+                icon:  'warning'
+            });
+            $('#txtFechaFactura').addClass('is-invalid').focus();
+            return;
+        }
+    }
 
     // Construir data con binding indexado para List<T>
     var data = {
@@ -126,8 +174,8 @@ function guardarRecepcion() {
     };
 
     $('.txtRecibida').each(function (i) {
-        data['lineas[' + i + '].IdDetalleOC']       = parseInt($(this).data('id'))       || 0;
-        data['lineas[' + i + '].CantidadRecibida']  = parseInt($(this).val())            || 0;
+        data['lineas[' + i + '].IdDetalleOC']      = parseInt($(this).data('id'))  || 0;
+        data['lineas[' + i + '].CantidadRecibida'] = parseInt($(this).val())       || 0;
     });
 
     $.ajax({
@@ -142,7 +190,8 @@ function guardarRecepcion() {
                 Swal.fire({ title: 'Éxito', text: res.mensaje || 'Recepción guardada.', icon: 'success' });
 
                 // Bloquear campos fiscales y cantidades
-                $('#txtNumeroFactura, #txtNumeroTimbrado, #txtFechaVencTimbrado, #txtFechaFactura, #txtFechaEntrega').prop('readonly', true);
+                $('#txtNumeroFactura, #txtNumeroTimbrado, #txtFechaVencTimbrado, #txtFechaFactura, #txtFechaEntrega')
+                    .prop('readonly', true).removeClass('is-invalid');
                 $('.txtRecibida').prop('disabled', true);
                 $('#btnBuscarOC, #txtIdOrdenCompra').prop('disabled', true);
                 $('#panelGuardar').hide();
@@ -200,4 +249,41 @@ function generarNC() {
         },
         error: function () { Swal.fire({ title: 'Error', text: 'Error de red.', icon: 'error' }); }
     });
+}
+
+// ══════════════════════════════════════════════════════
+//  HELPERS — FORMATO Y VALIDACIÓN
+// ══════════════════════════════════════════════════════
+
+/**
+ * Auto-formatea el campo N° Factura con guiones (xxx-xxx-xxxxxxx).
+ * Igual al formateo de NC (mismo estándar SET Paraguay).
+ */
+function formatearNumFactura(input) {
+    var v   = input.value.replace(/\D/g, '');
+    var out = '';
+    if (v.length > 0) out = v.substring(0, Math.min(3, v.length));
+    if (v.length > 3) out += '-' + v.substring(3, Math.min(6, v.length));
+    if (v.length > 6) out += '-' + v.substring(6, Math.min(13, v.length));
+    input.value = out;
+    $(input).removeClass('is-invalid');
+}
+
+/**
+ * Valida formato xxx-xxx-xxxxxxx (3-3-7 dígitos con guiones).
+ */
+function validarFormatoFactura(str) {
+    return /^\d{3}-\d{3}-\d{7}$/.test(str);
+}
+
+/**
+ * Parsea fecha en formato dd/MM/yyyy a objeto Date.
+ */
+function parseFechaRec(str) {
+    if (!str) return null;
+    var p = str.split('/');
+    if (p.length !== 3) return null;
+    var d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+    d.setHours(0, 0, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
 }

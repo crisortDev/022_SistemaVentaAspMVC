@@ -85,6 +85,21 @@ namespace VentasWeb.Controllers
                                         DateTimeStyles.None, out fe))
                 fe = ff; // si no ingresó fecha entrega, usar fecha factura
 
+            // ── Validar formato número de factura (SET PY: xxx-xxx-xxxxxxx) ──
+            if (!System.Text.RegularExpressions.Regex.IsMatch(
+                    numerofactura?.Trim() ?? "",
+                    @"^\d{3}-\d{3}-\d{7}$"))
+                return Json(new { resultado = false,
+                    mensaje = "El número de factura debe tener el formato xxx-xxx-xxxxxxx (ej: 001-001-0000001)." });
+
+            // ── Validar fecha de factura >= fecha de creación de la OC ──────
+            var oc = CD_OrdenCompra.Instancia.ObtenerDetalleOrdenCompra(idordencompra);
+            if (oc != null && ff < oc.FechaRegistro)
+                return Json(new { resultado = false,
+                    mensaje = string.Format(
+                        "La fecha de factura ({0:dd/MM/yyyy}) no puede ser anterior a la fecha de la OC ({1:dd/MM/yyyy}).",
+                        ff, oc.FechaRegistro) });
+
             var rpt = CD_Compra.Instancia.RegistrarRecepcionDesdeOC(
                 idordencompra,
                 UsuarioActual.IdUsuario,

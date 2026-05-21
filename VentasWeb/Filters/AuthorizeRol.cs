@@ -43,7 +43,7 @@ namespace VentasWeb.Filters
             { "ConsultarCajaCompra|ConsultarCajaCompra",   "Caja Compra"                },
             { "ConsultarCajaVenta|ConsultarCajaVenta",     "Caja Venta"                 },
             { "Usuario|CambioContraseña",                  "Cambio de Contraseña"       },
-            { "NotaCredito|Index",                         "Gestión de NC"              },
+            { "NotaCredito|Index",                         "Registrar NC"               },
             { "ReporteGerencia|Index",                     "Reporte Gerencia Compras"   },
             // ── Módulo Ventas v2 ──────────────────────────────────────
             { "Venta|Facturar",                            "Registrar Venta Directa"    },

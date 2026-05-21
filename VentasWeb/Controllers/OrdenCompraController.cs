@@ -65,6 +65,150 @@ namespace VentasWeb.Controllers
         }
 
         // ============================================================
+        //  FECHA DEL SERVIDOR (para datepickers — evita usar hora de cliente)
+        // ============================================================
+
+        /// <summary>
+        /// Retorna la fecha actual del servidor en formato dd/MM/yyyy.
+        /// Se usa en el JS para establecer el minDate de los datepickers
+        /// de la OC sin depender del reloj del cliente.
+        /// </summary>
+        [HttpGet]
+        public JsonResult ObtenerFechaServidor()
+        {
+            return Json(new
+            {
+                fecha     = DateTime.Today.ToString("dd/MM/yyyy"),
+                fechaIso  = DateTime.Today.ToString("yyyy-MM-dd")
+            }, JsonRequestBehavior.AllowGet);
+        }
+
+        // ============================================================
+        //  PRODUCTOS CON ESTADO DE STOCK (para modal selector de OC)
+        //  El profesor pide NO mostrar la cantidad exacta — solo un
+        //  indicador: SinStock / Critico / Disponible.
+        // ============================================================
+
+        /// <summary>
+        /// Retorna todos los productos activos con un campo EstadoStock:
+        ///   "SinStock"   → Stock = 0
+        ///   "Critico"    → 0 &lt; Stock &lt;= StockMinimo
+        ///   "Disponible" → Stock > StockMinimo (o StockMinimo no configurado)
+        /// No expone la cantidad exacta, solo el estado.
+        /// </summary>
+        [HttpGet]
+        public JsonResult ObtenerProductosParaOC(int idtienda = 0)
+        {
+            if (!EsSuperAdmin && idtienda == 0) idtienda = TiendaActiva;
+
+            try
+            {
+                using (var cn = new System.Data.SqlClient.SqlConnection(CapaDatos.Conexion.CN))
+                {
+                    cn.Open();
+                    var cmd = new System.Data.SqlClient.SqlCommand(@"
+                        SELECT  p.IdProducto,
+                                p.Codigo,
+                                p.Nombre,
+                                ISNULL(p.Descripcion, '')      AS Descripcion,
+                                ISNULL(cat.Descripcion, '')    AS Categoria,
+                                ISNULL(p.IvaPorcentaje, 10)    AS IvaPorcentaje,
+                                ISNULL(pt.Stock,        0)     AS Stock,
+                                ISNULL(pt.StockMinimo,  0)     AS StockMinimo
+                        FROM    dbo.PRODUCTO p
+                        LEFT JOIN dbo.CATEGORIA         cat ON cat.IdCategoria = p.IdCategoria
+                        LEFT JOIN dbo.PRODUCTO_TIENDA   pt  ON pt.IdProducto  = p.IdProducto
+                                                           AND pt.IdTienda    = @IdTienda
+                        WHERE   p.Activo = 1
+                        ORDER BY p.Nombre", cn);
+
+                    cmd.Parameters.AddWithValue("@IdTienda", idtienda > 0 ? (object)idtienda : DBNull.Value);
+
+                    var lista = new System.Collections.Generic.List<object>();
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            int stock    = Convert.ToInt32(dr["Stock"]);
+                            int stockMin = Convert.ToInt32(dr["StockMinimo"]);
+                            string estado;
+                            if (stock == 0)                                      estado = "SinStock";
+                            else if (stockMin > 0 && stock <= stockMin)          estado = "Critico";
+                            else                                                  estado = "Disponible";
+
+                            lista.Add(new
+                            {
+                                IdProducto   = Convert.ToInt32(dr["IdProducto"]),
+                                Codigo       = dr["Codigo"].ToString(),
+                                Nombre       = dr["Nombre"].ToString(),
+                                Descripcion  = dr["Descripcion"].ToString(),
+                                Categoria    = dr["Categoria"].ToString(),
+                                IvaPorcentaje= Convert.ToDecimal(dr["IvaPorcentaje"]),
+                                EstadoStock  = estado
+                            });
+                        }
+                    }
+                    return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { data = new object[0], error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ============================================================
+        //  VERIFICAR DEUDA PENDIENTE DEL PROVEEDOR
+        // ============================================================
+
+        /// <summary>
+        /// Consulta si el proveedor tiene Órdenes de Pago en estado 'Pendiente'.
+        /// Si tiene deuda, el JS bloquea el guardado de la OC.
+        /// </summary>
+        [HttpGet]
+        public JsonResult VerificarDeudaProveedor(int idproveedor)
+        {
+            if (idproveedor <= 0)
+                return Json(new { tieneDeuda = false, cantidad = 0, total = 0m },
+                            JsonRequestBehavior.AllowGet);
+            try
+            {
+                using (var cn = new System.Data.SqlClient.SqlConnection(CapaDatos.Conexion.CN))
+                {
+                    cn.Open();
+                    var cmd = new System.Data.SqlClient.SqlCommand(@"
+                        SELECT COUNT(*)        AS Cantidad,
+                               SUM(op.Monto)  AS Total
+                        FROM   dbo.ORDEN_PAGO op
+                        JOIN   dbo.COMPRA     c ON c.IdCompra = op.IdCompra
+                        WHERE  c.IdProveedor = @IdProveedor
+                          AND  op.Estado     = 'Pendiente'", cn);
+
+                    cmd.Parameters.AddWithValue("@IdProveedor", idproveedor);
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            int     cantidad = Convert.ToInt32(dr["Cantidad"]);
+                            decimal total    = dr["Total"] != DBNull.Value
+                                                ? Convert.ToDecimal(dr["Total"]) : 0m;
+                            return Json(new
+                            {
+                                tieneDeuda = cantidad > 0,
+                                cantidad   = cantidad,
+                                total      = total
+                            }, JsonRequestBehavior.AllowGet);
+                        }
+                    }
+                }
+            }
+            catch { /* no romper UX — si falla, dejar pasar */ }
+
+            return Json(new { tieneDeuda = false, cantidad = 0, total = 0m },
+                        JsonRequestBehavior.AllowGet);
+        }
+
+        // ============================================================
         //  LOOKUPS
         // ============================================================
 

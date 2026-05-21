@@ -5,12 +5,13 @@
 'use strict';
 
 var dtNC;
+var _fechaFacturaNC = null;  // Date — fecha de factura de la NC en proceso (para validar emisión)
 
 $(document).ready(function () {
     initDataTable();
     initDatepickers();
     cargarTabla();
-    activarMenu('Gestión de NC');
+    activarMenu('Registrar NC');
 });
 
 // ─────────────────────────────────────────────────────────────────────
@@ -174,6 +175,14 @@ function abrirConfirmar(d) {
     $('#infoProveedor').text(d.Proveedor || '—');
     $('#infoMontoNC').text(formatearGS(d.MontoNC) + ' Gs.');
 
+    // Guardar fecha de factura para validar que emisión NC no sea anterior
+    if (d.FechaFactura) {
+        var m = String(d.FechaFactura).match(/(\d{4})-(\d{2})-(\d{2})/);
+        _fechaFacturaNC = m ? new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])) : null;
+    } else {
+        _fechaFacturaNC = null;
+    }
+
     $('#txtNumeroNC').val('');
     $('#txtNumeroTimbrado').val('');
     $('#txtFechaVencTimbrado').val('');
@@ -205,6 +214,32 @@ function confirmarRecepcion() {
     }
     if (!fechaemision) {
         Swal.fire('Validación', 'Ingrese la Fecha de Emisión de la NC.', 'warning'); return;
+    }
+
+    // ── (h) Fecha de emisión NC no puede ser anterior a la fecha de factura ──
+    if (_fechaFacturaNC) {
+        var dtEmision = parseFechaNC(fechaemision);
+        if (dtEmision && dtEmision < _fechaFacturaNC) {
+            var strFact = String(_fechaFacturaNC.getDate()).padStart(2,'0') + '/' +
+                          String(_fechaFacturaNC.getMonth()+1).padStart(2,'0') + '/' +
+                          _fechaFacturaNC.getFullYear();
+            Swal.fire('Fecha inválida',
+                'La fecha de emisión de la NC (' + fechaemision + ') no puede ser anterior a la fecha de la factura (' + strFact + ').',
+                'warning');
+            return;
+        }
+    }
+
+    // ── (a) Validar que el timbrado esté vigente al momento de la emisión ──
+    if (fechavencTimbrado && fechaemision) {
+        var dtVenc   = parseFechaNC(fechavencTimbrado);
+        var dtEmis2  = parseFechaNC(fechaemision);
+        if (dtVenc && dtEmis2 && dtEmis2 > dtVenc) {
+            Swal.fire('Timbrado vencido',
+                'La fecha de emisión de la NC (' + fechaemision + ') es posterior al vencimiento del timbrado (' + fechavencTimbrado + '). El timbrado debe estar vigente.',
+                'warning');
+            return;
+        }
     }
 
     $('#btnConfirmarNC').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
@@ -332,6 +367,16 @@ function formatearNumeroNC(input) {
 /** Valida formato xxx-xxx-xxxxxxx de 7 caracteres en el tercer bloque. */
 function validarFormatoNC(str) {
     return /^\d{3}-\d{3}-\d{7}$/.test(str);
+}
+
+/** Parsea fecha en formato dd/MM/yyyy a objeto Date (sin hora). */
+function parseFechaNC(str) {
+    if (!str) return null;
+    var p = str.split('/');
+    if (p.length !== 3) return null;
+    var d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+    d.setHours(0, 0, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
 }
 
 // ─────────────────────────────────────────────────────────────────────
