@@ -172,18 +172,31 @@ namespace CapaDatos
 
                             var cul = new CultureInfo("es-PE");
 
+                            // FechaOrden viene como string desde el XML (ej: "21/05/2026")
+                            // FechaRegistro es DateTime → se parsea desde ese mismo valor
+                            var strFechaOrden = root.Element("FechaOrden")?.Value;
+                            DateTime dFechaReg = DateTime.MinValue;
+                            DateTime.TryParseExact(
+                                strFechaOrden,
+                                new[] { "dd/MM/yyyy", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss", "MM/dd/yyyy" },
+                                CultureInfo.InvariantCulture,
+                                DateTimeStyles.None,
+                                out dFechaReg);
+
                             orden = new OrdenCompra()
                             {
-                                IdOrdenCompra       = int.Parse(root.Element("IdOrdenCompra")?.Value ?? "0"),
-                                NumeroOrden         = root.Element("NumeroOrden")?.Value,
-                                FechaOrden          = root.Element("FechaOrden")?.Value,
-                                FechaEntregaEstimada= root.Element("FechaEntregaEstimada")?.Value,
-                                Observacion         = root.Element("Observacion")?.Value,
-                                TotalEstimado       = Convert.ToDecimal(root.Element("TotalEstimado")?.Value ?? "0", cul),
-                                TotalEstimadoIva    = Convert.ToDecimal(root.Element("TotalEstimadoIva")?.Value ?? "0", cul),
-                                Estado              = root.Element("Estado")?.Value,
-                                FechaAprobacion     = root.Element("FechaAprobacion")?.Value,
-                                MotivoRechazo       = root.Element("MotivoRechazo")?.Value
+                                IdOrdenCompra        = int.Parse(root.Element("IdOrdenCompra")?.Value ?? "0"),
+                                NumeroOrden          = root.Element("NumeroOrden")?.Value,
+                                FechaOrden           = strFechaOrden,
+                                FechaRegistro        = dFechaReg,
+                                FechaEntregaEstimada = root.Element("FechaEntregaEstimada")?.Value,
+                                FechaTopeEntrega     = root.Element("FechaTopeEntrega")?.Value,
+                                Observacion          = root.Element("Observacion")?.Value,
+                                TotalEstimado        = Convert.ToDecimal(root.Element("TotalEstimado")?.Value ?? "0", cul),
+                                TotalEstimadoIva     = Convert.ToDecimal(root.Element("TotalEstimadoIva")?.Value ?? "0", cul),
+                                Estado               = root.Element("Estado")?.Value,
+                                FechaAprobacion      = root.Element("FechaAprobacion")?.Value,
+                                MotivoRechazo        = root.Element("MotivoRechazo")?.Value
                             };
 
                             var prov = root.Element("DETALLE_PROVEEDOR");

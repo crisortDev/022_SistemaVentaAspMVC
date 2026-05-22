@@ -561,24 +561,23 @@ namespace CapaDatos
                     SqlCommand cmd = new SqlCommand("usp_RegistrarUsuario", oConexion);
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    cmd.Parameters.AddWithValue("Nombres", oUsuario.Nombres);
+                    // usp_RegistrarUsuario acepta: Nombres, Apellidos, Correo, Clave, IdTienda, IdRol, @Resultado(out)
+                    cmd.Parameters.AddWithValue("Nombres",   oUsuario.Nombres);
                     cmd.Parameters.AddWithValue("Apellidos", oUsuario.Apellidos);
-                    cmd.Parameters.AddWithValue("Correo", oUsuario.Correo);
-                    cmd.Parameters.AddWithValue("Clave", oUsuario.Clave);
-                    cmd.Parameters.AddWithValue("IdTienda", oUsuario.IdTienda.HasValue ? (object)oUsuario.IdTienda.Value : DBNull.Value);
-                    cmd.Parameters.AddWithValue("IdRol", oUsuario.IdRol);
-                    cmd.Parameters.AddWithValue("IdEmpleado", oUsuario.IdEmpleado);
+                    cmd.Parameters.AddWithValue("Correo",    oUsuario.Correo);
+                    cmd.Parameters.AddWithValue("Clave",     oUsuario.Clave);
+                    cmd.Parameters.AddWithValue("IdTienda",  oUsuario.IdTienda.HasValue ? (object)oUsuario.IdTienda.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("IdRol",     oUsuario.IdRol);
 
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
-                    cmd.Parameters.Add("Codigo", SqlDbType.Int).Direction = ParameterDirection.Output;
-                    cmd.Parameters.Add("Mensaje", SqlDbType.VarChar, 200).Direction = ParameterDirection.Output;
 
                     oConexion.Open();
                     cmd.ExecuteNonQuery();
 
-                    res.Resultado = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
-                    res.Codigo = Convert.ToInt32(cmd.Parameters["Codigo"].Value);
-                    res.Mensaje = cmd.Parameters["Mensaje"].Value.ToString();
+                    bool ok = Convert.ToBoolean(cmd.Parameters["Resultado"].Value);
+                    res.Resultado = ok;
+                    res.Codigo    = ok ? 1 : 2;
+                    res.Mensaje   = ok ? "Usuario registrado correctamente." : "El correo ya está registrado.";
                 }
                 catch (Exception ex)
                 {

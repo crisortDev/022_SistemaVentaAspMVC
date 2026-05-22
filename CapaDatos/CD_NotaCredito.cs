@@ -166,7 +166,7 @@ namespace CapaDatos
                                  CASE WHEN nc.Estado='Pendiente'
                                        AND DATEDIFF(DAY, c.FechaFactura, GETDATE()) > 30
                                       THEN 1 ELSE 0 END AS EsMorosa,
-                                 u.Nombre        AS UsuarioRegistro,
+                                 ISNULL(u.Nombres + ' ' + u.Apellidos, '') AS UsuarioRegistro,
                                  mn.Descripcion  AS MotivoNC,
                                  p.RazonSocial   AS Proveedor,
                                  p.RUC           AS RucProveedor,

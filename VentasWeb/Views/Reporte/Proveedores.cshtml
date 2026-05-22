@@ -1,0 +1,88 @@
+@{
+    ViewBag.Title = "Reporte Proveedores";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Reporte</a></li>
+        <li class="breadcrumb-item active">Reporte de Proveedores</li>
+    </ol>
+</nav>
+
+<div class="card border-info">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-truck"></i> Reporte de Proveedores</span>
+        <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
+            <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
+        </button>
+    </div>
+    <div class="card-body">
+
+        @* Filtros *@
+        <div class="row mb-3">
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Desde</label>
+                <input type="date" id="txtFechaInicio" class="form-control form-control-sm" />
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Hasta</label>
+                <input type="date" id="txtFechaFin" class="form-control form-control-sm" />
+            </div>
+            <div class="col-sm-3">
+                <label class="col-form-label col-form-label-sm">Tienda</label>
+                <select id="cboTienda" class="form-control form-control-sm">
+                    <option value="0">-- Todas las tiendas --</option>
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="col-form-label col-form-label-sm">Filtrar</label>
+                <select id="cboFiltro" class="form-control form-control-sm">
+                    <option value="0">Todos los proveedores</option>
+                    <option value="1">Solo con NC pendiente</option>
+                </select>
+            </div>
+            <div class="col-sm-2 d-flex align-items-end">
+                <button onclick="buscarProveedores()" class="btn btn-info btn-sm text-white">
+                    <i class="fas fa-search"></i> Consultar
+                </button>
+            </div>
+        </div>
+
+        @* Tabla *@
+        <div id="contenedorProveedores">
+            <p class="text-muted text-center mt-4">Seleccioná un rango de fechas y presioná <strong>Consultar</strong>.</p>
+        </div>
+
+        @* Panel totales *@
+        <div id="panelTotalesProv" class="d-none mt-3">
+            <table class="table table-sm table-bordered w-auto ml-auto">
+                <tbody>
+                    <tr class="table-dark">
+                        <th>Total proveedores</th>
+                        <td id="tdTotalProveedores" class="text-center font-weight-bold"></td>
+                    </tr>
+                    <tr class="table-info">
+                        <th>Total compras (Gs.)</th>
+                        <td id="tdTotalCompras" class="text-center font-weight-bold"></td>
+                    </tr>
+                    <tr class="table-warning">
+                        <th>Total NC pendiente (Gs.)</th>
+                        <td id="tdTotalNCPendiente" class="text-center font-weight-bold"></td>
+                    </tr>
+                    <tr class="table-danger">
+                        <th>Proveedores con mora</th>
+                        <td id="tdConMora" class="text-center font-weight-bold"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+@section scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="@Url.Content("~/Scripts/Views/Reporte_Proveedores.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

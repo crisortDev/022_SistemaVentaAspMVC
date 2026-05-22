@@ -1,10 +1,7 @@
-﻿@{
+@{
     ViewBag.Title = "Stock por Tienda";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -14,54 +11,82 @@
 </nav>
 
 <div class="card border-success">
-    <div class="card-header bg-success text-white">
-        <i class="fas fa-boxes"></i> Consulta de Stock por Tienda
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-boxes"></i> Reporte de Stock por Tienda y Categoría</span>
+        <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
+            <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
+        </button>
     </div>
     <div class="card-body">
-        <!-- Filtros -->
+
+        @* Filtros *@
         <div class="row mb-3">
-            <div class="col-sm-4">
-                <label>Tienda</label>
+            <div class="col-sm-3">
+                <label class="col-form-label col-form-label-sm">Tienda</label>
                 <select id="cboTienda" class="form-control form-control-sm">
                     <option value="0">-- Todas las tiendas --</option>
                 </select>
             </div>
-            <div class="col-sm-4 d-flex align-items-end">
+            <div class="col-sm-3">
+                <label class="col-form-label col-form-label-sm">Categoría</label>
+                <select id="cboCategoria" class="form-control form-control-sm">
+                    <option value="">-- Todas las categorías --</option>
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="col-form-label col-form-label-sm">Estado</label>
+                <select id="cboEstado" class="form-control form-control-sm">
+                    <option value="">-- Todos --</option>
+                    <option value="CRITICO">Crítico</option>
+                    <option value="BAJO">Bajo</option>
+                    <option value="OK">OK</option>
+                </select>
+            </div>
+            <div class="col-sm-3 d-flex align-items-end">
                 <button onclick="buscarStock()" class="btn btn-success btn-sm">
                     <i class="fas fa-search"></i> Consultar
                 </button>
             </div>
         </div>
 
-        <!-- Leyenda de estados -->
-        <div class="row mb-2">
-            <div class="col">
-                <span class="badge badge-danger mr-2">CRÍTICO</span> Stock ≤ mínimo
-                <span class="badge badge-warning ml-3 mr-2">BAJO</span> Stock ≤ 1.5x mínimo
-                <span class="badge badge-success ml-3 mr-2">OK</span> Stock normal
-            </div>
+        @* Leyenda *@
+        <div class="mb-2">
+            <span class="badge badge-danger mr-2">CRÍTICO</span> Stock &le; mínimo &nbsp;
+            <span class="badge badge-warning mr-2">BAJO</span> Stock &le; 1.5&times; mínimo &nbsp;
+            <span class="badge badge-success mr-2">OK</span> Stock normal
         </div>
 
-        <div class="table-responsive">
-            <table id="tbStock" class="table table-striped table-bordered table-sm">
-                <thead class="thead-dark">
-                    <tr>
-                        <th>Código</th>
-                        <th>Producto</th>
-                        <th>Categoría</th>
-                        <th>Tienda</th>
-                        <th>Stock</th>
-                        <th>Mín.</th>
-                        <th>Máx.</th>
-                        <th>Estado</th>
+        @* Tabla agrupada (renderizada por JS) *@
+        <div id="contenedorStock">
+            <p class="text-muted text-center mt-4">Presioná <strong>Consultar</strong> para cargar el reporte.</p>
+        </div>
+
+        @* Totales generales *@
+        <div id="panelTotales" class="d-none mt-3">
+            <table class="table table-sm table-bordered w-auto ml-auto">
+                <tbody>
+                    <tr class="table-dark">
+                        <th>Total general de unidades</th>
+                        <td id="tdTotalGeneral" class="text-center font-weight-bold"></td>
                     </tr>
-                </thead>
-                <tbody></tbody>
+                    <tr class="table-danger">
+                        <th>Productos en estado CRÍTICO</th>
+                        <td id="tdTotalCritico" class="text-center font-weight-bold"></td>
+                    </tr>
+                    <tr class="table-warning">
+                        <th>Productos en estado BAJO</th>
+                        <td id="tdTotalBajo" class="text-center font-weight-bold"></td>
+                    </tr>
+                </tbody>
             </table>
         </div>
+
     </div>
 </div>
 
 @section scripts {
+    @* jsPDF + autoTable para exportar PDF *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="@Url.Content("~/Scripts/Views/Inventario_Stock.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

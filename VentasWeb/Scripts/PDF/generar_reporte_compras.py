@@ -1,202 +1,185 @@
 # ============================================================
-#  generar_reporte_compras.py
+#  generar_reporte_compras.py  —  v2 (una sola página, landscape)
 #  Uso: python generar_reporte_compras.py <ruta_json> <ruta_pdf>
-#
-#  Dependencias: reportlab
-#  Instalar:     pip install reportlab
+#  Dependencias: reportlab   (pip install reportlab)
 # ============================================================
 
 import sys
 import json
 from datetime import datetime
 
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable, KeepTogether
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.units     import cm
+from reportlab.lib           import colors
+from reportlab.lib.styles    import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums     import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.platypus      import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 )
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
-# ── Colores corporativos ──────────────────────────────────────────────────────
-AZUL_CORP   = colors.HexColor('#1a3566')
-AZUL_CLARO  = colors.HexColor('#2563eb')
-VERDE       = colors.HexColor('#059669')
-CYAN        = colors.HexColor('#0891b2')
-AMBAR       = colors.HexColor('#b45309')
-ROJO        = colors.HexColor('#991b1b')
-GRIS_CLARO  = colors.HexColor('#f3f4f6')
-GRIS_MEDIO  = colors.HexColor('#d1d5db')
-BLANCO      = colors.white
+# ── Página ────────────────────────────────────────────────────────────────────
+PAGE      = landscape(A4)          # 29.7 × 21 cm
+MARG_H    = 1.2 * cm
+MARG_TOP  = 2.2 * cm
+MARG_BOT  = 1.3 * cm
+PAGE_W    = PAGE[0] - 2 * MARG_H  # ≈ 27.3 cm útil
+COL_GAP   = 0.4 * cm
+COL_L     = PAGE_W * 0.52
+COL_R     = PAGE_W - COL_L - COL_GAP
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def fmt_gs(valor):
-    """Formatea número como guaraníes (sin decimales, separador de miles)."""
-    try:
-        return 'Gs. {:,.0f}'.format(float(valor)).replace(',', '.')
-    except Exception:
-        return 'Gs. 0'
-
-def fmt_int(valor):
-    try:
-        return str(int(valor))
-    except Exception:
-        return '0'
+# ── Colores ───────────────────────────────────────────────────────────────────
+AZUL      = colors.HexColor('#1a3566')
+VERDE     = colors.HexColor('#059669')
+CYAN      = colors.HexColor('#0891b2')
+AMBAR     = colors.HexColor('#b45309')
+ROJO      = colors.HexColor('#dc2626')
+GRIS_L    = colors.HexColor('#f3f4f6')
+GRIS_M    = colors.HexColor('#d1d5db')
+BLANCO    = colors.white
 
 # ── Estilos ───────────────────────────────────────────────────────────────────
-styles = getSampleStyleSheet()
+_base = getSampleStyleSheet()['Normal']
 
-st_titulo = ParagraphStyle(
-    'titulo', parent=styles['Normal'],
-    fontSize=16, textColor=AZUL_CORP, fontName='Helvetica-Bold',
-    alignment=TA_CENTER, spaceAfter=2
-)
-st_subtitulo = ParagraphStyle(
-    'subtitulo', parent=styles['Normal'],
-    fontSize=10, textColor=colors.HexColor('#6b7280'),
-    alignment=TA_CENTER, spaceAfter=8
-)
-st_seccion = ParagraphStyle(
-    'seccion', parent=styles['Normal'],
-    fontSize=11, textColor=AZUL_CORP, fontName='Helvetica-Bold',
-    spaceBefore=12, spaceAfter=4
-)
-st_normal = ParagraphStyle(
-    'normal_custom', parent=styles['Normal'],
-    fontSize=8.5, leading=12
-)
-st_cell_header = ParagraphStyle(
-    'cell_header', parent=styles['Normal'],
-    fontSize=8, textColor=BLANCO, fontName='Helvetica-Bold',
-    alignment=TA_CENTER
-)
-st_cell = ParagraphStyle(
-    'cell', parent=styles['Normal'],
-    fontSize=8, leading=11
-)
-st_cell_r = ParagraphStyle(
-    'cell_r', parent=styles['Normal'],
-    fontSize=8, leading=11, alignment=TA_RIGHT
-)
-st_cell_c = ParagraphStyle(
-    'cell_c', parent=styles['Normal'],
-    fontSize=8, leading=11, alignment=TA_CENTER
-)
-st_footer = ParagraphStyle(
-    'footer', parent=styles['Normal'],
-    fontSize=7, textColor=colors.HexColor('#9ca3af'),
-    alignment=TA_CENTER
-)
+_sty_counter = [0]
+def _sty(**kw):
+    _sty_counter[0] += 1
+    name = 'sty_%d' % _sty_counter[0]
+    defaults = dict(name=name, parent=_base, fontSize=7.5, leading=10)
+    defaults.update(kw)
+    return ParagraphStyle(**defaults)
 
-# ── KPI Box ───────────────────────────────────────────────────────────────────
-def kpi_table(items):
-    """items: lista de (etiqueta, valor, color_bg)"""
-    n = len(items)
-    col_w = (A4[0] - 4*cm) / n
+ST_SECCION = _sty(fontSize=8.5, fontName='Helvetica-Bold', textColor=AZUL,
+                  spaceBefore=4, spaceAfter=2)
+ST_NORMAL  = _sty(fontSize=7.5, leading=10)
+ST_HDR     = _sty(fontSize=7, fontName='Helvetica-Bold', textColor=BLANCO,
+                  alignment=TA_CENTER)
+ST_CELL    = _sty(fontSize=7, leading=9)
+ST_CELL_R  = _sty(fontSize=7, leading=9, alignment=TA_RIGHT)
+ST_CELL_C  = _sty(fontSize=7, leading=9, alignment=TA_CENTER)
+ST_KPI_LBL = _sty(fontSize=6.5, textColor=BLANCO, alignment=TA_CENTER)
+ST_KPI_VAL = _sty(fontSize=10, fontName='Helvetica-Bold', textColor=BLANCO,
+                  alignment=TA_CENTER)
 
-    header_data = [[Paragraph('<b>' + it[0] + '</b>', ParagraphStyle(
-        'kpi_lbl', parent=styles['Normal'], fontSize=7,
-        textColor=BLANCO, alignment=TA_CENTER)) for it in items]]
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def gs(v):
+    try:    return 'Gs. {:,.0f}'.format(float(v)).replace(',', '.')
+    except: return 'Gs. 0'
 
-    value_data  = [[Paragraph(it[1], ParagraphStyle(
-        'kpi_val', parent=styles['Normal'], fontSize=13, fontName='Helvetica-Bold',
-        textColor=BLANCO, alignment=TA_CENTER)) for it in items]]
+def num(v):
+    try:    return str(int(v))
+    except: return '0'
 
-    combined = [header_data[0], value_data[0]]
-    t = Table(combined, colWidths=[col_w]*n)
+def P(txt, sty):
+    return Paragraph(str(txt), sty)
 
-    ts = TableStyle([
-        ('GRID',        (0,0), (-1,-1), 0.5, BLANCO),
-        ('ROWBACKGROUNDS', (0,0), (-1,-1), [AZUL_CORP, AZUL_CORP]),
-        ('TOPPADDING',  (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING',(0,0),(-1,-1), 4),
-        ('LEFTPADDING', (0,0), (-1,-1), 4),
-        ('RIGHTPADDING',(0,0), (-1,-1), 4),
-        ('VALIGN',      (0,0), (-1,-1), 'MIDDLE'),
+CELL_PAD = [
+    ('TOPPADDING',    (0,0), (-1,-1), 2),
+    ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+    ('LEFTPADDING',   (0,0), (-1,-1), 3),
+    ('RIGHTPADDING',  (0,0), (-1,-1), 3),
+    ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+]
+
+# ── KPI strip ─────────────────────────────────────────────────────────────────
+def kpi_strip(items):
+    n   = len(items)
+    cw  = [PAGE_W / n] * n
+    r1  = [P(it[0], ST_KPI_LBL) for it in items]
+    r2  = [P(it[1], ST_KPI_VAL) for it in items]
+    t   = Table([r1, r2], colWidths=cw)
+    ts  = TableStyle(CELL_PAD + [
+        ('GRID', (0,0), (-1,-1), 0.5, BLANCO),
+        ('TOPPADDING',    (0,0), (-1,0), 3),
+        ('BOTTOMPADDING', (0,1), (-1,1), 5),
     ])
-    # Colores individuales por columna
     for i, it in enumerate(items):
-        bg = it[2] if len(it) > 2 else AZUL_CORP
-        ts.add('BACKGROUND', (i, 0), (i, 1), bg)
-
+        ts.add('BACKGROUND', (i,0), (i,1), it[2])
     t.setStyle(ts)
     return t
 
-# ── Tabla genérica ────────────────────────────────────────────────────────────
-def make_table(headers, rows, col_widths, aligns=None):
-    """
-    headers: list of str
-    rows: list of list of str
-    col_widths: list of float (cm)
-    aligns: list of 'L'|'C'|'R' per column (optional)
-    """
+# ── Tabla de datos ────────────────────────────────────────────────────────────
+def data_table(headers, rows, col_w_cm, aligns=None, max_rows=None):
     if aligns is None:
         aligns = ['L'] * len(headers)
-
-    header_row = [Paragraph(h, st_cell_header) for h in headers]
-    data = [header_row]
-
+    if max_rows is not None:
+        rows = rows[:max_rows]
+    _st = {'L': ST_CELL, 'R': ST_CELL_R, 'C': ST_CELL_C}
+    data = [[P(h, ST_HDR) for h in headers]]
     for row in rows:
-        dr = []
-        for j, cell in enumerate(row):
-            al = aligns[j] if j < len(aligns) else 'L'
-            s = st_cell_r if al == 'R' else (st_cell_c if al == 'C' else st_cell)
-            dr.append(Paragraph(str(cell), s))
-        data.append(dr)
-
-    col_w_pt = [w * cm for w in col_widths]
-    t = Table(data, colWidths=col_w_pt, repeatRows=1)
-    ts = TableStyle([
-        ('BACKGROUND',  (0, 0), (-1, 0), AZUL_CORP),
-        ('TEXTCOLOR',   (0, 0), (-1, 0), BLANCO),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [BLANCO, GRIS_CLARO]),
-        ('GRID',        (0, 0), (-1, -1), 0.3, GRIS_MEDIO),
-        ('TOPPADDING',  (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING',(0, 0),(-1, -1), 3),
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING',(0, 0), (-1, -1), 4),
-        ('FONTSIZE',    (0, 0), (-1, -1), 8),
-        ('VALIGN',      (0, 0), (-1, -1), 'MIDDLE'),
-    ])
-    t.setStyle(ts)
+        data.append([P(str(c), _st.get(aligns[j], ST_CELL))
+                     for j, c in enumerate(row)])
+    cw = [w * cm for w in col_w_cm]
+    t  = Table(data, colWidths=cw, repeatRows=1)
+    t.setStyle(TableStyle(CELL_PAD + [
+        ('BACKGROUND',     (0,0), (-1,0),  AZUL),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [BLANCO, GRIS_L]),
+        ('GRID',           (0,0), (-1,-1), 0.3, GRIS_M),
+    ]))
     return t
 
-# ── Header / Footer callbacks ─────────────────────────────────────────────────
-class ReporteCanvas:
-    def __init__(self, nombre_tienda, periodo):
-        self.nombre_tienda = nombre_tienda
-        self.periodo       = periodo
+# ── Tabla NC compacta ─────────────────────────────────────────────────────────
+def nc_mini(nc, col_w_cm):
+    items = [
+        ('Total NC',    num(nc.get('TotalNC',0))),
+        ('Pendientes',  num(nc.get('Pendientes',0))),
+        ('Recibidas',   num(nc.get('Recibidas',0))),
+        ('Rechazadas',  num(nc.get('Rechazadas',0))),
+        ('Morosas',     num(nc.get('Morosas',0))),
+        ('Monto Total', gs(nc.get('MontoTotal',0))),
+    ]
+    data = [[P('<b>'+r[0]+'</b>', ST_CELL), P(r[1], ST_CELL_R)] for r in items]
+    cw   = [col_w_cm * 0.55 * cm, col_w_cm * 0.45 * cm]
+    t    = Table(data, colWidths=cw)
+    t.setStyle(TableStyle(CELL_PAD + [
+        ('ROWBACKGROUNDS', (0,0), (-1,-1), [BLANCO, GRIS_L]),
+        ('GRID',           (0,0), (-1,-1), 0.3, GRIS_M),
+    ]))
+    return t
+
+# ── Wrapper de columna ────────────────────────────────────────────────────────
+def col_wrap(items, width):
+    """Envuelve varios flowables en una tabla de 1 columna para layout lateral."""
+    data = [[it] for it in items]
+    t    = Table(data, colWidths=[width])
+    t.setStyle(TableStyle([
+        ('TOPPADDING',    (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('LEFTPADDING',   (0,0), (-1,-1), 0),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 0),
+        ('VALIGN',        (0,0), (-1,-1), 'TOP'),
+    ]))
+    return t
+
+# ── Header / Footer en canvas ─────────────────────────────────────────────────
+class _Canvas:
+    def __init__(self, tienda, periodo):
+        self.tienda  = tienda
+        self.periodo = periodo
 
     def __call__(self, canvas, doc):
         canvas.saveState()
-        w, h = A4
+        w, h = PAGE
 
-        # ── Header ──────────────────────────────────────────
-        canvas.setFillColor(AZUL_CORP)
-        canvas.rect(0, h - 1.8*cm, w, 1.8*cm, fill=True, stroke=False)
-
+        # Header
+        canvas.setFillColor(AZUL)
+        canvas.rect(0, h - 1.6*cm, w, 1.6*cm, fill=True, stroke=False)
         canvas.setFillColor(BLANCO)
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(1.5*cm, h - 1.1*cm, 'Reporte de Gerencia — Módulo Compras')
-
+        canvas.setFont('Helvetica-Bold', 11)
+        canvas.drawString(MARG_H, h - 1.0*cm, 'Reporte de Gerencia — Módulo Compras')
         canvas.setFont('Helvetica', 8)
-        canvas.drawRightString(w - 1.5*cm, h - 1.1*cm, self.nombre_tienda)
+        canvas.drawRightString(w - MARG_H, h - 0.9*cm, self.tienda)
         canvas.setFont('Helvetica', 7)
-        canvas.drawRightString(w - 1.5*cm, h - 1.5*cm, self.periodo)
+        canvas.drawRightString(w - MARG_H, h - 1.35*cm, self.periodo)
 
-        # ── Footer ──────────────────────────────────────────
-        canvas.setFillColor(GRIS_CLARO)
-        canvas.rect(0, 0, w, 1*cm, fill=True, stroke=False)
-
+        # Footer
+        canvas.setFillColor(GRIS_L)
+        canvas.rect(0, 0, w, 0.9*cm, fill=True, stroke=False)
         canvas.setFillColor(colors.HexColor('#6b7280'))
         canvas.setFont('Helvetica', 7)
-        canvas.drawString(1.5*cm, 0.35*cm,
-                          'Generado el ' + datetime.now().strftime('%d/%m/%Y %H:%M'))
-        canvas.drawCentredString(w / 2, 0.35*cm, 'Sistema de Ventas — Confidencial')
-        canvas.drawRightString(w - 1.5*cm, 0.35*cm,
-                               'Página %d' % doc.page)
+        canvas.drawString(MARG_H, 0.3*cm,
+                          'Generado: ' + datetime.now().strftime('%d/%m/%Y %H:%M'))
+        canvas.drawCentredString(w/2, 0.3*cm, 'Sistema de Ventas — Confidencial')
+        canvas.drawRightString(w - MARG_H, 0.3*cm, 'Pagina 1 de 1')
 
         canvas.restoreState()
 
@@ -207,118 +190,117 @@ class ReporteCanvas:
 def build_pdf(data, output_path):
     doc = SimpleDocTemplate(
         output_path,
-        pagesize=A4,
-        leftMargin=2*cm, rightMargin=2*cm,
-        topMargin=2.5*cm, bottomMargin=1.8*cm,
+        pagesize=PAGE,
+        leftMargin=MARG_H, rightMargin=MARG_H,
+        topMargin=MARG_TOP, bottomMargin=MARG_BOT,
         title='Reporte Gerencia Compras'
     )
 
-    kpis       = data.get('KPIs', {})
-    nc         = data.get('NotasCredito', {})
-    mensual    = data.get('ComprasMensuales', [])
-    por_estado = data.get('OrdenesPorEstado', [])
-    top_prov   = data.get('TopProveedores', [])
-    oc_fuera   = data.get('OCsFueraDePlazo', [])
-    nombre_tienda = data.get('NombreTienda', '')
-    fecha_ini  = data.get('FechaInicio', '')
-    fecha_fin  = data.get('FechaFin', '')
-    periodo    = 'Período: ' + fecha_ini + ' al ' + fecha_fin
+    kpis     = data.get('KPIs', {})
+    nc       = data.get('NotasCredito', {})
+    mensual  = data.get('ComprasMensuales', [])
+    estados  = data.get('OrdenesPorEstado', [])
+    top_prov = data.get('TopProveedores', [])
+    oc_fuera = data.get('OCsFueraDePlazo', [])
+    tienda   = data.get('NombreTienda', '')
+    periodo  = ('Periodo: ' + data.get('FechaInicio','') +
+                ' al ' + data.get('FechaFin',''))
 
-    cb = ReporteCanvas(nombre_tienda, periodo)
+    cb    = _Canvas(tienda, periodo)
     story = []
 
-    # ── Título ───────────────────────────────────────────────
-    story.append(Paragraph('Reporte de Gerencia — Compras', st_titulo))
-    story.append(Paragraph(nombre_tienda + '  |  ' + periodo, st_subtitulo))
-    story.append(HRFlowable(width='100%', thickness=1, color=AZUL_CLARO, spaceAfter=10))
-
-    # ── KPIs ─────────────────────────────────────────────────
-    story.append(Paragraph('Indicadores Clave (KPI)', st_seccion))
-    kpi_items = [
-        ('Total Compras',    fmt_int(kpis.get('TotalCompras',0)),      AZUL_CORP),
-        ('Monto Total',      fmt_gs(kpis.get('MontoTotalCompras',0)),  VERDE),
-        ('OC Pendientes',    fmt_int(kpis.get('OCPendientes',0)),       CYAN),
-        ('OC Fuera Plazo',   fmt_int(kpis.get('OCFueraPlazo',0)),       ROJO),
-        ('NC — Monto',       fmt_gs(kpis.get('MontoTotalNC',0)),        AMBAR),
-    ]
-    story.append(kpi_table(kpi_items))
-    story.append(Spacer(1, 12))
-
-    # ── Compras por mes ──────────────────────────────────────
-    story.append(Paragraph('Evolución de Compras por Mes', st_seccion))
-    if mensual:
-        headers = ['Año', 'Mes', 'Cantidad', 'Monto (Gs.)']
-        rows    = [[r['Anio'], r['MesNombre'], fmt_int(r['Cantidad']), fmt_gs(r['Monto'])]
-                   for r in mensual]
-        story.append(make_table(headers, rows, [2.5, 3.5, 3, 5.5], ['C','C','C','R']))
-    else:
-        story.append(Paragraph('Sin datos en el período seleccionado.', st_normal))
-    story.append(Spacer(1, 10))
-
-    # ── OC por estado ────────────────────────────────────────
-    story.append(Paragraph('Órdenes de Compra por Estado', st_seccion))
-    if por_estado:
-        headers = ['Estado', 'Cantidad', 'Monto Total (Gs.)']
-        rows    = [[r['Estado'], fmt_int(r['Cantidad']), fmt_gs(r['MontoTotal'])]
-                   for r in por_estado]
-        story.append(make_table(headers, rows, [6, 3.5, 5], ['L','C','R']))
-    else:
-        story.append(Paragraph('Sin órdenes de compra en el período.', st_normal))
-    story.append(Spacer(1, 10))
-
-    # ── Top proveedores ──────────────────────────────────────
-    story.append(Paragraph('Top Proveedores por Monto Comprado', st_seccion))
-    if top_prov:
-        headers = ['#', 'Proveedor', 'Compras', 'Monto Total (Gs.)']
-        rows    = [[str(i+1), r['Proveedor'], fmt_int(r['TotalCompras']), fmt_gs(r['MontoTotal'])]
-                   for i, r in enumerate(top_prov)]
-        story.append(make_table(headers, rows, [1, 8, 2.5, 4], ['C','L','C','R']))
-    else:
-        story.append(Paragraph('Sin datos de proveedores en el período.', st_normal))
-    story.append(Spacer(1, 10))
-
-    # ── Resumen NC ───────────────────────────────────────────
-    story.append(Paragraph('Resumen de Notas de Crédito', st_seccion))
-    nc_items = [
-        ['Total NC',   fmt_int(nc.get('TotalNC',0))],
-        ['Pendientes', fmt_int(nc.get('Pendientes',0))],
-        ['Recibidas',  fmt_int(nc.get('Recibidas',0))],
-        ['Rechazadas', fmt_int(nc.get('Rechazadas',0))],
-        ['Morosas',    fmt_int(nc.get('Morosas',0))],
-        ['Monto Total',fmt_gs(nc.get('MontoTotal',0))],
-    ]
-    nc_table_data = [[Paragraph('<b>' + r[0] + '</b>', st_cell), Paragraph(r[1], st_cell_r)]
-                     for r in nc_items]
-    nc_t = Table(nc_table_data, colWidths=[6*cm, 5*cm])
-    nc_t.setStyle(TableStyle([
-        ('ROWBACKGROUNDS', (0,0), (-1,-1), [BLANCO, GRIS_CLARO]),
-        ('GRID',    (0,0), (-1,-1), 0.3, GRIS_MEDIO),
-        ('TOPPADDING',    (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-        ('LEFTPADDING',   (0,0), (-1,-1), 6),
-        ('RIGHTPADDING',  (0,0), (-1,-1), 6),
-        ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+    # ── Banda KPIs ───────────────────────────────────────────
+    story.append(kpi_strip([
+        ('Total Compras',  num(kpis.get('TotalCompras',0)),     AZUL),
+        ('Monto Total',    gs(kpis.get('MontoTotalCompras',0)), VERDE),
+        ('OC Pendientes',  num(kpis.get('OCPendientes',0)),     CYAN),
+        ('OC Fuera Plazo', num(kpis.get('OCFueraPlazo',0)),     ROJO),
+        ('NC — Monto',     gs(kpis.get('MontoTotalNC',0)),      AMBAR),
     ]))
-    story.append(nc_t)
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 6))
 
-    # ── OCs fuera de plazo ───────────────────────────────────
-    story.append(Paragraph('Órdenes de Compra Fuera de Plazo', st_seccion))
-    if oc_fuera:
-        headers = ['Nro. Orden', 'Proveedor', 'Tienda', 'Fecha Tope', 'Monto Est. (Gs.)', 'Estado', 'Días']
-        rows    = [[r['NumeroOrden'], r['Proveedor'], r['Tienda'],
-                    r['FechaTopeEntrega'], fmt_gs(r['MontoEstimado']),
-                    r['Estado'], str(r['DiasVencida'])]
-                   for r in oc_fuera]
-        t = make_table(headers, rows, [2.5, 4.5, 3, 2.5, 3.5, 2.5, 1.5],
-                       ['C','L','L','C','R','C','C'])
-        story.append(KeepTogether(t))
+    # ── Fila 1: Compras x Mes  |  OC Estado + NC ────────────
+    col_l_w_cm = COL_L / cm
+    col_r_w_cm = COL_R / cm
+
+    lft = []
+    lft.append(P('Evolucion de Compras por Mes', ST_SECCION))
+    if mensual:
+        last_col_w = col_l_w_cm - 8.0
+        lft.append(data_table(
+            ['Anio', 'Mes', 'Cant.', 'Monto (Gs.)'],
+            [[r['Anio'], r['MesNombre'], num(r['Cantidad']), gs(r['Monto'])]
+             for r in mensual],
+            [2.0, 3.0, 2.5, max(last_col_w, 2.5)],
+            ['C','L','C','R'], max_rows=12
+        ))
     else:
-        story.append(Paragraph(
-            'No hay órdenes de compra fuera de plazo en el período seleccionado.',
-            st_normal))
+        lft.append(P('Sin datos en el periodo.', ST_NORMAL))
 
-    # ── Build ────────────────────────────────────────────────
+    rgt = []
+    rgt.append(P('OC por Estado', ST_SECCION))
+    if estados:
+        w1 = col_r_w_cm * 0.44
+        w2 = col_r_w_cm * 0.20
+        w3 = col_r_w_cm * 0.36
+        rgt.append(data_table(
+            ['Estado', 'Cant.', 'Monto (Gs.)'],
+            [[r['Estado'], num(r['Cantidad']), gs(r['MontoTotal'])]
+             for r in estados],
+            [w1, w2, w3], ['L','C','R']
+        ))
+    else:
+        rgt.append(P('Sin ordenes en el periodo.', ST_NORMAL))
+
+    rgt.append(Spacer(1, 5))
+    rgt.append(P('Resumen Notas de Credito', ST_SECCION))
+    rgt.append(nc_mini(nc, col_r_w_cm))
+
+    story.append(Table(
+        [[col_wrap(lft, COL_L), col_wrap(rgt, COL_R)]],
+        colWidths=[COL_L + COL_GAP/2, COL_R + COL_GAP/2]
+    ))
+    story.append(Spacer(1, 5))
+
+    # ── Fila 2: Top Proveedores  |  OC Fuera de Plazo ───────
+    lft2 = []
+    lft2.append(P('Top Proveedores', ST_SECCION))
+    if top_prov:
+        w_num  = 0.8
+        w_prov = col_l_w_cm - 8.8
+        lft2.append(data_table(
+            ['#', 'Proveedor', 'Compras', 'Monto (Gs.)', 'NC'],
+            [[str(i+1), r['Proveedor'], num(r['TotalCompras']),
+              gs(r['MontoTotal']), num(r.get('CantidadNC', 0))]
+             for i, r in enumerate(top_prov)],
+            [w_num, max(w_prov, 2.0), 2.5, 3.5, 1.5],
+            ['C','L','C','R','C'], max_rows=8
+        ))
+    else:
+        lft2.append(P('Sin datos de proveedores.', ST_NORMAL))
+
+    rgt2 = []
+    rgt2.append(P('OC Fuera de Plazo', ST_SECCION))
+    if oc_fuera:
+        w1 = col_r_w_cm * 0.24
+        w2 = col_r_w_cm * 0.36
+        w3 = col_r_w_cm * 0.22
+        w4 = col_r_w_cm * 0.18
+        rgt2.append(data_table(
+            ['N. Orden', 'Proveedor', 'Tope', 'Dias'],
+            [[r['NumeroOrden'], r['Proveedor'],
+              r['FechaTopeEntrega'], str(r['DiasVencida'])]
+             for r in oc_fuera],
+            [w1, w2, w3, w4], ['C','L','C','C'], max_rows=8
+        ))
+    else:
+        rgt2.append(P('Sin OC fuera de plazo.', ST_NORMAL))
+
+    story.append(Table(
+        [[col_wrap(lft2, COL_L), col_wrap(rgt2, COL_R)]],
+        colWidths=[COL_L + COL_GAP/2, COL_R + COL_GAP/2]
+    ))
+
     doc.build(story, onFirstPage=cb, onLaterPages=cb)
 
 
@@ -327,15 +309,12 @@ def build_pdf(data, output_path):
 # ════════════════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print('Uso: python generar_reporte_compras.py <ruta_json> <ruta_pdf>',
+        print('Uso: python generar_reporte_compras.py <json> <pdf>',
               file=sys.stderr)
         sys.exit(1)
 
-    json_path = sys.argv[1]
-    pdf_path  = sys.argv[2]
-
-    with open(json_path, 'r', encoding='utf-8') as f:
+    with open(sys.argv[1], 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    build_pdf(data, pdf_path)
-    print('PDF generado: ' + pdf_path)
+    build_pdf(data, sys.argv[2])
+    print('OK — PDF generado: ' + sys.argv[2])

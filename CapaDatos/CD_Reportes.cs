@@ -172,5 +172,132 @@ namespace CapaDatos
             }
             return lista;
         }
+
+        // ════════════════════════════════════════════════════════
+        //  REPORTE NC ASOCIADAS
+        // ════════════════════════════════════════════════════════
+
+        public List<NotaCredito> ReporteNC(
+            DateTime? fechaInicio, DateTime? fechaFin,
+            int idProveedor, int idTienda, string estado)
+        {
+            var lista = new List<NotaCredito>();
+            using (var cn = new SqlConnection(Conexion.CN))
+            {
+                var cmd = new SqlCommand("usp_rptNotaCredito", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@FechaInicio",  SqlDbType.Date).Value =
+                    fechaInicio.HasValue ? (object)fechaInicio.Value.Date : DBNull.Value;
+                cmd.Parameters.Add("@FechaFin",     SqlDbType.Date).Value =
+                    fechaFin.HasValue    ? (object)fechaFin.Value.Date    : DBNull.Value;
+                cmd.Parameters.AddWithValue("@IdProveedor", idProveedor);
+                cmd.Parameters.AddWithValue("@IdTienda",    idTienda);
+                cmd.Parameters.AddWithValue("@Estado",      estado ?? "");
+                try
+                {
+                    cn.Open();
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new NotaCredito
+                            {
+                                IdNC              = LeerInt(dr,     "IdNC"),
+                                IdCompra          = LeerInt(dr,     "IdCompra"),
+                                NumeroFactura     = LeerStr(dr,     "NumeroFactura"),
+                                FechaFactura      = LeerStr(dr,     "FechaFactura"),
+                                MontoFactura      = LeerDecimal(dr, "MontoFactura"),
+                                NumeroNC          = LeerStr(dr,     "NumeroNC"),
+                                NumeroTimbrado    = LeerStr(dr,     "NumeroTimbrado"),
+                                FechaVencTimbrado = LeerStr(dr,     "FechaVencTimbrado"),
+                                FechaEmision      = LeerStr(dr,     "FechaEmision"),
+                                MontoNC           = LeerDecimal(dr, "MontoNC"),
+                                Estado            = LeerStr(dr,     "Estado"),
+                                DiasTranscurridos = LeerInt(dr,     "DiasTranscurridos"),
+                                EsMorosa          = LeerBool(dr,    "EsMorosa"),
+                                MotivoNC          = LeerStr(dr,     "MotivoNC"),
+                                Observacion       = LeerStr(dr,     "Observacion"),
+                                FechaRegistro     = LeerStr(dr,     "FechaRegistro"),
+                                FechaConfirmacion = LeerStr(dr,     "FechaConfirmacion"),
+                                UsuarioRegistro   = LeerStr(dr,     "UsuarioRegistro"),
+                                Proveedor         = LeerStr(dr,     "Proveedor"),
+                                RucProveedor      = LeerStr(dr,     "RucProveedor"),
+                                Tienda            = LeerStr(dr,     "Tienda")
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error ReporteNC: " + ex.Message);
+                }
+            }
+            return lista;
+        }
+
+        // ════════════════════════════════════════════════════════
+        //  REPORTE PROVEEDORES
+        // ════════════════════════════════════════════════════════
+
+        public List<ReporteProveedor> ReporteProveedores(
+            DateTime? fechaInicio, DateTime? fechaFin,
+            int idTienda, bool soloConDeuda)
+        {
+            var lista = new List<ReporteProveedor>();
+            using (var cn = new SqlConnection(Conexion.CN))
+            {
+                var cmd = new SqlCommand("usp_rptProveedores", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@FechaInicio",  SqlDbType.Date).Value =
+                    fechaInicio.HasValue ? (object)fechaInicio.Value.Date : DBNull.Value;
+                cmd.Parameters.Add("@FechaFin",     SqlDbType.Date).Value =
+                    fechaFin.HasValue    ? (object)fechaFin.Value.Date    : DBNull.Value;
+                cmd.Parameters.AddWithValue("@IdTienda",    idTienda);
+                cmd.Parameters.AddWithValue("@SoloConDeuda", soloConDeuda ? 1 : 0);
+                try
+                {
+                    cn.Open();
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new ReporteProveedor
+                            {
+                                IdProveedor      = LeerInt(dr,     "IdProveedor"),
+                                Proveedor        = LeerStr(dr,     "Proveedor"),
+                                RucProveedor     = LeerStr(dr,     "RucProveedor"),
+                                Telefono         = LeerStr(dr,     "Telefono"),
+                                Correo           = LeerStr(dr,     "Correo"),
+                                CantidadCompras  = LeerInt(dr,     "CantidadCompras"),
+                                TotalCompras     = LeerDecimal(dr, "TotalCompras"),
+                                CantidadNC       = LeerInt(dr,     "CantidadNC"),
+                                TotalMontoNC     = LeerDecimal(dr, "TotalMontoNC"),
+                                NCPendientes     = LeerInt(dr,     "NCPendientes"),
+                                MontoNCPendiente = LeerDecimal(dr, "MontoNCPendiente"),
+                                NCRecibidas      = LeerInt(dr,     "NCRecibidas"),
+                                NCRechazadas     = LeerInt(dr,     "NCRechazadas"),
+                                MontoNeto        = LeerDecimal(dr, "MontoNeto"),
+                                TieneMorosa      = LeerBool(dr,    "TieneMorosa")
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error ReporteProveedores: " + ex.Message);
+                }
+            }
+            return lista;
+        }
+
+        // ── Helpers defensivos (reutilizados de CD_NotaCredito) ──
+        private static int     LeerInt(SqlDataReader dr, string c)
+        { try { return dr[c] != DBNull.Value ? Convert.ToInt32(dr[c])  : 0;  } catch { return 0; } }
+        private static decimal LeerDecimal(SqlDataReader dr, string c)
+        { try { return dr[c] != DBNull.Value ? Convert.ToDecimal(dr[c]): 0m; } catch { return 0m; } }
+        private static bool    LeerBool(SqlDataReader dr, string c)
+        { try { return dr[c] != DBNull.Value && Convert.ToBoolean(dr[c]); }   catch { return false; } }
+        private static string  LeerStr(SqlDataReader dr, string c)
+        { try { return dr[c] != DBNull.Value ? dr[c].ToString() : ""; }       catch { return ""; } }
     }
 }

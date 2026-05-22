@@ -8,8 +8,14 @@ $(function () {
     $.datepicker.setDefaults($.datepicker.regional['es']);
     $('.datepicker').datepicker({ dateFormat: 'dd/mm/yy', changeYear: true, changeMonth: true });
 
-    // Fecha entrega por defecto = hoy
+    // Fecha factura y entrega por defecto = hoy
+    $('#txtFechaFactura').datepicker('setDate', new Date());
     $('#txtFechaEntrega').datepicker('setDate', new Date());
+
+    // Fecha Vencimiento Timbrado por defecto = hoy + 1 año
+    var hoyMasUnAnio = new Date();
+    hoyMasUnAnio.setFullYear(hoyMasUnAnio.getFullYear() + 1);
+    $('#txtFechaVencTimbrado').datepicker('setDate', hoyMasUnAnio);
 
     $('#btnBuscarOC').on('click', function () {
         idOCActual = parseInt($('#txtIdOrdenCompra').val()) || 0;
@@ -33,7 +39,48 @@ $(function () {
 });
 
 // ── Cargar líneas desde la OC ─────────────────────────
-var _fechaOC = null;   // Date — fecha de registro de la OC, para validar fecha factura
+var _fechaOC            = null;  // Date — fecha de registro de la OC
+var _fechaTopeEntregaOC = null;  // Date — fecha tope de entrega pactada en la OC
+
+function parsearFechaOC(valorJson) {
+    if (!valorJson) return null;
+    var s = String(valorJson);
+
+    // 1) ASP.NET MVC serializa DateTime como /Date(milisegundos)/
+    var mTicks = s.match(/\/Date\((-?\d+)(?:[+-]\d+)?\)\//);
+    if (mTicks) {
+        var d1 = new Date(parseInt(mTicks[1]));
+        d1.setHours(0, 0, 0, 0);
+        // Descartar DateTime.MinValue (año < 1900)
+        if (isNaN(d1.getTime()) || d1.getFullYear() < 1900) return null;
+        return d1;
+    }
+
+    // 2) Formato dd/MM/yyyy (como llegan los strings desde el SP)
+    var mDMY = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (mDMY) {
+        var d2 = new Date(parseInt(mDMY[3]), parseInt(mDMY[2]) - 1, parseInt(mDMY[1]));
+        d2.setHours(0, 0, 0, 0);
+        return isNaN(d2.getTime()) ? null : d2;
+    }
+
+    // 3) Formato ISO yyyy-MM-dd (fallback)
+    var mISO = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (mISO) {
+        var d3 = new Date(parseInt(mISO[1]), parseInt(mISO[2]) - 1, parseInt(mISO[3]));
+        d3.setHours(0, 0, 0, 0);
+        return isNaN(d3.getTime()) ? null : d3;
+    }
+
+    return null;
+}
+
+function formatFechaDisplay(dt) {
+    if (!dt) return '';
+    return String(dt.getDate()).padStart(2,'0') + '/' +
+           String(dt.getMonth()+1).padStart(2,'0') + '/' +
+           dt.getFullYear();
+}
 
 function cargarLineasOC(idOC) {
     $.getJSON($.MisUrls.url._Compra_LineasOC, { idordencompra: idOC })
@@ -45,26 +92,20 @@ function cargarLineasOC(idOC) {
 
             var oc = res.data;
 
-            // Guardar fecha de la OC para validación posterior (punto b)
-            if (oc.FechaRegistro) {
-                var m = String(oc.FechaRegistro).match(/(\d{4})-(\d{2})-(\d{2})/);
-                if (m) _fechaOC = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
-            } else {
-                _fechaOC = null;
-            }
+            // Guardar fechas de la OC para validaciones
+            // FechaOrden llega como string "dd/MM/yyyy" y es la fecha real de creación.
+            // FechaRegistro llega como DateTime.MinValue porque el SP no la mapea en el XML.
+            _fechaOC            = parsearFechaOC(oc.FechaOrden);
+            _fechaTopeEntregaOC = parsearFechaOC(oc.FechaTopeEntrega);
 
             // Cabecera
             $('#txtProveedor').val(oc.oProveedor ? oc.oProveedor.RazonSocial : '');
             $('#txtNumeroOrden').val(oc.NumeroOrden);
             $('#txtTienda').val(oc.oTienda ? oc.oTienda.Nombre : '');
 
-            // Mostrar fecha OC como referencia visual
-            if (_fechaOC) {
-                var dd = String(_fechaOC.getDate()).padStart(2,'0');
-                var mm = String(_fechaOC.getMonth()+1).padStart(2,'0');
-                var aaaa = _fechaOC.getFullYear();
-                $('#txtFechaOC').val(dd + '/' + mm + '/' + aaaa);
-            }
+            // Mostrar fechas de la OC como referencia visual
+            $('#txtFechaOC').val(formatFechaDisplay(_fechaOC));
+            $('#txtFechaTopeOC').val(formatFechaDisplay(_fechaTopeEntregaOC));
 
             // Líneas
             var tbody = $('#tbodyLineas').empty();
@@ -146,22 +187,58 @@ function guardarRecepcion() {
     if (!fvt) { Swal.fire({ title: 'Atención', text: 'Ingrese la Fecha de Venc. Timbrado.', icon: 'warning' }); return; }
     if (!ff)  { Swal.fire({ title: 'Atención', text: 'Ingrese la Fecha de Factura.',        icon: 'warning' }); return; }
 
-    // ── Validar que fecha de factura >= fecha de OC (punto b) ──────────
+    // ── Validar que fecha de factura >= fecha de OC ─────────────────────
     if (_fechaOC) {
         var dtFF = parseFechaRec(ff);
         if (dtFF && dtFF < _fechaOC) {
-            var strOC = String(_fechaOC.getDate()).padStart(2,'0') + '/' +
-                        String(_fechaOC.getMonth()+1).padStart(2,'0') + '/' +
-                        _fechaOC.getFullYear();
             Swal.fire({
                 title: 'Fecha inválida',
-                text:  'La fecha de la factura (' + ff + ') no puede ser anterior a la fecha de la Orden de Compra (' + strOC + ').',
+                text:  'La Fecha de Factura (' + ff + ') no puede ser anterior a la fecha de registro de la OC (' + formatFechaDisplay(_fechaOC) + ').',
                 icon:  'warning'
             });
             $('#txtFechaFactura').addClass('is-invalid').focus();
             return;
         }
     }
+
+    // ── Validar que fecha de entrega >= fecha de OC ──────────────────────
+    if (fe && _fechaOC) {
+        var dtFE = parseFechaRec(fe);
+        if (dtFE && dtFE < _fechaOC) {
+            Swal.fire({
+                title: 'Fecha de Entrega inválida',
+                text:  'La Fecha de Entrega (' + fe + ') no puede ser anterior a la fecha de registro de la OC (' + formatFechaDisplay(_fechaOC) + ').',
+                icon:  'warning'
+            });
+            $('#txtFechaEntrega').addClass('is-invalid').focus();
+            return;
+        }
+        // Advertir (sin bloquear) si la entrega supera el tope pactado en la OC
+        if (dtFE && _fechaTopeEntregaOC && dtFE > _fechaTopeEntregaOC) {
+            Swal.fire({
+                title: 'Entrega fuera de plazo',
+                html:  'La Fecha de Entrega (<strong>' + fe + '</strong>) supera el tope pactado en la OC (<strong>' + formatFechaDisplay(_fechaTopeEntregaOC) + '</strong>).<br/><br/>¿Desea guardar de todas formas?',
+                icon:  'warning',
+                showCancelButton:  true,
+                confirmButtonText: 'Sí, guardar igual',
+                cancelButtonText:  'Cancelar'
+            }).then(function (result) {
+                if (result.isConfirmed) _enviarRecepcion();
+            });
+            return; // esperar respuesta del SweetAlert
+        }
+    }
+
+    _enviarRecepcion();
+}
+
+// ── Enviar petición AJAX de recepción ────────────────
+function _enviarRecepcion() {
+    var nf  = $('#txtNumeroFactura').val().trim();
+    var nt  = $('#txtNumeroTimbrado').val().trim();
+    var fvt = $('#txtFechaVencTimbrado').val().trim();
+    var ff  = $('#txtFechaFactura').val().trim();
+    var fe  = $('#txtFechaEntrega').val().trim();
 
     // Construir data con binding indexado para List<T>
     var data = {

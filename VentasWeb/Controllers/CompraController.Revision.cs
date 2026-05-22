@@ -92,13 +92,35 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false,
                     mensaje = "El número de factura debe tener el formato xxx-xxx-xxxxxxx (ej: 001-001-0000001)." });
 
-            // ── Validar fecha de factura >= fecha de creación de la OC ──────
+            // ── Obtener y resolver fecha de creación de la OC ───────────────
+            // FechaRegistro (DateTime) puede venir como MinValue si el SP no la mapea.
+            // En ese caso usamos FechaOrden (string "dd/MM/yyyy") como fuente de verdad.
             var oc = CD_OrdenCompra.Instancia.ObtenerDetalleOrdenCompra(idordencompra);
-            if (oc != null && ff < oc.FechaRegistro)
+            DateTime fechaCreacionOC = DateTime.MinValue;
+            if (oc != null)
+            {
+                fechaCreacionOC = oc.FechaRegistro.Year > 1900
+                    ? oc.FechaRegistro.Date
+                    : (DateTime.TryParseExact(oc.FechaOrden,
+                           new[] { "dd/MM/yyyy", "yyyy-MM-dd", "MM/dd/yyyy" },
+                           CultureInfo.InvariantCulture, DateTimeStyles.None, out var dfo)
+                       ? dfo.Date
+                       : DateTime.MinValue);
+            }
+
+            // ── Validar fecha de factura >= fecha de creación de la OC ──────
+            if (oc != null && fechaCreacionOC > DateTime.MinValue && ff.Date < fechaCreacionOC)
                 return Json(new { resultado = false,
                     mensaje = string.Format(
-                        "La fecha de factura ({0:dd/MM/yyyy}) no puede ser anterior a la fecha de la OC ({1:dd/MM/yyyy}).",
-                        ff, oc.FechaRegistro) });
+                        "La Fecha de Factura ({0:dd/MM/yyyy}) no puede ser anterior a la fecha de registro de la OC ({1:dd/MM/yyyy}).",
+                        ff, fechaCreacionOC) });
+
+            // ── Validar fecha de entrega >= fecha de creación de la OC ──────
+            if (oc != null && fechaCreacionOC > DateTime.MinValue && fe.Date < fechaCreacionOC)
+                return Json(new { resultado = false,
+                    mensaje = string.Format(
+                        "La Fecha de Entrega ({0:dd/MM/yyyy}) no puede ser anterior a la fecha de registro de la OC ({1:dd/MM/yyyy}).",
+                        fe, fechaCreacionOC) });
 
             var rpt = CD_Compra.Instancia.RegistrarRecepcionDesdeOC(
                 idordencompra,
