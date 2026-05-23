@@ -290,6 +290,56 @@ namespace CapaDatos
             return lista;
         }
 
+        // ----------------------------------------------------------------
+        //  REPORTE DE RENTABILIDAD POR PRODUCTO (CPP)
+        // ----------------------------------------------------------------
+        public List<ReporteRentabilidad> ObtenerRentabilidad(
+            int idTienda, DateTime fechaInicio, DateTime fechaFin, int idCategoria = 0)
+        {
+            var lista = new List<ReporteRentabilidad>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            {
+                var cmd = new SqlCommand("usp_rptRentabilidadProducto", oConexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdTienda",    idTienda);
+                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio.Date);
+                cmd.Parameters.AddWithValue("@FechaFin",    fechaFin.Date);
+                cmd.Parameters.AddWithValue("@IdCategoria", idCategoria);
+                try
+                {
+                    oConexion.Open();
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new ReporteRentabilidad()
+                            {
+                                IdProducto         = LeerInt(dr,     "IdProducto"),
+                                Codigo             = LeerStr(dr,     "Codigo"),
+                                Producto           = LeerStr(dr,     "Producto"),
+                                Categoria          = LeerStr(dr,     "Categoria"),
+                                Tienda             = LeerStr(dr,     "Tienda"),
+                                StockActual        = LeerInt(dr,     "StockActual"),
+                                CostoPromedio      = LeerDecimal(dr, "CostoPromedio"),
+                                PrecioVentaVigente = LeerDecimal(dr, "PrecioVentaVigente"),
+                                UnidadesVendidas   = LeerInt(dr,     "UnidadesVendidas"),
+                                IngresosTotales    = LeerDecimal(dr, "IngresosTotales"),
+                                CostoTotalVentas   = LeerDecimal(dr, "CostoTotalVentas"),
+                                UtilidadBruta      = LeerDecimal(dr, "UtilidadBruta"),
+                                MargenBrutoPct     = LeerDecimal(dr, "MargenBrutoPct"),
+                                ValorInventarioCPP = LeerDecimal(dr, "ValorInventarioCPP")
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error ObtenerRentabilidad: " + ex.Message);
+                }
+            }
+            return lista;
+        }
+
         // ── Helpers defensivos (reutilizados de CD_NotaCredito) ──
         private static int     LeerInt(SqlDataReader dr, string c)
         { try { return dr[c] != DBNull.Value ? Convert.ToInt32(dr[c])  : 0;  } catch { return 0; } }

@@ -108,7 +108,8 @@ namespace CapaDatos
         // ----------------------------------------------------------------
         public (bool resultado, string mensaje, int idVenta, string numeroFactura) FacturarDesdeOrdenVenta(
             int idOrdenVenta, int idUsuarioCajero, int? idCliente,
-            int idFormaCobro, decimal importeRecibido, int idCaja = 0)
+            int idFormaCobro, decimal importeRecibido, int idCaja = 0,
+            string condicion = "Contado", int? plazoCredito = null)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -125,6 +126,9 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("@ImporteRecibido", importeRecibido);
                     cmd.Parameters.AddWithValue("@IdCaja",
                         idCaja > 0 ? (object)idCaja : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Condicion", condicion ?? "Contado");
+                    cmd.Parameters.AddWithValue("@PlazoCredito",
+                        plazoCredito.HasValue ? (object)plazoCredito.Value : DBNull.Value);
 
                     cmd.Parameters.Add("@IdVentaGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@NumeroFactura", SqlDbType.VarChar, 20).Direction = ParameterDirection.Output;
@@ -254,6 +258,12 @@ namespace CapaDatos
                                 TelefonoEmisor            = dr["TelefonoEmisor"].ToString(),
                                 NumeroOV                  = dr["NumeroOV"] != DBNull.Value
                                                           ? dr["NumeroOV"].ToString() : "",
+                                Condicion                 = dr["Condicion"] != DBNull.Value
+                                                          ? dr["Condicion"].ToString() : "Contado",
+                                PlazoCredito              = dr["PlazoCredito"] != DBNull.Value
+                                                          ? (int?)Convert.ToInt32(dr["PlazoCredito"]) : null,
+                                FechaVencimientoCredito   = dr["FechaVencimientoCredito"] != DBNull.Value
+                                                          ? dr["FechaVencimientoCredito"].ToString() : null,
                                 oListaDetalleVenta        = new System.Collections.Generic.List<DetalleVenta>()
                             };
                         }

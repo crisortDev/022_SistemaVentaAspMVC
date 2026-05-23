@@ -77,11 +77,14 @@ function recargarOperaciones() {
                     : '<span class="badge badge-danger">Anulada</span>';
                 var monto = op.Estado === 'Activa' ? op.Monto : 0;
                 total += monto;
+                var btnReimprimir = op.IdVenta
+                    ? '<a href="' + $.MisUrls.url._Venta_Documento + '?idVenta=' + op.IdVenta + '" target="_blank" class="btn btn-xs btn-outline-primary btn-sm" title="Reimprimir factura"><i class="fas fa-print"></i></a>'
+                    : '';
                 tbody.append(
                     '<tr>' +
                     '<td>' + fila++ + '</td>' +
                     '<td>' + formatHora(op.FechaRegistro) + '</td>' +
-                    '<td><code>' + op.NumeroFactura + '</code></td>' +
+                    '<td><code>' + op.NumeroFactura + '</code> ' + btnReimprimir + '</td>' +
                     '<td>' + op.NombreCliente + '</td>' +
                     '<td>' + op.FormaCobro + '</td>' +
                     '<td class="text-right">Gs. ' + formatGs(op.Monto) + '</td>' +

@@ -74,7 +74,7 @@ namespace CapaDatos
         //  LISTAR ORDENES DE VENTA
         // ----------------------------------------------------------------
         public List<OrdenVenta> ObtenerListaOrdenVenta(
-            int idTienda, string estado, DateTime fechaInicio, DateTime fechaFin, string numeroOV)
+            int idTienda, string estado, DateTime fechaInicio, DateTime fechaFin, string numeroOV, string cliente = "")
         {
             List<OrdenVenta> lista = new List<OrdenVenta>();
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
@@ -86,6 +86,7 @@ namespace CapaDatos
                 cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
                 cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
                 cmd.Parameters.AddWithValue("@NumeroOV", numeroOV ?? "");
+                cmd.Parameters.AddWithValue("@Cliente", cliente ?? "");
 
                 try
                 {

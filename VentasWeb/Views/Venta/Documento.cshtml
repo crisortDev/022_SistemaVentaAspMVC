@@ -2,6 +2,9 @@
 @{
     Layout = null;
     string estado = Model?.Estado ?? "Activa";
+    // t) Condición dinámica desde el modelo
+    string condicion = Model?.Condicion ?? "Contado";
+    bool esContado = condicion != "Crédito";
 }
 <!DOCTYPE html>
 <html>
@@ -16,17 +19,24 @@
         .kude-emisor h2 { margin: 0 0 2px; font-size: 14px; }
         .kude-factura-box { border: 2px solid #333; padding: 6px 12px; text-align: center; min-width: 180px; }
         .kude-factura-box .tipo { font-size: 12px; font-weight: bold; }
-        .kude-factura-box .numero { font-size: 16px; font-weight: bold; color: #0a5; }
+        .kude-factura-box .numero { font-size: 16px; font-weight: bold; color: #0a5; font-family: monospace; letter-spacing: 1px; }
         .kude-factura-box .timbrado { font-size: 10px; margin-top: 4px; }
         .kude-anulada { background: #ffe0e0; border: 2px solid red; padding: 4px; text-align: center; color: red; font-weight: bold; font-size:13px; margin-bottom: 6px; }
         .section-title { font-weight: bold; background: #eee; padding: 2px 4px; margin-bottom: 4px; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px; }
-        .info-row { display: flex; gap: 4px; }
+        .info-row { display: flex; gap: 4px; margin-bottom: 2px; }
         .info-label { font-weight: bold; white-space: nowrap; }
+        /* t) Condición con estilo checkbox */
+        .condicion-box { display: inline-flex; gap: 14px; align-items: center; margin-top: 3px; }
+        .condicion-box span { display: inline-flex; align-items: center; gap: 3px; }
+        .condicion-check { display: inline-block; width: 13px; height: 13px; border: 1px solid #555; text-align: center; line-height: 12px; font-size: 10px; font-weight: bold; }
+        .condicion-check.checked { background: #222; color: #fff; }
         table.detalle { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
         table.detalle th { background: #ddd; border: 1px solid #bbb; padding: 3px 5px; text-align: left; }
         table.detalle td { border: 1px solid #ccc; padding: 3px 5px; }
         table.detalle .text-right { text-align: right; }
+        /* u) Subtotal */
+        .subtotal-row td { border-top: 2px solid #999; font-weight: bold; background: #f5f5f5; }
         .totales-box { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; }
         .iva-table { border: 1px solid #bbb; border-collapse: collapse; }
         .iva-table th, .iva-table td { border: 1px solid #bbb; padding: 2px 8px; text-align: right; font-size: 10px; }
@@ -62,16 +72,36 @@
                 </div>
                 <div style="text-align:center;margin:0 12px;">
                     <div id="qrcode" style="width:90px;height:90px;"></div>
-                    <div style="font-size:9px;margin-top:2px;">Consulte en set.gov.py</div>
+                    <div style="font-size:9px;margin-top:2px;">Consulte en ekuatia.set.gov.py</div>
                 </div>
                 <div class="kude-factura-box">
+                    <!-- t) Condición de venta va primero, estilo DNIT -->
+                    <div style="font-size:10px;margin-bottom:3px;">
+                        <strong>Condición de Venta:</strong>
+                        <span style="margin-left:6px;">
+                            <span class="condicion-check @(esContado ? "checked" : "")">@Html.Raw(esContado ? "X" : " ")</span> Contado
+                        </span>
+                        <span style="margin-left:8px;">
+                            <span class="condicion-check @(!esContado ? "checked" : "")">@Html.Raw(!esContado ? "X" : " ")</span> Crédito
+                        </span>
+                        @if (!esContado && Model.PlazoCredito.HasValue)
+                        {
+                            <span style="margin-left:10px;font-size:9px;color:#555;">
+                                Plazo: <strong>@Model.PlazoCredito días</strong>
+                                @if (!string.IsNullOrEmpty(Model.FechaVencimientoCredito))
+                                {
+                                    <span>— Vto.: <strong style="color:#c00;">@Model.FechaVencimientoCredito</strong></span>
+                                }
+                            </span>
+                        }
+                    </div>
                     <div class="tipo">FACTURA ELECTRÓNICA</div>
                     <div style="font-size:10px;">Documento Tributario Electrónico</div>
                     <div class="numero">@Model.NumeroFactura</div>
                     <div class="timbrado">
                         Timbrado Nº: <strong>@Model.NumeroTimbrado</strong><br/>
                         Vto.: @Model.VencimientoTimbrado<br/>
-                        Est.: @Model.Establecimiento &nbsp;|&nbsp; Pto.: @Model.PuntoExpedicion
+                        Est.: @Model.Establecimiento &#160;|&#160; Pto.: @Model.PuntoExpedicion
                     </div>
                     @if (Model.NumeroOV != null && Model.NumeroOV != "")
                     {
@@ -84,10 +114,9 @@
             <div class="info-grid">
                 <div>
                     <div class="section-title">Datos de Emisión</div>
-                    <div class="info-row"><span class="info-label">Fecha y Hora:</span> &nbsp;@Model.FechaRegistro</div>
+                    <div class="info-row"><span class="info-label">Fecha y Hora:</span> &nbsp;<strong>@Model.FechaRegistro</strong></div>
                     <div class="info-row"><span class="info-label">Cajero:</span> &nbsp;@Model.NombreCajero</div>
                     <div class="info-row"><span class="info-label">Forma de Pago:</span> &nbsp;@Model.FormaCobro</div>
-                    <div class="info-row"><span class="info-label">Condición:</span> &nbsp;Contado</div>
                 </div>
                 <div>
                     <div class="section-title">Datos del Receptor</div>
@@ -131,6 +160,15 @@
                             </tr>
                             fila++;
                         }
+                        <!-- u) Fila Subtotal -->
+                        <tr class="subtotal-row">
+                            <td colspan="8" class="text-right">Subtotal (Gs.):</td>
+                            <td class="text-right gs">@Model.TotalCosto.ToString("N0")</td>
+                        </tr>
+                        <tr>
+                            <td colspan="8" class="text-right" style="font-size:10px;color:#555;">Descuento (0%):</td>
+                            <td class="text-right gs" style="font-size:10px;color:#555;">0</td>
+                        </tr>
                     }
                 </tbody>
             </table>
@@ -160,27 +198,24 @@
                     </tbody>
                 </table>
                 <div>
-                    <div style="text-align:right;font-size:10px;margin-bottom:4px;">
-                        Importe Recibido: <span class="gs">Gs. @Model.ImporteRecibido.ToString("N0")</span> &nbsp;|&nbsp;
-                        Cambio: <span class="gs">Gs. @Model.ImporteCambio.ToString("N0")</span>
-                    </div>
                     <div class="total-final">
-                        TOTAL: <span class="gs">Gs. @Model.TotalCosto.ToString("N0")</span>
+                        TOTAL A PAGAR: <span class="gs">Gs. @Model.TotalCosto.ToString("N0")</span>
                     </div>
                 </div>
             </div>
 
             <!-- PIE -->
             <div class="footer-kude">
-                Este documento es una representación gráfica del Documento Tributario Electrónico (DTE) emitido bajo el régimen de facturación electrónica de la SET - Paraguay.
-                Verifique la autenticidad en <strong>set.gov.py</strong> | Sistema: SistemaVenta v2
+                ESTE DOCUMENTO ES UNA REPRESENTACIÓN GRÁFICA DE UN DOCUMENTO ELECTRÓNICO (DE) emitido bajo el régimen de Facturación Electrónica Nacional administrado por la
+                <strong>DNIT (Dirección Nacional de Ingresos Tributarios)</strong> — Paraguay.
+                Consulte la validez en <strong>ekuatia.dnit.gov.py</strong> | SistemaVenta v2
             </div>
         </div>
 
         <!-- Botones (no imprimen) -->
         <div class="no-print" style="text-align:center;margin-top:12px;">
             <button onclick="window.print()" class="btn btn-primary btn-sm">
-                <i class="fas fa-print"></i> Imprimir
+                <i class="fas fa-print"></i> Imprimir / Reimprimir
             </button>
             <button onclick="window.close()" class="btn btn-secondary btn-sm ml-2">
                 Cerrar
@@ -192,11 +227,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         (function () {
-            // QR de ejemplo — en producción real se usaría el CDC del DTE emitido por la SET
+            // QR de ejemplo — en producción apuntaría al CDC del DE emitido por la DNIT
             var nroFactura = '@Html.Raw(Model?.NumeroFactura ?? "000-000-0000000")';
             var ruc        = '@Html.Raw(Model?.RUCEmisor ?? "00000000-0")';
-            var fecha      = '@Html.Raw(Model?.FechaRegistro ?? "")';
-            // Datos de ejemplo en formato similar al CDC de la SET Paraguay
+            // CDC de referencia (formato DNIT / e-Kuatia)
             var cdcEjemplo = '01' + ruc.replace('-','').replace(/\D/g,'') +
                              '001001' + nroFactura.replace(/\D/g,'') + '1';
             var urlConsulta = 'https://ekuatia.set.gov.py/consultas/de?cdc=' + cdcEjemplo;

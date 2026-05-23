@@ -18,6 +18,8 @@ namespace CapaModelo
         public decimal PrecioVentaIvaIncluido { get; set; }
         public decimal PrecioCompraIvaIncluido { get; set; }
         public decimal PrecioUnidadCompra { get; set; }
+        /// <summary>Costo Promedio Ponderado (CPP) — se recalcula en cada confirmación de compra.</summary>
+        public decimal CostoPromedio { get; set; }
         public decimal PrecioUnidadVenta { get; set; }
         public decimal PrecioVenta { get; set; }
         public decimal PorcentajeIva { get; set; }

@@ -47,7 +47,7 @@ function iniciarTabla() {
             }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish },
-        order: [[6, 'desc']]
+        order: [[6, 'asc']]   // orden de carga: más antigua primero
     });
 }
 
@@ -56,7 +56,8 @@ function buscarOV() {
         fechainicio: $('#txtFechaInicio').val(),
         fechafin: $('#txtFechaFin').val(),
         estado: $('#cboEstado').val(),
-        numerooV: $('#txtNumeroOV').val()
+        numerooV: $('#txtNumeroOV').val(),
+        cliente: $('#txtCliente').val()   // filtro por nombre o Nº documento
     };
     $.get($.MisUrls.url._OV_Obtener, params, function (r) {
         dtOV.clear().rows.add(r.data || []).draw();

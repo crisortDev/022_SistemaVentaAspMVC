@@ -81,21 +81,55 @@
                         <div class="card border-primary">
                             <div class="card-body p-2">
                                 <h6 class="card-title mb-1 text-primary">Cobro</h6>
+
+                                <!-- Condición de venta -->
+                                <div class="form-group mb-1">
+                                    <label class="col-form-label col-form-label-sm font-weight-bold">Condición de Venta:</label>
+                                    <div class="d-flex" style="gap:16px;">
+                                        <div class="custom-control custom-radio">
+                                            <input type="radio" id="rdoContado" name="condicion" class="custom-control-input" value="Contado" checked onchange="toggleCondicion()">
+                                            <label class="custom-control-label" for="rdoContado">Contado</label>
+                                        </div>
+                                        <div class="custom-control custom-radio">
+                                            <input type="radio" id="rdoCredito" name="condicion" class="custom-control-input" value="Crédito" onchange="toggleCondicion()">
+                                            <label class="custom-control-label" for="rdoCredito">Crédito</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Plazo (solo Crédito) -->
+                                <div class="form-group mb-1" id="divPlazo" style="display:none;">
+                                    <label class="col-form-label col-form-label-sm">Plazo de Crédito:</label>
+                                    <select class="form-control form-control-sm" id="cboPlazo">
+                                        <option value="30">30 días</option>
+                                        <option value="60">60 días</option>
+                                    </select>
+                                </div>
+
                                 <div class="form-group mb-1">
                                     <label class="col-form-label col-form-label-sm">Forma de Cobro:</label>
                                     <select class="form-control form-control-sm" id="cboFormaCobro">
                                         <option value="0">-- Seleccionar --</option>
                                     </select>
                                 </div>
-                                <div class="row align-items-end">
-                                    <div class="col-6">
-                                        <label class="col-form-label col-form-label-sm">Importe Recibido:</label>
-                                        <input type="number" class="form-control form-control-sm" id="txtImporteRecibido" value="0" min="0" oninput="calcularCambio()">
+
+                                <!-- Importe/Cambio (solo Contado) -->
+                                <div id="divImporte">
+                                    <div class="row align-items-end">
+                                        <div class="col-6">
+                                            <label class="col-form-label col-form-label-sm">Importe Recibido:</label>
+                                            <input type="number" class="form-control form-control-sm" id="txtImporteRecibido" value="0" min="0" oninput="calcularCambio()">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="col-form-label col-form-label-sm">Cambio:</label>
+                                            <input type="text" class="form-control form-control-sm text-success font-weight-bold" readonly id="txtCambio" value="0">
+                                        </div>
                                     </div>
-                                    <div class="col-6">
-                                        <label class="col-form-label col-form-label-sm">Cambio:</label>
-                                        <input type="text" class="form-control form-control-sm text-success font-weight-bold" readonly id="txtCambio" value="0">
-                                    </div>
+                                </div>
+
+                                <!-- Aviso crédito -->
+                                <div id="divAvisoCredito" class="alert alert-info py-1 px-2 mt-1 mb-0" style="display:none;font-size:11px;">
+                                    <i class="fas fa-info-circle"></i> Factura a crédito: el pago se registra como pendiente. Se emitirá con fecha límite de pago.
                                 </div>
                             </div>
                         </div>
@@ -114,7 +148,7 @@
                                 <th class="text-right">Precio Unit. (Gs.)</th>
                                 <th class="text-center">IVA%</th>
                                 <th class="text-right">Total (Gs.)</th>
-                                <th class="text-center">Stock</th>
+                                <th class="text-center">Disponibilidad</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -129,11 +163,14 @@
                                         <td class="text-right">@item.PrecioUnidad.ToString("N0")</td>
                                         <td class="text-center">@item.IvaPorcentaje.ToString("N2")%</td>
                                         <td class="text-right">@item.TotalLinea.ToString("N0")</td>
-                                        <td class="text-center @(item.StockDisponible < item.Cantidad ? "text-danger font-weight-bold" : "")">
-                                            @item.StockDisponible
-                                            @if (item.StockDisponible < item.Cantidad)
+                                        <td class="text-center">
+                                            @if (item.StockDisponible >= item.Cantidad)
                                             {
-                                                <i class="fas fa-exclamation-triangle text-warning" title="Stock insuficiente"></i>
+                                                <span class="badge badge-success"><i class="fas fa-check-circle"></i> Disponible</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-danger"><i class="fas fa-times-circle"></i> No disponible</span>
                                             }
                                         </td>
                                     </tr>

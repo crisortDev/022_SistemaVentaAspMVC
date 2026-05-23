@@ -18,6 +18,10 @@ function cargarFormasCobro() {
             r.data.forEach(function (f) {
                 $('#cboFormaCobro').append($('<option>', { value: f.IdFormaCobro, text: f.Nombre }));
             });
+            // Seleccionar "Efectivo" por defecto
+            $('#cboFormaCobro option').filter(function () {
+                return $(this).text().trim().toLowerCase() === 'efectivo';
+            }).prop('selected', true);
         }
     });
 }

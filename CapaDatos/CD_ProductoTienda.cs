@@ -65,6 +65,8 @@ namespace CapaDatos
                             },
                             PrecioUnidadCompra = dr["PrecioUnidadCompra"] == DBNull.Value ? 0
                                 : Convert.ToInt32(Convert.ToDecimal(dr["PrecioUnidadCompra"], new CultureInfo("es-PY"))),
+                            CostoPromedio = dr["CostoPromedio"] == DBNull.Value ? 0
+                                : Convert.ToDecimal(dr["CostoPromedio"], new CultureInfo("es-PY")),
                             PrecioVenta = dr["PrecioVenta"] == DBNull.Value ? 0
                                 : Math.Truncate(Convert.ToDecimal(dr["PrecioVenta"], new CultureInfo("es-PY"))),
                             PrecioCompraIvaIncluido = dr["PrecioCompraIvaIncluido"] == DBNull.Value ? 0

@@ -38,6 +38,10 @@ namespace CapaModelo
         public string DocumentoCliente { get; set; }
         public string NombreUsuario { get; set; }
         public string NombreTienda { get; set; }
+        // Condición de venta (Contado | Crédito)
+        public string Condicion { get; set; }
+        public int? PlazoCredito { get; set; }
+        public string FechaVencimientoCredito { get; set; }
         // Datos KuDE
         public string NombreCajero { get; set; }
         public string NombreEmisor { get; set; }

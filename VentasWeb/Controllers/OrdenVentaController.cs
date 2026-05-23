@@ -75,7 +75,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("OrdenVenta", "Consultar Pre-ventas")]
         public JsonResult Obtener(
             string fechainicio = "", string fechafin = "",
-            string estado = "", string numerooV = "")
+            string estado = "", string numerooV = "", string cliente = "")
         {
             int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
 
@@ -83,7 +83,7 @@ namespace VentasWeb.Controllers
             DateTime ff = ParseFecha(fechafin,   DateTime.Today);
 
             var lista = CD_OrdenVenta.Instancia.ObtenerListaOrdenVenta(
-                idTienda, estado, fi, ff, numerooV);
+                idTienda, estado, fi, ff, numerooV, cliente);
 
             return Json(new { data = lista ?? new List<OrdenVenta>() },
                         JsonRequestBehavior.AllowGet);

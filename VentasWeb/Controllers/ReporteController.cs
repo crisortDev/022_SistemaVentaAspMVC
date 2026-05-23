@@ -123,5 +123,36 @@ namespace VentasWeb.Controllers
                 return Json(new { data = new List<Proveedor>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
+
+        // ============================================================
+        //  RENTABILIDAD POR PRODUCTO (CPP)
+        // ============================================================
+        public ActionResult Rentabilidad()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public JsonResult ObtenerRentabilidad(
+            string fechainicio = "", string fechafin = "",
+            int idtienda = 0, int idcategoria = 0)
+        {
+            try
+            {
+                int tienda = idtienda > 0 ? idtienda : (EsSuperAdmin ? 0 : TiendaActiva);
+                DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
+                    ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);
+                DateTime ff = string.IsNullOrWhiteSpace(fechafin)
+                    ? DateTime.Today : Convert.ToDateTime(fechafin);
+
+                var lista = CD_Reportes.Instancia.ObtenerRentabilidad(tienda, fi, ff, idcategoria);
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { data = new List<ReporteRentabilidad>(), error = ex.Message },
+                    JsonRequestBehavior.AllowGet);
+            }
+        }
     }
 }

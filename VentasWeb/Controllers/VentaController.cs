@@ -116,7 +116,8 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("Venta", "Registrar Venta Directa")]
         public JsonResult FacturarDesdeOV(
             int idOrdenVenta, int idCliente,
-            int idFormaCobro, decimal importeRecibido)
+            int idFormaCobro, decimal importeRecibido,
+            string condicion = "Contado", int? plazoCredito = null)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
@@ -127,7 +128,9 @@ namespace VentasWeb.Controllers
                 idCliente > 0 ? (int?)idCliente : null,
                 idFormaCobro,
                 importeRecibido,
-                CajaId);   // vincula la venta a la caja del cajero
+                CajaId,       // vincula la venta a la caja del cajero
+                condicion,
+                plazoCredito);
 
             return Json(new
             {

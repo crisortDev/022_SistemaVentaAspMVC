@@ -6,12 +6,13 @@ var itemsDetalle = [];
 $(function () {
     iniciarTablaCliente();
     iniciarTablaProducto();
-    // Datepicker vencimiento (mínimo: mañana)
+    // Datepicker vencimiento (mínimo: hoy, default: hoy)
     if ($.fn.datepicker) {
+        var hoy = new Date();
         $('#txtFechaVencimiento').datepicker({
             format: 'dd/mm/yyyy', autoclose: true, language: 'es',
-            startDate: new Date(new Date().setDate(new Date().getDate() + 1))
-        });
+            startDate: hoy
+        }).datepicker('setDate', hoy);
     }
 });
 
@@ -83,7 +84,14 @@ function iniciarTablaProducto() {
                 data: 'MargenCategoria', className: 'text-center',
                 render: function (v) { return (v || 0) + '%'; }
             },
-            { data: 'Stock', className: 'text-center' },
+            {
+                data: 'Stock', className: 'text-center',
+                render: function (v) {
+                    return v > 0
+                        ? '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Disponible</span>'
+                        : '<span class="badge badge-danger"><i class="fas fa-times-circle"></i> No disponible</span>';
+                }
+            },
             { data: 'PorcentajeIva', className: 'text-center', render: function (v) { return (v || 10) + '%'; } }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish }, order: [[2, 'asc']]

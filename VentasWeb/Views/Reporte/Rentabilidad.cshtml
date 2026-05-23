@@ -1,0 +1,109 @@
+@{
+    ViewBag.Title = "Rentabilidad por Producto (CPP)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Reporte</a></li>
+        <li class="breadcrumb-item active">Rentabilidad por Producto (CPP)</li>
+    </ol>
+</nav>
+
+<div class="card border-success">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-chart-line"></i> Rentabilidad por Producto — Costo Promedio Ponderado (CPP)</span>
+        <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
+            <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
+        </button>
+    </div>
+    <div class="card-body">
+
+        @* Filtros *@
+        <div class="row mb-3">
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Desde</label>
+                <input type="date" id="txtFechaInicio" class="form-control form-control-sm" />
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Hasta</label>
+                <input type="date" id="txtFechaFin" class="form-control form-control-sm" />
+            </div>
+            <div class="col-sm-3">
+                <label class="col-form-label col-form-label-sm">Tienda</label>
+                <select id="cboTienda" class="form-control form-control-sm">
+                    <option value="0">-- Todas las tiendas --</option>
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="col-form-label col-form-label-sm">Categoría</label>
+                <select id="cboCategoria" class="form-control form-control-sm">
+                    <option value="0">-- Todas las categorías --</option>
+                </select>
+            </div>
+            <div class="col-sm-2 d-flex align-items-end">
+                <button onclick="buscarRentabilidad()" class="btn btn-success btn-sm text-white w-100">
+                    <i class="fas fa-search"></i> Consultar
+                </button>
+            </div>
+        </div>
+
+        @* Alerta metodología *@
+        <div class="alert alert-info py-2 px-3 mb-3" style="font-size:12px;">
+            <i class="fas fa-info-circle"></i>
+            <strong>Método CPP:</strong> El Costo Promedio Ponderado se recalcula automáticamente con cada compra confirmada.
+            La <em>Utilidad Bruta</em> = Precio Venta − CPP por unidad vendida.
+            El margen negativo indica que el precio de venta está por debajo del costo real.
+        </div>
+
+        @* Tabla de resultados *@
+        <div id="contenedorRentabilidad">
+            <p class="text-muted text-center mt-4">
+                Seleccioná un rango de fechas y presioná <strong>Consultar</strong>.
+            </p>
+        </div>
+
+        @* Panel resumen *@
+        <div id="panelResumen" class="d-none mt-3">
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="card border-primary text-center py-2">
+                        <div class="card-body p-1">
+                            <div class="text-muted small">Total Ingresos</div>
+                            <div class="h6 text-primary font-weight-bold mb-0" id="lblTotalIngresos">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card border-warning text-center py-2">
+                        <div class="card-body p-1">
+                            <div class="text-muted small">Costo Total (CPP)</div>
+                            <div class="h6 text-warning font-weight-bold mb-0" id="lblTotalCosto">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card border-success text-center py-2">
+                        <div class="card-body p-1">
+                            <div class="text-muted small">Utilidad Bruta</div>
+                            <div class="h6 text-success font-weight-bold mb-0" id="lblTotalUtilidad">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card border-info text-center py-2">
+                        <div class="card-body p-1">
+                            <div class="text-muted small">Valor Inventario (CPP)</div>
+                            <div class="h6 text-info font-weight-bold mb-0" id="lblTotalInventario">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/Reporte_Rentabilidad.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

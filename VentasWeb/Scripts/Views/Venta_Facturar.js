@@ -13,6 +13,10 @@ function cargarFormasCobro() {
             r.data.forEach(function (f) {
                 $('#cboFormaCobro').append($('<option>', { value: f.IdFormaCobro, text: f.Nombre }));
             });
+            // Seleccionar "Efectivo" por defecto
+            $('#cboFormaCobro option').filter(function () {
+                return $(this).text().trim().toLowerCase() === 'efectivo';
+            }).prop('selected', true);
         }
     });
 }
@@ -54,6 +58,17 @@ function seleccionarCliente(id, nombre) {
     $('#modalCliente').modal('hide');
 }
 
+function toggleCondicion() {
+    var esCredito = $('input[name="condicion"]:checked').val() === 'Crédito';
+    $('#divPlazo').toggle(esCredito);
+    $('#divImporte').toggle(!esCredito);
+    $('#divAvisoCredito').toggle(esCredito);
+    if (esCredito) {
+        $('#txtImporteRecibido').val(0);
+        $('#txtCambio').val(0);
+    }
+}
+
 function calcularCambio() {
     // El total viene del modelo Razor, lo leemos del tfoot
     var totalText = $('.table-primary td:eq(1)').text().replace(/[^0-9]/g, '');
@@ -79,8 +94,17 @@ function facturar() {
     }
     var formaCobro = parseInt($('#cboFormaCobro').val());
     if (!formaCobro) { toastr.warning('Seleccione la forma de cobro.'); return; }
-    var recibido = parseFloat($('#txtImporteRecibido').val()) || 0;
-    if (recibido <= 0) { toastr.warning('Ingrese el importe recibido.'); return; }
+
+    var condicion  = $('input[name="condicion"]:checked').val() || 'Contado';
+    var esCredito  = condicion === 'Crédito';
+    var recibido   = esCredito ? 0 : (parseFloat($('#txtImporteRecibido').val()) || 0);
+    var plazo      = esCredito ? parseInt($('#cboPlazo').val()) : null;
+
+    // Solo validar importe si es Contado
+    if (!esCredito && recibido <= 0) {
+        toastr.warning('Ingrese el importe recibido.');
+        return;
+    }
 
     // Advertir stock insuficiente (no bloquear — el cajero decide)
     if ($('.table-warning').length > 0) {
@@ -93,25 +117,28 @@ function facturar() {
             confirmButtonColor: '#e67e22',
             cancelButtonText: 'Cancelar'
         }).then(function (res) {
-            if (res.isConfirmed) enviarFacturacion(idCliente, formaCobro, recibido);
+            if (res.isConfirmed) enviarFacturacion(idCliente, formaCobro, recibido, condicion, plazo);
         });
         return;
     }
 
-    enviarFacturacion(idCliente, formaCobro, recibido);
+    enviarFacturacion(idCliente, formaCobro, recibido, condicion, plazo);
 }
 
-function enviarFacturacion(idCliente, formaCobro, recibido) {
+function enviarFacturacion(idCliente, formaCobro, recibido, condicion, plazo) {
     $('#btnFacturar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Facturando...');
+    var datos = {
+        idOrdenVenta:    $('#hdnIdOrdenVenta').val(),
+        idCliente:       idCliente,
+        idFormaCobro:    formaCobro,
+        importeRecibido: recibido,
+        condicion:       condicion || 'Contado'
+    };
+    if (plazo) datos.plazoCredito = plazo;
     $.ajax({
         url: $.MisUrls.url._Venta_FacturarDesdeOV,
         method: 'POST',
-        data: {
-            idOrdenVenta:    $('#hdnIdOrdenVenta').val(),
-            idCliente:       idCliente,
-            idFormaCobro:    formaCobro,
-            importeRecibido: recibido
-        },
+        data: datos,
         success: function (r) {
             if (r.resultado) {
                 toastr.success('Factura emitida: ' + r.numeroFactura);
