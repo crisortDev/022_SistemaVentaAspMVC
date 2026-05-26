@@ -585,8 +585,12 @@
 
         // ---- COMPROBANTE DE COBRO ----
         $.MisUrls.urls({
-            _CC_Index:   '@Url.Action("Index",   "ComprobanteCobro")',
-            _CC_Obtener: '@Url.Action("Obtener", "ComprobanteCobro")'
+            _CC_Index:              '@Url.Action("Index",              "ComprobanteCobro")',
+            _CC_Obtener:            '@Url.Action("Obtener",            "ComprobanteCobro")',
+            _CC_CuentasPorCobrar:   '@Url.Action("CuentasPorCobrar",   "ComprobanteCobro")',
+            _CC_ObtenerPendientes:  '@Url.Action("ObtenerPendientes",  "ComprobanteCobro")',
+            _CC_Cobrar:             '@Url.Action("Cobrar",             "ComprobanteCobro")',
+            _CC_Documento:          '@Url.Action("Documento",          "ComprobanteCobro")'
         });
 
         // ---- NOTA DE CRÉDITO VENTA ----

@@ -1,0 +1,255 @@
+@model CapaModelo.ComprobanteCobro
+@{
+    Layout = null; // sin navbar, sin layout — solo el recibo
+    bool esCredito = Model.Condicion == "Crédito";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Recibo de Cobro — @Model.NumeroCobro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            color: #222;
+            background: #fff;
+            padding: 20px;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        /* ── Encabezado empresa ── */
+        .empresa { text-align: center; margin-bottom: 10px; }
+        .empresa h2 { font-size: 16px; font-weight: bold; }
+        .empresa p  { font-size: 11px; color: #555; }
+
+        .separador { border: none; border-top: 1px dashed #999; margin: 8px 0; }
+        .separador-doble { border: none; border-top: 2px solid #333; margin: 8px 0; }
+
+        /* ── Título del recibo ── */
+        .titulo-recibo {
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 6px 0;
+        }
+        .subtitulo-recibo { text-align: center; font-size: 11px; color: #555; }
+
+        /* ── Sección de datos ── */
+        .seccion { margin: 6px 0; }
+        .seccion table { width: 100%; border-collapse: collapse; }
+        .seccion table td {
+            padding: 2px 4px;
+            vertical-align: top;
+        }
+        .seccion table td:first-child {
+            font-weight: bold;
+            color: #444;
+            width: 42%;
+            white-space: nowrap;
+        }
+
+        /* ── Montos destacados ── */
+        .montos { margin: 8px 0; }
+        .montos table { width: 100%; border-collapse: collapse; }
+        .montos tr td { padding: 3px 4px; }
+        .montos tr td:first-child { font-weight: bold; color: #444; }
+        .montos tr td:last-child  { text-align: right; font-family: 'Courier New', monospace; }
+        .monto-total td {
+            font-size: 15px !important;
+            font-weight: bold !important;
+            border-top: 1px solid #aaa;
+            border-bottom: 1px solid #aaa;
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
+        }
+        .monto-cambio td { color: #1a7a1a; }
+
+        /* ── Badge condición ── */
+        .badge-contado { background:#28a745; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px; }
+        .badge-credito  { background:#007bff; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px; }
+
+        /* ── Pie ── */
+        .pie {
+            text-align: center;
+            font-size: 10px;
+            color: #777;
+            margin-top: 14px;
+        }
+
+        /* ── Print ── */
+        @@media print {
+            body { padding: 5px; max-width: 100%; }
+            .btn-print { display: none !important; }
+        }
+
+        .btn-print {
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            padding: 8px;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-print:hover { background: #218838; }
+    </style>
+</head>
+<body>
+
+    <!-- Empresa -->
+    <div class="empresa">
+        <h2>Compu Space PY</h2>
+        <p>@Model.NombreTienda</p>
+        @if (!string.IsNullOrWhiteSpace(Model.DireccionTienda))
+        {
+            <p>@Model.DireccionTienda</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.TelefonoTienda))
+        {
+            <p>Tel.: @Model.TelefonoTienda</p>
+        }
+    </div>
+
+    <hr class="separador-doble" />
+
+    <div class="titulo-recibo">Recibo de Cobro</div>
+    <div class="subtitulo-recibo">
+        N° @Model.NumeroCobro
+        &nbsp;·&nbsp;
+        <span class="@(esCredito ? "badge-credito" : "badge-contado")">@Model.Condicion</span>
+    </div>
+
+    <hr class="separador" />
+
+    <!-- Fechas -->
+    <div class="seccion">
+        <table>
+            <tr>
+                <td>Fecha emisión:</td>
+                <td>@Model.FechaRegistro</td>
+            </tr>
+            <tr>
+                <td>Fecha cobro:</td>
+                <td><strong>@Model.FechaCobro</strong></td>
+            </tr>
+            @if (esCredito && !string.IsNullOrWhiteSpace(Model.FechaVencimiento))
+            {
+                <tr>
+                    <td>Vencimiento:</td>
+                    <td>@Model.FechaVencimiento (@(Model.PlazoCredito) días)</td>
+                </tr>
+            }
+        </table>
+    </div>
+
+    <hr class="separador" />
+
+    <!-- Cliente -->
+    <div class="seccion">
+        <table>
+            <tr>
+                <td>Cliente:</td>
+                <td><strong>@Model.NombreCliente</strong></td>
+            </tr>
+            <tr>
+                <td>Documento:</td>
+                <td>@Model.NumeroDocumento</td>
+            </tr>
+            @if (!string.IsNullOrWhiteSpace(Model.TelefonoCliente))
+            {
+                <tr>
+                    <td>Teléfono:</td>
+                    <td>@Model.TelefonoCliente</td>
+                </tr>
+            }
+        </table>
+    </div>
+
+    <hr class="separador" />
+
+    <!-- Factura -->
+    <div class="seccion">
+        <table>
+            <tr>
+                <td>Nº Factura:</td>
+                <td><strong>@Model.NumeroFactura</strong></td>
+            </tr>
+            <tr>
+                <td>Forma de cobro:</td>
+                <td>@Model.FormaCobro</td>
+            </tr>
+        </table>
+    </div>
+
+    <hr class="separador" />
+
+    <!-- Montos -->
+    <div class="montos">
+        <table>
+            <tr class="monto-total">
+                <td>TOTAL FACTURA:</td>
+                <td>Gs. @Model.MontoTotal.ToString("N0")</td>
+            </tr>
+            <tr>
+                <td>Monto recibido:</td>
+                <td>Gs. @Model.MontoRecibido.ToString("N0")</td>
+            </tr>
+            <tr class="monto-cambio">
+                <td>Cambio entregado:</td>
+                <td>Gs. @Model.MontoCambio.ToString("N0")</td>
+            </tr>
+        </table>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Observacion))
+    {
+        <hr class="separador" />
+        <div class="seccion">
+            <table>
+                <tr>
+                    <td>Observación:</td>
+                    <td>@Model.Observacion</td>
+                </tr>
+            </table>
+        </div>
+    }
+
+    <hr class="separador" />
+
+    <!-- Cobrador -->
+    <div class="seccion">
+        <table>
+            <tr>
+                <td>Cobrador:</td>
+                <td>@Model.NombreCobrador</td>
+            </tr>
+        </table>
+    </div>
+
+    <hr class="separador-doble" />
+
+    <div class="pie">
+        Este recibo es un comprobante interno de pago.<br />
+        La factura original fue emitida el @Model.FechaRegistro.<br />
+        Conserve este recibo como respaldo del pago.
+    </div>
+
+    <button class="btn-print" onclick="window.print()">
+        🖨️ Imprimir
+    </button>
+
+    <script>
+        // Auto-imprimir al abrir (igual que el resto de comprobantes del sistema)
+        window.onload = function () { window.print(); };
+    </script>
+
+</body>
+</html>

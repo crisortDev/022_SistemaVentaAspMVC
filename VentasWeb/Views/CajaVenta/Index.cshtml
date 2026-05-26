@@ -66,13 +66,13 @@ else
     <!--  PANEL: CAJA ABIERTA                                   -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="panelCajaAbierta">
-        <!-- Resumen de la caja activa -->
-        <div class="row mb-3">
+        <!-- Resumen de la caja activa — fila 1: apertura + contado + crédito emitido + cobros CXC -->
+        <div class="row mb-2">
             <div class="col-sm-3">
                 <div class="card border-success text-center">
                     <div class="card-body py-2">
-                        <div class="text-muted" style="font-size:11px;">APERTURA</div>
-                        <div class="font-weight-bold text-success" style="font-size:18px;">
+                        <div class="text-muted" style="font-size:11px;">APERTURA (FONDO)</div>
+                        <div class="font-weight-bold text-success" style="font-size:17px;">
                             Gs. @cajaActiva.MontoApertura.ToString("N0")
                         </div>
                     </div>
@@ -81,19 +81,25 @@ else
             <div class="col-sm-3">
                 <div class="card border-primary text-center">
                     <div class="card-body py-2">
-                        <div class="text-muted" style="font-size:11px;">VENTAS DEL TURNO</div>
-                        <div class="font-weight-bold text-primary" style="font-size:18px;" id="lblTotalVentas">
-                            Gs. @cajaActiva.TotalVentas.ToString("N0")
+                        <div class="text-muted" style="font-size:11px;">VENTAS CONTADO</div>
+                        <div class="font-weight-bold text-primary" style="font-size:17px;" id="lblTotalContado">
+                            Gs. @cajaActiva.TotalVentasContado.ToString("N0")
+                        </div>
+                        <div class="text-muted" style="font-size:10px;" id="lblCantContado">
+                            @cajaActiva.CantVentasContado factura(s)
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-sm-3">
-                <div class="card border-warning text-center">
+                <div class="card border-secondary text-center">
                     <div class="card-body py-2">
-                        <div class="text-muted" style="font-size:11px;">SALDO ESPERADO</div>
-                        <div class="font-weight-bold text-warning" style="font-size:18px;" id="lblSaldoEsperado">
-                            Gs. @((cajaActiva.MontoApertura + cajaActiva.TotalVentas).ToString("N0"))
+                        <div class="text-muted" style="font-size:11px;">VENTAS CRÉDITO</div>
+                        <div class="font-weight-bold text-secondary" style="font-size:17px;" id="lblTotalCredito">
+                            Gs. @cajaActiva.TotalVentasCredito.ToString("N0")
+                        </div>
+                        <div class="text-muted" style="font-size:10px;" id="lblCantCredito">
+                            @cajaActiva.CantVentasCredito factura(s) — pendiente cobro
                         </div>
                     </div>
                 </div>
@@ -101,7 +107,51 @@ else
             <div class="col-sm-3">
                 <div class="card border-info text-center">
                     <div class="card-body py-2">
-                        <div class="text-muted" style="font-size:11px;">OPERACIONES</div>
+                        <div class="text-muted" style="font-size:11px;">COBROS CRÉDITO RECIBIDOS</div>
+                        <div class="font-weight-bold text-info" style="font-size:17px;" id="lblTotalCobrosCXC">
+                            Gs. @cajaActiva.TotalCobrosCXC.ToString("N0")
+                        </div>
+                        <div class="text-muted" style="font-size:10px;" id="lblCantCobrosCXC">
+                            @cajaActiva.CantCobrosCXC cobro(s) en este turno
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila 2: saldo esperado real + total ventas + operaciones -->
+        @{
+            decimal saldoReal = cajaActiva.MontoApertura + cajaActiva.TotalVentasContado + cajaActiva.TotalCobrosCXC;
+        }
+        <div class="row mb-3">
+            <div class="col-sm-4">
+                <div class="card border-warning text-center">
+                    <div class="card-body py-2">
+                        <div class="text-muted" style="font-size:11px;">
+                            SALDO ESPERADO EN CAJA
+                            <i class="fas fa-question-circle" title="Apertura + ventas contado + cobros crédito"></i>
+                        </div>
+                        <div class="font-weight-bold text-warning" style="font-size:18px;" id="lblSaldoEsperado">
+                            Gs. @saldoReal.ToString("N0")
+                        </div>
+                        <div class="text-muted" style="font-size:9px;">(NO incluye ventas a crédito)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card border-dark text-center">
+                    <div class="card-body py-2">
+                        <div class="text-muted" style="font-size:11px;">TOTAL VENTAS (CONTADO + CRÉDITO)</div>
+                        <div class="font-weight-bold" style="font-size:18px;" id="lblTotalVentas">
+                            Gs. @cajaActiva.TotalVentas.ToString("N0")
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card border-info text-center">
+                    <div class="card-body py-2">
+                        <div class="text-muted" style="font-size:11px;">TOTAL OPERACIONES</div>
                         <div class="font-weight-bold text-info" style="font-size:18px;" id="lblCantidadVentas">
                             @cajaActiva.CantidadVentas
                         </div>
@@ -179,16 +229,26 @@ else
                     <input type="hidden" id="hdnIdCaja" value="@cajaActiva.IdCaja" />
 
                     <div class="row mb-3 text-center">
-                        <div class="col-6">
-                            <div class="text-muted small">Monto apertura</div>
+                        <div class="col-4">
+                            <div class="text-muted small">Apertura (fondo)</div>
                             <div class="font-weight-bold">Gs. @cajaActiva.MontoApertura.ToString("N0")</div>
                         </div>
-                        <div class="col-6">
-                            <div class="text-muted small">Total ventas sistema</div>
+                        <div class="col-4">
+                            <div class="text-muted small">Ventas contado + cobros crédito</div>
                             <div class="font-weight-bold text-primary" id="lblSistemaCierre">
-                                Gs. @cajaActiva.TotalVentas.ToString("N0")
+                                Gs. @saldoReal.ToString("N0")
                             </div>
                         </div>
+                        <div class="col-4">
+                            <div class="text-muted small">Saldo esperado en caja</div>
+                            <div class="font-weight-bold text-success" id="lblSaldoEsperadoCierre">
+                                Gs. @saldoReal.ToString("N0")
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning py-1 mb-2 small">
+                        <i class="fas fa-info-circle"></i>
+                        El arqueo <strong>no incluye</strong> las ventas a crédito pendientes de cobro (Gs. @cajaActiva.TotalVentasCredito.ToString("N0")).
                     </div>
 
                     <div class="form-group">

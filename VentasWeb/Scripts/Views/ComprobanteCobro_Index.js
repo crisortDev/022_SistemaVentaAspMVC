@@ -14,13 +14,23 @@ $(function () {
             { data: 'NombreCliente' },
             { data: 'NumeroDocumento' },
             { data: 'FormaCobro' },
-            { data: 'MontoTotal', className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
+            { data: 'MontoTotal',    className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
             { data: 'MontoRecibido', className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
-            { data: 'MontoCambio', className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
+            { data: 'MontoCambio',   className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
             { data: 'NombreCajero' },
             { data: 'NombreTienda' },
             { data: 'FechaRegistro' },
-            { data: 'Estado' }
+            { data: 'Estado' },
+            {
+                data: null,
+                orderable: false,
+                className: 'text-center',
+                render: function (data, type, row) {
+                    return '<a href="' + $.MisUrls.url._CC_Documento + '?idCompCobro=' + row.IdComprobanteCobro +
+                           '" target="_blank" class="btn btn-xs btn-outline-secondary btn-sm" title="Reimprimir recibo">' +
+                           '<i class="fas fa-print"></i></a>';
+                }
+            }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish }, order: [[10, 'desc']]
     });

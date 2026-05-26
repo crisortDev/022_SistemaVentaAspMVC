@@ -58,9 +58,17 @@ namespace CapaModelo
         public string   Estado          { get; set; }
         public string   Observacion     { get; set; }
 
-        // Calculados en tiempo real (solo caja abierta)
-        public decimal  TotalVentas     { get; set; }
-        public int      CantidadVentas  { get; set; }
+        // Calculados en tiempo real (solo caja abierta) — totales generales
+        public decimal  TotalVentas         { get; set; }
+        public int      CantidadVentas      { get; set; }
+        // Desglose contado vs crédito (actualizados con SP 82)
+        public decimal  TotalVentasContado  { get; set; }
+        public int      CantVentasContado   { get; set; }
+        public decimal  TotalVentasCredito  { get; set; }
+        public int      CantVentasCredito   { get; set; }
+        // Cobros de crédito recibidos en este turno
+        public decimal  TotalCobrosCXC      { get; set; }
+        public int      CantCobrosCXC       { get; set; }
     }
 
     /// <summary>
@@ -78,6 +86,24 @@ namespace CapaModelo
         public decimal  MontoCambio     { get; set; }
         public string   NombreCajero    { get; set; }
         public string   Estado          { get; set; }
+        public string   Condicion       { get; set; }   // Contado | Crédito
+    }
+
+    /// <summary>
+    /// Representa un cobro de crédito recibido en una sesión de caja.
+    /// </summary>
+    public class CobroCXC
+    {
+        public int      IdCobroCXC      { get; set; }
+        public DateTime FechaCobro      { get; set; }
+        public string   NumeroCobro     { get; set; }
+        public string   NumeroFactura   { get; set; }
+        public string   NombreCliente   { get; set; }
+        public string   FormaCobro      { get; set; }
+        public decimal  MontoFactura    { get; set; }
+        public decimal  MontoRecibido   { get; set; }
+        public decimal  MontoCambio     { get; set; }
+        public string   NombreCobrador  { get; set; }
     }
 
     /// <summary>

@@ -70,16 +70,23 @@ namespace CapaDatos
                             {
                                 return new SesionCaja
                                 {
-                                    IdCaja         = Convert.ToInt32(dr["IdCaja"]),
-                                    IdTienda       = Convert.ToInt32(dr["IdTienda"]),
-                                    NombreTienda   = dr["NombreTienda"].ToString(),
-                                    IdUsuario      = Convert.ToInt32(dr["IdUsuario"]),
-                                    NombreUsuario  = dr["NombreUsuario"].ToString(),
-                                    FechaApertura  = Convert.ToDateTime(dr["FechaApertura"]),
-                                    MontoApertura  = Convert.ToDecimal(dr["MontoApertura"]),
-                                    Estado         = dr["Estado"].ToString(),
-                                    TotalVentas    = Convert.ToDecimal(dr["TotalVentas"]),
-                                    CantidadVentas = Convert.ToInt32(dr["CantidadVentas"])
+                                    IdCaja              = Convert.ToInt32(dr["IdCaja"]),
+                                    IdTienda            = Convert.ToInt32(dr["IdTienda"]),
+                                    NombreTienda        = dr["NombreTienda"].ToString(),
+                                    IdUsuario           = Convert.ToInt32(dr["IdUsuario"]),
+                                    NombreUsuario       = dr["NombreUsuario"].ToString(),
+                                    FechaApertura       = Convert.ToDateTime(dr["FechaApertura"]),
+                                    MontoApertura       = Convert.ToDecimal(dr["MontoApertura"]),
+                                    Estado              = dr["Estado"].ToString(),
+                                    TotalVentas         = Convert.ToDecimal(dr["TotalVentas"]),
+                                    CantidadVentas      = Convert.ToInt32(dr["CantidadVentas"]),
+                                    // Nuevos campos (script 82)
+                                    TotalVentasContado  = Convert.ToDecimal(dr["TotalVentasContado"]),
+                                    CantVentasContado   = Convert.ToInt32(dr["CantVentasContado"]),
+                                    TotalVentasCredito  = Convert.ToDecimal(dr["TotalVentasCredito"]),
+                                    CantVentasCredito   = Convert.ToInt32(dr["CantVentasCredito"]),
+                                    TotalCobrosCXC      = Convert.ToDecimal(dr["TotalCobrosCXC"]),
+                                    CantCobrosCXC       = Convert.ToInt32(dr["CantCobrosCXC"])
                                 };
                             }
                         }
@@ -127,7 +134,8 @@ namespace CapaDatos
                                         MontoRecibido = dr["MontoRecibido"] == DBNull.Value ? 0 : Convert.ToDecimal(dr["MontoRecibido"]),
                                         MontoCambio   = dr["MontoCambio"]   == DBNull.Value ? 0 : Convert.ToDecimal(dr["MontoCambio"]),
                                         NombreCajero  = dr["NombreCajero"].ToString(),
-                                        Estado        = dr["Estado"].ToString()
+                                        Estado        = dr["Estado"].ToString(),
+                                        Condicion     = dr["Condicion"].ToString()
                                     });
                                 }
                             }
@@ -278,6 +286,45 @@ namespace CapaDatos
             }
             catch { }
             return detalle;
+        }
+
+        // ── Cobros de crédito de una sesión de caja ──────────────
+        public List<CobroCXC> ObtenerCobrosCXC(int idCaja)
+        {
+            var lista = new List<CobroCXC>();
+            try
+            {
+                using (var oConexion = new SqlConnection(Conexion.CN))
+                {
+                    oConexion.Open();
+                    using (var cmd = new SqlCommand("usp_ObtenerCobrosCXC_Caja", oConexion))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@IdCaja", idCaja);
+                        using (var dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                lista.Add(new CobroCXC
+                                {
+                                    IdCobroCXC     = Convert.ToInt32(dr["IdCobroCXC"]),
+                                    FechaCobro     = Convert.ToDateTime(dr["FechaCobro"]),
+                                    NumeroCobro    = dr["NumeroCobro"].ToString(),
+                                    NumeroFactura  = dr["NumeroFactura"].ToString(),
+                                    NombreCliente  = dr["NombreCliente"].ToString(),
+                                    FormaCobro     = dr["FormaCobro"].ToString(),
+                                    MontoFactura   = Convert.ToDecimal(dr["MontoFactura"]),
+                                    MontoRecibido  = Convert.ToDecimal(dr["MontoRecibido"]),
+                                    MontoCambio    = Convert.ToDecimal(dr["MontoCambio"]),
+                                    NombreCobrador = dr["NombreCobrador"].ToString()
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            return lista;
         }
 
         // ── Historial de cajas cerradas ───────────────────────────

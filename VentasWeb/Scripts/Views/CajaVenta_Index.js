@@ -71,29 +71,42 @@ function recargarOperaciones() {
         if (!r.operaciones || r.operaciones.length === 0) {
             tbody.append('<tr><td colspan="9" class="text-center text-muted">Sin operaciones en este turno.</td></tr>');
         } else {
+            var totalContado = 0, totalCredito = 0;
             r.operaciones.forEach(function (op) {
+                var esCredito = (op.Condicion === 'Crédito');
                 var badgeEstado = op.Estado === 'Activa'
                     ? '<span class="badge badge-success">Activa</span>'
                     : '<span class="badge badge-danger">Anulada</span>';
+                var badgeCond = esCredito
+                    ? '<span class="badge badge-secondary ml-1">Crédito</span>'
+                    : '';
                 var monto = op.Estado === 'Activa' ? op.Monto : 0;
+                if (op.Estado === 'Activa') {
+                    if (esCredito) totalCredito += monto;
+                    else           totalContado += monto;
+                }
                 total += monto;
                 var btnReimprimir = op.IdVenta
                     ? '<a href="' + $.MisUrls.url._Venta_Documento + '?idVenta=' + op.IdVenta + '" target="_blank" class="btn btn-xs btn-outline-primary btn-sm" title="Reimprimir factura"><i class="fas fa-print"></i></a>'
                     : '';
+                var trClass = esCredito ? 'class="table-secondary"' : '';
                 tbody.append(
-                    '<tr>' +
+                    '<tr ' + trClass + '>' +
                     '<td>' + fila++ + '</td>' +
                     '<td>' + formatHora(op.FechaRegistro) + '</td>' +
                     '<td><code>' + op.NumeroFactura + '</code> ' + btnReimprimir + '</td>' +
                     '<td>' + op.NombreCliente + '</td>' +
-                    '<td>' + op.FormaCobro + '</td>' +
+                    '<td>' + (esCredito ? '<em class="text-muted">Crédito</em>' : op.FormaCobro) + '</td>' +
                     '<td class="text-right">Gs. ' + formatGs(op.Monto) + '</td>' +
-                    '<td class="text-right">Gs. ' + formatGs(op.MontoRecibido) + '</td>' +
-                    '<td class="text-right">Gs. ' + formatGs(op.MontoCambio) + '</td>' +
-                    '<td>' + badgeEstado + '</td>' +
+                    '<td class="text-right">' + (esCredito ? '<em class="text-muted">Pend.</em>' : 'Gs. ' + formatGs(op.MontoRecibido)) + '</td>' +
+                    '<td class="text-right">' + (esCredito ? '—' : 'Gs. ' + formatGs(op.MontoCambio)) + '</td>' +
+                    '<td>' + badgeEstado + badgeCond + '</td>' +
                     '</tr>'
                 );
             });
+            // Actualizar tarjetas de contado/crédito
+            $('#lblTotalContado').text('Gs. ' + formatGs(totalContado));
+            $('#lblTotalCredito').text('Gs. ' + formatGs(totalCredito));
         }
 
         $('#tfMonto').text('Gs. ' + formatGs(total));
@@ -111,7 +124,9 @@ function abrirModalCierre() {
 
 function calcularDiferencia() {
     var contado  = parseFloat($('#txtMontoContado').val()) || 0;
-    var sistema  = parseFloat($('#lblSistemaCierre').text().replace(/\D/g, '')) || 0;
+    // Saldo esperado = apertura + ventas contado + cobros CXC (coincide con la fórmula del SP)
+    var rawText  = $('#lblSaldoEsperadoCierre').text().replace(/[^0-9]/g, '');
+    var sistema  = parseFloat(rawText) || 0;
     var diff     = contado - sistema;
     var alert    = $('#alertDiferencia');
     alert.show();
