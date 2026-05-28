@@ -147,12 +147,35 @@
                         int fila = 1;
                         foreach (var item in Model.oListaDetalleVenta)
                         {
+                            // Si hay descuento, reconstruir precio original = precio / (1 - desc%)
+                            bool tieneDescuento = item.PorcentajeDescuento > 0;
+                            decimal precioOriginal = tieneDescuento && item.PorcentajeDescuento < 100
+                                ? Math.Round(item.PrecioUnidad / (1m - item.PorcentajeDescuento / 100m), 0)
+                                : item.PrecioUnidad;
                             <tr>
                                 <td>@fila</td>
                                 <td>@item.CodigoProducto</td>
-                                <td>@item.NombreProducto</td>
-                                <td class="text-right">@item.Cantidad</td>
-                                <td class="text-right gs">@item.PrecioUnidad.ToString("N0")</td>
+                                <td>
+                                    @item.NombreProducto
+                                    @if (tieneDescuento)
+                                    {
+                                        <br /><small style="color:#c00;font-weight:bold;">Desc. @item.PorcentajeDescuento.ToString("0.##")%</small>
+                                    }
+                                </td>
+                                <td class="text-right">
+                                    @item.Cantidad
+                                    @if (!string.IsNullOrEmpty(item.UnidadMedida) && item.UnidadMedida != "Unidad")
+                                    {
+                                        <br /><small style="color:#666;">@item.UnidadMedida.ToLower().</small>
+                                    }
+                                </td>
+                                <td class="text-right gs">
+                                    @if (tieneDescuento)
+                                    {
+                                        <small style="text-decoration:line-through;color:#999;">@precioOriginal.ToString("N0")</small><br />
+                                    }
+                                    @item.PrecioUnidad.ToString("N0")
+                                </td>
                                 <td class="text-right">@item.IvaPorcentaje%</td>
                                 <td class="text-right gs">@(item.IvaPorcentaje == 0 ? item.ImporteTotal.ToString("N0") : "0")</td>
                                 <td class="text-right gs">@item.ImporteSinIva.ToString("N0")</td>
@@ -162,12 +185,8 @@
                         }
                         <!-- u) Fila Subtotal -->
                         <tr class="subtotal-row">
-                            <td colspan="8" class="text-right">Subtotal (Gs.):</td>
+                            <td colspan="8" class="text-right">Total (Gs.):</td>
                             <td class="text-right gs">@Model.TotalCosto.ToString("N0")</td>
-                        </tr>
-                        <tr>
-                            <td colspan="8" class="text-right" style="font-size:10px;color:#555;">Descuento (0%):</td>
-                            <td class="text-right gs" style="font-size:10px;color:#555;">0</td>
                         </tr>
                     }
                 </tbody>

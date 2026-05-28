@@ -245,9 +245,10 @@ namespace CapaDatos
                                         IdDetalleOrdenCompra = int.Parse(p.Element("IdDetalleOrdenCompra")?.Value ?? "0"),
                                         oProducto = new Producto()
                                         {
-                                            IdProducto = int.Parse(p.Element("IdProducto")?.Value ?? "0"),
-                                            Codigo     = p.Element("CodigoProducto")?.Value,
-                                            Nombre     = p.Element("NombreProducto")?.Value
+                                            IdProducto   = int.Parse(p.Element("IdProducto")?.Value ?? "0"),
+                                            Codigo       = p.Element("CodigoProducto")?.Value,
+                                            Nombre       = p.Element("NombreProducto")?.Value,
+                                            UnidadMedida = p.Element("UnidadMedida")?.Value ?? "Unidad"
                                         },
                                         Cantidad          = int.Parse(p.Element("Cantidad")?.Value ?? "0"),
                                         CantidadFacturada = int.Parse(p.Element("CantidadFacturada")?.Value ?? "0"),

@@ -14,5 +14,11 @@ namespace CapaModelo
         public int StockMaximo { get; set; }
         public Categoria oCategoria { get; set; }
         public bool Activo { get; set; }
+
+        /// <summary>
+        /// Unidad de medida para la venta. Sincronizada desde CATEGORIA.
+        /// Valores: 'Unidad' (default), 'Metro', 'Kg'.
+        /// </summary>
+        public string UnidadMedida { get; set; }
     }
 }

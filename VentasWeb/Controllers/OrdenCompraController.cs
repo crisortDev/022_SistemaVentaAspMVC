@@ -114,7 +114,8 @@ namespace VentasWeb.Controllers
                                 ISNULL(cat.Descripcion, '')    AS Categoria,
                                 ISNULL(p.IvaPorcentaje, 10)    AS IvaPorcentaje,
                                 ISNULL(pt.Stock,        0)     AS Stock,
-                                ISNULL(pt.StockMinimo,  0)     AS StockMinimo
+                                ISNULL(pt.StockMinimo,  0)     AS StockMinimo,
+                                ISNULL(p.UnidadMedida, 'Unidad') AS UnidadMedida
                         FROM    dbo.PRODUCTO p
                         LEFT JOIN dbo.CATEGORIA         cat ON cat.IdCategoria = p.IdCategoria
                         LEFT JOIN dbo.PRODUCTO_TIENDA   pt  ON pt.IdProducto  = p.IdProducto
@@ -144,7 +145,8 @@ namespace VentasWeb.Controllers
                                 Descripcion  = dr["Descripcion"].ToString(),
                                 Categoria    = dr["Categoria"].ToString(),
                                 IvaPorcentaje= Convert.ToDecimal(dr["IvaPorcentaje"]),
-                                EstadoStock  = estado
+                                EstadoStock  = estado,
+                                UnidadMedida = dr["UnidadMedida"].ToString()
                             });
                         }
                     }

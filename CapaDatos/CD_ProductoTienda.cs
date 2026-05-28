@@ -80,6 +80,10 @@ namespace CapaDatos
                                 : Math.Truncate(Convert.ToDecimal(dr["PrecioSugerido"], new CultureInfo("es-PY"))),
                             MargenCategoria = dr["PorcentajeGanancia"] == DBNull.Value ? 0
                                 : Convert.ToDecimal(dr["PorcentajeGanancia"], new CultureInfo("es-PY")),
+                            DescuentoMaxPermitido = dr["DescuentoMaxPermitido"] == DBNull.Value ? 0
+                                : Convert.ToDecimal(dr["DescuentoMaxPermitido"], new CultureInfo("es-PY")),
+                            UnidadMedida = dr["UnidadMedida"] == DBNull.Value ? "Unidad"
+                                : dr["UnidadMedida"].ToString(),
                         });
                     }
                     dr.Close();

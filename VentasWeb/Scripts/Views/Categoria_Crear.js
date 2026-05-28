@@ -28,6 +28,27 @@ $(document).ready(function () {
                 }
             },
             {
+                data: 'UnidadMedida',
+                width: '90px',
+                className: 'text-center',
+                render: function (data) {
+                    var um = data || 'Unidad';
+                    var cls = um === 'Unidad' ? 'badge-secondary' : 'badge-info';
+                    return '<span class="badge ' + cls + '">' + um + '</span>';
+                }
+            },
+            {
+                data: 'DescuentoMaxPermitido',
+                width: '110px',
+                className: 'text-center',
+                render: function (data) {
+                    var val = parseFloat(data) || 0;
+                    return val > 0
+                        ? '<span class="badge badge-warning">' + val.toFixed(2) + ' %</span>'
+                        : '<span class="badge badge-secondary">Sin límite</span>';
+                }
+            },
+            {
                 data: 'Activo',
                 width: '90px',
                 className: 'text-center',
@@ -103,8 +124,12 @@ $(document).ready(function () {
 // ── Ver detalle (solo lectura) ────────────────────────────
 function verCategoria(json) {
     var porcentaje = parseFloat(json.PorcentajeGanancia) || 0;
+    var descMax    = parseFloat(json.DescuentoMaxPermitido) || 0;
+    var um         = json.UnidadMedida || 'Unidad';
     $("#verDescripcion").text(json.Descripcion);
     $("#verPorcentaje").text(porcentaje.toFixed(2));
+    $("#verUnidadMedida").text(um);
+    $("#verDescuentoMax").text(descMax.toFixed(2));
     $("#verEstado").html(json.Activo
         ? '<span class="badge badge-success">Activo</span>'
         : '<span class="badge badge-danger">Inactivo</span>');
@@ -133,6 +158,8 @@ function abrirPopUpForm(json) {
         $("#txtid").val(json.IdCategoria);
         $("#txtDescripcion").val(json.Descripcion);
         $("#txtPorcentaje").val(parseFloat(json.PorcentajeGanancia) || 0);
+        $("#cboUnidadMedida").val(json.UnidadMedida || 'Unidad');
+        $("#txtDescuentoMax").val(parseFloat(json.DescuentoMaxPermitido) || 0);
         $("#cboEstado").val(json.Activo ? 1 : 0);
 
         if (json.Activo) {
@@ -152,6 +179,8 @@ function abrirPopUpForm(json) {
         $("#txtid").val(0);
         $("#txtDescripcion").val('');
         $("#txtPorcentaje").val('');
+        $("#cboUnidadMedida").val('Unidad');
+        $("#txtDescuentoMax").val(0);
         $("#cboEstado").val(1);
         $btnToggle.addClass('d-none').removeClass('btn-danger btn-success');
     }
@@ -187,9 +216,11 @@ function toggleEstadoDesdeModal() {
 function Guardar() {
     limpiarErrores();
 
-    var desc = $("#txtDescripcion").val().trim();
-    var pct = $("#txtPorcentaje").val();
-    var pctVal = pct === '' ? 0 : parseFloat(pct);
+    var desc     = $("#txtDescripcion").val().trim();
+    var pct      = $("#txtPorcentaje").val();
+    var pctVal   = pct === '' ? 0 : parseFloat(pct);
+    var descMax  = parseFloat($("#txtDescuentoMax").val()) || 0;
+    var um       = $("#cboUnidadMedida").val() || 'Unidad';
 
     if (!desc) {
         marcarError("txtDescripcion", "La descripción es obligatoria.");
@@ -203,12 +234,18 @@ function Guardar() {
         marcarError("txtPorcentaje", "Ingrese un valor entre 0 y 999.99.");
         return;
     }
+    if (isNaN(descMax) || descMax < 0 || descMax > 100) {
+        marcarError("txtDescuentoMax", "Ingrese un valor entre 0 y 100.");
+        return;
+    }
 
     var objeto = {
-        IdCategoria: parseInt($("#txtid").val()),
-        Descripcion: desc,
-        PorcentajeGanancia: pctVal,
-        Activo: $("#cboEstado").val() === "1"
+        IdCategoria:           parseInt($("#txtid").val()),
+        Descripcion:           desc,
+        PorcentajeGanancia:    pctVal,
+        UnidadMedida:          um,
+        DescuentoMaxPermitido: descMax,
+        Activo:                $("#cboEstado").val() === "1"
     };
 
     $.ajax({

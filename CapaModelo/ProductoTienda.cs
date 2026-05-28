@@ -28,5 +28,9 @@ namespace CapaModelo
         public decimal PrecioSugerido { get; set; }
         // Porcentaje de ganancia de la categoría a la que pertenece el producto
         public decimal MargenCategoria { get; set; }
+        // Descuento máximo permitido (%) para productos de esta categoría
+        public decimal DescuentoMaxPermitido { get; set; }
+        // Unidad de medida del producto (Unidad / Metro / Kg)
+        public string UnidadMedida { get; set; }
     }
 }

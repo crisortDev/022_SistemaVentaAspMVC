@@ -368,7 +368,8 @@ function inicializarDataTables() {
                                 data-id="${row.IdProducto}"
                                 data-codigo="${row.Codigo}"
                                 data-nombre="${row.Nombre}"
-                                data-iva="${row.IvaPorcentaje != null ? row.IvaPorcentaje : 10}">
+                                data-iva="${row.IvaPorcentaje != null ? row.IvaPorcentaje : 10}"
+                                data-unidad="${row.UnidadMedida || 'Unidad'}">
                                 <i class="fas fa-plus"></i>
                             </button>`;
                 },
@@ -406,6 +407,8 @@ function inicializarDataTables() {
         // Usar el IVA propio del producto; solo si es 0 puede ser exento (no usar global)
         var iva        = parseFloat(btn.data('iva'));
         if (isNaN(iva)) iva = 10;
+        var unidad     = btn.data('unidad') || 'Unidad';
+        var labelUnidad = unidad === 'Metro' ? 'mts' : (unidad === 'Kg' ? 'kg' : (unidad === 'Litro' ? 'lts' : 'und.'));
 
         // Validar que proveedor y tienda estén seleccionados
         if (parseInt($("#txtIdProveedor").val()) <= 0) {
@@ -438,6 +441,7 @@ function inicializarDataTables() {
             <td>
                 <input type="number" class="form-control form-control-sm inp-cantidad"
                        value="1" min="1" style="width:75px">
+                <small class="text-muted">${labelUnidad}</small>
                 <small class="stock-alert-fila text-warning d-block mt-1"
                        style="display:none!important;font-size:0.72em;line-height:1.3"></small>
             </td>

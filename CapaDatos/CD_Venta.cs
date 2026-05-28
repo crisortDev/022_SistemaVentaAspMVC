@@ -284,7 +284,11 @@ namespace CapaDatos
                                     MontoIva               = Convert.ToDecimal(dr["MontoIva"]),
                                     ImporteSinIva          = Convert.ToDecimal(dr["ImporteSinIva"]),
                                     ImporteTotal           = Convert.ToDecimal(dr["ImporteTotal"]),
-                                    ImporteTotalIvaIncluido= Convert.ToDecimal(dr["ImporteTotalIvaIncluido"])
+                                    ImporteTotalIvaIncluido= Convert.ToDecimal(dr["ImporteTotalIvaIncluido"]),
+                                    PorcentajeDescuento    = dr["PorcentajeDescuento"] == DBNull.Value ? 0
+                                                           : Convert.ToDecimal(dr["PorcentajeDescuento"]),
+                                    UnidadMedida           = dr["UnidadMedida"] == DBNull.Value ? "Unidad"
+                                                           : dr["UnidadMedida"].ToString()
                                 });
                             }
                         }

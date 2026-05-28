@@ -44,6 +44,12 @@ namespace CapaDatos
                         PorcentajeGanancia = dr["PorcentajeGanancia"] != DBNull.Value
                                                    ? Convert.ToDecimal(dr["PorcentajeGanancia"])
                                                    : 0,
+                        UnidadMedida = dr["UnidadMedida"] != DBNull.Value
+                                                   ? dr["UnidadMedida"].ToString()
+                                                   : "Unidad",
+                        DescuentoMaxPermitido = dr["DescuentoMaxPermitido"] != DBNull.Value
+                                                   ? Convert.ToDecimal(dr["DescuentoMaxPermitido"])
+                                                   : 0,
                         FechaModificacion = dr["FechaModificacion"] != DBNull.Value
                                                    ? (DateTime?)Convert.ToDateTime(dr["FechaModificacion"])
                                                    : null,
@@ -70,6 +76,8 @@ namespace CapaDatos
 
                     cmd.Parameters.AddWithValue("@Descripcion", oCategoria.Descripcion);
                     cmd.Parameters.AddWithValue("@PorcentajeGanancia", oCategoria.PorcentajeGanancia);
+                    cmd.Parameters.AddWithValue("@UnidadMedida", oCategoria.UnidadMedida ?? "Unidad");
+                    cmd.Parameters.AddWithValue("@DescuentoMaxPermitido", oCategoria.DescuentoMaxPermitido);
                     cmd.Parameters.AddWithValue("@UsuarioModificacion", oCategoria.UsuarioModificacion ?? (object)DBNull.Value);
                     cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
@@ -97,6 +105,8 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("@Descripcion", oCategoria.Descripcion);
                     cmd.Parameters.AddWithValue("@Activo", oCategoria.Activo);
                     cmd.Parameters.AddWithValue("@PorcentajeGanancia", oCategoria.PorcentajeGanancia);
+                    cmd.Parameters.AddWithValue("@UnidadMedida", oCategoria.UnidadMedida ?? "Unidad");
+                    cmd.Parameters.AddWithValue("@DescuentoMaxPermitido", oCategoria.DescuentoMaxPermitido);
                     cmd.Parameters.AddWithValue("@UsuarioModificacion", oCategoria.UsuarioModificacion ?? (object)DBNull.Value);
                     cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
 

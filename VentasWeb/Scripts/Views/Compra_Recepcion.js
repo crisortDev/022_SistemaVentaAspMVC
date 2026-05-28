@@ -110,12 +110,14 @@ function cargarLineasOC(idOC) {
             // Líneas
             var tbody = $('#tbodyLineas').empty();
             $.each(oc.oListaDetalle, function (i, d) {
-                var precio = d.PrecioUnitario || 0;
-                var total  = d.Cantidad * precio;
+                var precio   = d.PrecioUnitario || 0;
+                var total    = d.Cantidad * precio;
+                var unidad   = (d.oProducto && d.oProducto.UnidadMedida) ? d.oProducto.UnidadMedida : 'Unidad';
+                var lblUnidad = unidad === 'Metro' ? 'mts' : (unidad === 'Unidad' ? 'und.' : unidad.toLowerCase() + '.');
                 tbody.append(
                     '<tr>' +
                     '<td>' + (d.oProducto ? d.oProducto.Nombre : 'Producto') + '</td>' +
-                    '<td class="text-center">' + d.Cantidad + '</td>' +
+                    '<td class="text-center">' + d.Cantidad + ' <small class="text-muted">' + lblUnidad + '</small></td>' +
                     '<td class="text-center">' +
                       '<input type="number" class="form-control form-control-sm txtRecibida" ' +
                       'data-id="'      + d.IdDetalleOrdenCompra + '" ' +
@@ -123,6 +125,7 @@ function cargarLineasOC(idOC) {
                       'data-cantidad="' + d.Cantidad + '" ' +
                       'value="' + d.Cantidad + '" min="0" max="' + d.Cantidad + '" ' +
                       'style="width:80px;margin:auto" />' +
+                      '<div class="text-muted" style="font-size:11px;">' + lblUnidad + '</div>' +
                     '</td>' +
                     '<td class="text-center">Gs. ' + formatGs(precio) + '</td>' +
                     '<td class="text-center total-linea">Gs. ' + formatGs(total) + '</td>' +

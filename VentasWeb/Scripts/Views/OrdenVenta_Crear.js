@@ -60,13 +60,15 @@ function iniciarTablaProducto() {
                 render: function (d) {
                     var existe = itemsDetalle.some(function (x) { return x.id === d.oProducto.IdProducto; });
                     if (existe) return '<span class="badge badge-info"><i class="fas fa-check"></i></span>';
-                    // Usar PrecioSugerido (margen de categoría); fallback a PrecioVenta
-                    var precio = (d.PrecioSugerido && d.PrecioSugerido > 0)
-                        ? d.PrecioSugerido : (d.PrecioVenta || 0);
+                    var precio       = (d.PrecioSugerido && d.PrecioSugerido > 0) ? d.PrecioSugerido : (d.PrecioVenta || 0);
+                    var cpp          = d.CostoPromedio || 0;
+                    var um           = d.UnidadMedida  || 'Unidad';
+                    var descMax      = d.DescuentoMaxPermitido || 0;
                     return '<button class="btn btn-info btn-sm" onclick="agregarProducto(' +
                         d.oProducto.IdProducto + ',\'' + escapar(d.oProducto.Codigo) + '\',\'' +
                         escapar(d.oProducto.Nombre) + '\',' + precio + ',' +
-                        (d.PorcentajeIva || 10) + ',' + d.Stock +
+                        (d.PorcentajeIva || 10) + ',' + d.Stock + ',' +
+                        cpp + ',\'' + um + '\',' + descMax +
                         ')"><i class="fas fa-plus"></i></button>';
                 }
             },
@@ -103,30 +105,107 @@ function abrirModalProductos() {
     $('#modalProducto').modal('show');
 }
 
-function agregarProducto(id, codigo, nombre, precio, iva, stock) {
+function agregarProducto(id, codigo, nombre, precio, iva, stock, cpp, unidadMedida, descuentoMax) {
     if (itemsDetalle.some(function (x) { return x.id === id; })) { toastr.info('Ya está en el detalle.'); return; }
     if (stock <= 0) {
         toastr.warning('"' + nombre + '" no tiene stock disponible y no puede agregarse a la pre-venta.');
         return;
     }
-    itemsDetalle.push({ id: id, codigo: codigo, nombre: nombre, precio: precio, iva: iva, stock: stock, cantidad: 1 });
+    itemsDetalle.push({
+        id: id, codigo: codigo, nombre: nombre, precio: precio, iva: iva,
+        stock: stock, cantidad: 1, descuento: 0,
+        cpp: cpp || 0,
+        unidadMedida: unidadMedida || 'Unidad',
+        descuentoMax: descuentoMax || 0
+    });
     renderizarDetalle();
     if (dtProducto) dtProducto.draw(false);
+}
+
+function calcularSemaforo(item) {
+    // Devuelve { clase, badge, tooltip } según análisis de margen vs CPP
+    var desc       = item.descuento || 0;
+    var precioEfec = item.precio * (1 - desc / 100);
+    var cpp        = item.cpp || 0;
+    var iva        = item.iva || 10;
+    var descMax    = item.descuentoMax || 0;
+
+    if (desc === 0) return { clase: '', badge: '', tooltip: '' };
+
+    // Costo total incluyendo IVA (lo que pagamos + IVA al revender)
+    var costoConIva = cpp > 0 ? cpp * (1 + iva / 100) : 0;
+
+    if (costoConIva > 0 && precioEfec <= costoConIva) {
+        return {
+            clase: 'table-danger',
+            badge: '<span class="badge badge-danger ml-1" title="¡Precio por debajo del costo! (CPP + IVA: Gs. ' + formatGs(costoConIva) + ')"><i class="fas fa-exclamation-triangle"></i> Pérdida</span>',
+            tooltip: '¡Atención! Precio efectivo (Gs. ' + formatGs(precioEfec) + ') ≤ Costo (Gs. ' + formatGs(costoConIva) + '). Se vende a pérdida.'
+        };
+    }
+    if (descMax > 0 && desc > descMax) {
+        return {
+            clase: 'table-warning',
+            badge: '<span class="badge badge-warning ml-1" title="Descuento supera el máximo permitido (' + descMax + '%)"><i class="fas fa-exclamation-circle"></i> Límite</span>',
+            tooltip: 'El descuento (' + desc + '%) supera el máximo permitido para esta categoría (' + descMax + '%).'
+        };
+    }
+    return {
+        clase: 'table-success',
+        badge: '<span class="badge badge-success ml-1"><i class="fas fa-check"></i></span>',
+        tooltip: ''
+    };
 }
 
 function renderizarDetalle() {
     var tbody = $('#tbDetalle tbody').empty();
     itemsDetalle.forEach(function (item, idx) {
-        var total = item.precio * item.cantidad;
-        tbody.append('<tr>' +
+        var desc       = item.descuento || 0;
+        var precioEfec = item.precio * (1 - desc / 100);
+        var total      = Math.round(precioEfec * item.cantidad);
+        var label      = item.unidadMedida === 'Metro' ? 'mts' : (item.unidadMedida === 'Kg' ? 'kg' : 'und.');
+        var sem        = calcularSemaforo(item);
+
+        var precioCell = '<td class="text-right">';
+        if (desc > 0) {
+            precioCell += '<small class="text-muted text-decoration-line-through d-block" style="font-size:10px">Gs. ' + formatGs(item.precio) + '</small>';
+            precioCell += 'Gs. ' + formatGs(Math.round(precioEfec));
+        } else {
+            precioCell += 'Gs. ' + formatGs(item.precio);
+        }
+        precioCell += sem.badge + '</td>';
+
+        tbody.append(
+            '<tr class="' + sem.clase + '">' +
             '<td><button class="btn btn-danger btn-sm" onclick="quitarItem(' + idx + ')"><i class="fas fa-trash"></i></button></td>' +
-            '<td>' + item.codigo + '</td><td>' + item.nombre + '</td>' +
-            '<td class="text-center"><input type="number" class="form-control form-control-sm text-center" style="width:70px" value="' + item.cantidad + '" min="1" onchange="actualizarCantidad(' + idx + ',this.value)"></td>' +
-            '<td class="text-right">' + formatGs(item.precio) + '</td>' +
+            '<td>' + item.codigo + '</td>' +
+            '<td>' + item.nombre + (sem.tooltip ? '<br><small class="text-danger font-weight-bold">' + sem.tooltip + '</small>' : '') + '</td>' +
+            '<td class="text-center">' +
+              '<input type="number" class="form-control form-control-sm text-center" style="width:70px" value="' + item.cantidad + '" min="1" ' +
+              'onchange="actualizarCantidad(' + idx + ',this.value)">' +
+              '<small class="text-muted">' + label + '</small>' +
+            '</td>' +
+            '<td class="text-center">' +
+              '<div class="input-group input-group-sm" style="width:90px;margin:auto">' +
+              '<input type="number" class="form-control form-control-sm text-center" value="' + desc + '" ' +
+              'min="0" max="100" step="1" placeholder="0" onchange="actualizarDescuento(' + idx + ',this.value)">' +
+              '<div class="input-group-append"><span class="input-group-text" style="padding:2px 4px">%</span></div>' +
+              '</div>' +
+            '</td>' +
+            precioCell +
             '<td class="text-center">' + item.iva + '%</td>' +
-            '<td class="text-right">' + formatGs(total) + '</td></tr>');
+            '<td class="text-right">' + formatGs(total) + '</td>' +
+            '</tr>'
+        );
     });
     actualizarTotales();
+}
+
+function actualizarDescuento(idx, val) {
+    var desc = parseFloat(val);
+    if (isNaN(desc) || desc < 0) desc = 0;
+    if (desc > 100) desc = 100;
+    itemsDetalle[idx].descuento = desc;
+    renderizarDetalle();
 }
 
 function quitarItem(idx) { itemsDetalle.splice(idx, 1); renderizarDetalle(); if (dtProducto) dtProducto.draw(false); }
@@ -145,7 +224,9 @@ function actualizarCantidad(idx, val) {
 function actualizarTotales() {
     var totalCant = 0, totalGs = 0, iva10 = 0, iva5 = 0, grav10 = 0, grav5 = 0;
     itemsDetalle.forEach(function (item) {
-        var linea = item.precio * item.cantidad; totalCant += item.cantidad; totalGs += linea;
+        var desc      = item.descuento || 0;
+        var precioEfec = item.precio * (1 - desc / 100);
+        var linea = Math.round(precioEfec * item.cantidad); totalCant += item.cantidad; totalGs += linea;
         if (item.iva == 10) { iva10 += Math.round(linea * 10 / 110); grav10 += Math.round(linea * 100 / 110); }
         else if (item.iva == 5) { iva5 += Math.round(linea * 5 / 105); }
     });
@@ -176,7 +257,8 @@ function guardarPreVenta() {
     var xml = '<Detalle>';
     itemsDetalle.forEach(function (item) {
         xml += '<Item><IdProducto>' + item.id + '</IdProducto><Cantidad>' + item.cantidad +
-               '</Cantidad><PrecioUnidad>' + item.precio + '</PrecioUnidad><IvaPorcentaje>' + item.iva + '</IvaPorcentaje></Item>';
+               '</Cantidad><PrecioUnidad>' + item.precio + '</PrecioUnidad><IvaPorcentaje>' + item.iva +
+               '</IvaPorcentaje><PorcentajeDescuento>' + (item.descuento || 0) + '</PorcentajeDescuento></Item>';
     });
     xml += '</Detalle>';
 
