@@ -1,0 +1,72 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Compilación
+**/bin/
+**/obj/
+[Bb]uild/
+[Ll]og/
+
+# NuGet
+**/packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Temporales y cache
+*.log
+*.cache
+*.pdb
+*.tmp
+*.bak
+*.swp
+
+# Publicación
+*.publish.xml
+*.pubxml
+*.PublishSettings
+publish/
+app.publish/
+
+# IIS Express
+*.vspscc
+.vscode/
+.vsconfig
+*.applicationhost.config
+
+# Bases de datos locales
+*.mdf
+*.ldf
+*.dbmdl
+
+# Configuraciones locales
+*.userprefs
+*.dbproj.schemaview
+
+# Credenciales y secretos — NO subir al repositorio
+**/appSettings.secret.config
+**/connectionStrings.config
+**/*.secret.config
+
+# Frontend
+**/node_modules/
+dist/
+wwwroot/lib/
+wwwroot/node_modules/
+
+# Sistema
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Respaldos
+*.orig
+*.old
+
+# Carpetas específicas por capa
+**/App_Data/

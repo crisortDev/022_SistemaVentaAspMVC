@@ -1,7 +1,6 @@
 ﻿using CapaDatos;
 using CapaModelo;
-using SendGrid;
-using SendGrid.Helpers.Mail;
+
 using System;
 using System.Collections.Generic;
 using System.Configuration;
