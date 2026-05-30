@@ -179,6 +179,8 @@ namespace CapaDatos
                             {
                                 IdComprobanteCobro = Convert.ToInt32(dr["IdComprobanteCobro"]),
                                 NumeroCobro        = dr["NumeroCobro"].ToString(),
+                                IdTienda           = dr.GetColumnIndex("IdTienda") >= 0 && dr["IdTienda"] != DBNull.Value
+                                                     ? Convert.ToInt32(dr["IdTienda"]) : 0,
                                 NumeroFactura      = dr["NumeroFactura"].ToString(),
                                 Condicion          = dr["Condicion"].ToString(),
                                 NombreCliente      = dr["NombreCliente"].ToString(),

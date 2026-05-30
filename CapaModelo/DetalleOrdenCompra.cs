@@ -14,8 +14,8 @@ namespace CapaModelo
 
         public Producto oProducto { get; set; }
 
-        public int Cantidad { get; set; }
-        public int CantidadFacturada { get; set; }
+        public decimal Cantidad { get; set; }
+        public decimal CantidadFacturada { get; set; }
 
         public decimal PrecioUnitario { get; set; }
         public decimal IvaPorcentaje { get; set; }

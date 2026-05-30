@@ -28,16 +28,38 @@ namespace VentasWeb.Controllers
 
         public JsonResult ObtenerProducto(int idtienda, string codigoproducto)
         {
-            List<ReporteProducto> lista = CD_Reportes.Instancia.ReporteProductoTienda(idtienda, codigoproducto);
+            // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
+            if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+            List<ReporteProducto> lista = CD_Reportes.Instancia.ReporteProductoTienda(idtienda, codigoproducto ?? "");
 
             return Json(lista, JsonRequestBehavior.AllowGet);
+        }
+
+        // Combo de tiendas para los reportes.
+        // SuperAdmin: todas las sucursales. Otros: solo la suya.
+        public JsonResult ObtenerTiendas()
+        {
+            var todas = CD_Tienda.Instancia.ObtenerTiendas() ?? new List<Tienda>();
+            var lista = EsSuperAdmin
+                ? todas
+                : todas.Where(t => t.IdTienda == TiendaActiva).ToList();
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
 
         public JsonResult ObtenerVenta(string fechainicio, string fechafin, int idtienda)
         {
+            // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
+            if (!EsSuperAdmin) idtienda = TiendaActiva;
 
-            List<ReporteVenta> lista = CD_Reportes.Instancia.ReporteVenta(Convert.ToDateTime(fechainicio), Convert.ToDateTime(fechafin), idtienda);
+            // Rango por defecto: último mes si no vienen fechas
+            DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
+                ? DateTime.Today.AddMonths(-1) : Convert.ToDateTime(fechainicio);
+            DateTime ff = string.IsNullOrWhiteSpace(fechafin)
+                ? DateTime.Today : Convert.ToDateTime(fechafin);
+
+            List<ReporteVenta> lista = CD_Reportes.Instancia.ReporteVenta(fi, ff, idtienda);
             return Json(lista, JsonRequestBehavior.AllowGet);
         }
 

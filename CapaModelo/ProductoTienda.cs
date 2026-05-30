@@ -11,9 +11,9 @@ namespace CapaModelo
         public int IdProductoTienda { get; set; }
         public Producto oProducto { get; set; }
         public Tienda oTienda { get; set; }
-        public int Stock { get; set; }
-        public int StockMinimo { get; set; }
-        public int StockMaximo { get; set; }
+        public decimal Stock { get; set; }
+        public decimal StockMinimo { get; set; }
+        public decimal StockMaximo { get; set; }
         public decimal PrecioIvaIncluido { get; set; }
         public decimal PrecioVentaIvaIncluido { get; set; }
         public decimal PrecioCompraIvaIncluido { get; set; }

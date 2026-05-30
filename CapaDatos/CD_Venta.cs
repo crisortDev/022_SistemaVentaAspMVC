@@ -264,6 +264,11 @@ namespace CapaDatos
                                                           ? (int?)Convert.ToInt32(dr["PlazoCredito"]) : null,
                                 FechaVencimientoCredito   = dr["FechaVencimientoCredito"] != DBNull.Value
                                                           ? dr["FechaVencimientoCredito"].ToString() : null,
+                                oTienda                   = new Tienda()
+                                {
+                                    IdTienda = dr.GetColumnIndex("IdTienda") >= 0 && dr["IdTienda"] != DBNull.Value
+                                               ? Convert.ToInt32(dr["IdTienda"]) : 0
+                                },
                                 oListaDetalleVenta        = new System.Collections.Generic.List<DetalleVenta>()
                             };
                         }

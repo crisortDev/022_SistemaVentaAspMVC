@@ -180,9 +180,9 @@
                     int i = 1;
                     foreach (var item in items)
                     {
-                        int pedido   = item.Cantidad;
-                        int recibido = item.CantidadRecibida > 0 ? item.CantidadRecibida : pedido;
-                        int diff     = pedido - recibido;
+                        decimal pedido   = item.Cantidad;
+                        decimal recibido = item.CantidadRecibida > 0 ? item.CantidadRecibida : pedido;
+                        decimal diff     = pedido - recibido;
                         <tr>
                             <td>@(i++)</td>
                             <td>@(item.oProducto != null ? item.oProducto.Nombre : "—")</td>

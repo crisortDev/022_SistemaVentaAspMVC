@@ -40,7 +40,11 @@ namespace VentasWeb.Controllers
         {
             Compra oCompra = CD_Compra.Instancia.ObtenerDetalleCompra(idcompra);
             if (oCompra == null)
-                oCompra = new Compra();
+                return HttpNotFound();
+
+            // ── Aislamiento por sucursal (SuperAdmin pasa) ──
+            if (!TienePermiso(oCompra.oTienda?.IdTienda ?? 0))
+                return new HttpStatusCodeResult(403, "No tiene permiso para ver un comprobante de otra sucursal.");
 
             return View(oCompra);
         }
