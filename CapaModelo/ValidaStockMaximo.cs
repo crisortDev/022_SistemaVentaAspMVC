@@ -55,7 +55,7 @@ namespace CapaModelo
             public int IdProducto { get; set; }
 
             [XmlElement("Cantidad")]
-            public int Cantidad { get; set; }
+            public decimal Cantidad { get; set; }
 
             [XmlElement("PrecioUnidadCompra")]
             public decimal PrecioUnidadCompra { get; set; }

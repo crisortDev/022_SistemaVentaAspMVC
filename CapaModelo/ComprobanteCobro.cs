@@ -10,6 +10,8 @@ namespace CapaModelo
         public int     IdComprobanteCobro { get; set; }
         public string  NumeroCobro        { get; set; }
         public int     IdVenta            { get; set; }
+        /// <summary>Sucursal dueña del comprobante (para aislamiento por sucursal). 0 = no informado.</summary>
+        public int     IdTienda           { get; set; }
         public string  Estado             { get; set; }   // Cobrado | Pendiente
         public decimal MontoTotal         { get; set; }
         public decimal MontoRecibido      { get; set; }

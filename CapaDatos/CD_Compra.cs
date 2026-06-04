@@ -259,6 +259,7 @@ namespace CapaDatos
                                 rptDetalleCompra.oTienda = root.Element("DETALLE_TIENDA") != null
                                     ? new Tienda()
                                       {
+                                          IdTienda  = int.TryParse(root.Element("DETALLE_TIENDA").Element("IdTienda")?.Value, out int _idT) ? _idT : 0,
                                           RUC       = root.Element("DETALLE_TIENDA").Element("RUC")?.Value ?? "",
                                           Nombre    = root.Element("DETALLE_TIENDA").Element("Nombre")?.Value ?? "",
                                           Direccion = root.Element("DETALLE_TIENDA").Element("Direccion")?.Value ?? ""
@@ -344,7 +345,7 @@ namespace CapaDatos
             }
         }
 
-        public string ValidaStockMaximo(int IdProducto, int Cantidad, int Tienda)
+        public string ValidaStockMaximo(int IdProducto, decimal Cantidad, int Tienda)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -352,7 +353,9 @@ namespace CapaDatos
                 {
                     SqlCommand cmd = new SqlCommand("usp_ValidaStockMaximo", oConexion);
                     cmd.Parameters.Add("IdProducto", SqlDbType.Int).Value = IdProducto;
-                    cmd.Parameters.Add("Cantidad", SqlDbType.Int).Value = Cantidad;
+                    cmd.Parameters.Add("Cantidad", SqlDbType.Decimal).Value = Cantidad;
+                    cmd.Parameters["Cantidad"].Precision = 18;
+                    cmd.Parameters["Cantidad"].Scale = 3;
                     cmd.Parameters.Add("IdTienda", SqlDbType.Int).Value = Tienda;
 
                     // Parámetros de salida

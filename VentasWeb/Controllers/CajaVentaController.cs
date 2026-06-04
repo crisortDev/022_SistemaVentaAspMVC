@@ -22,9 +22,23 @@ namespace VentasWeb.Controllers
             // SuperAdmin: busca cualquier caja abierta (idTienda=0)
             // Otros roles: busca solo en su tienda activa
             int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
-            ViewBag.CajaActiva = CD_CajaVenta.Instancia.ObtenerCajaActiva(idTienda);
+            // Cada cajero ve SOLO la caja que él abrió; SuperAdmin ve cualquiera.
+            int idUsuario = EsSuperAdmin ? 0 : UsuarioActual.IdUsuario;
+            ViewBag.CajaActiva = CD_CajaVenta.Instancia.ObtenerCajaActiva(idTienda, idUsuario);
             ViewBag.Tiendas = CD_Tienda.Instancia.ObtenerTiendas();
             return View();
+        }
+
+        // ============================================================
+        //  JSON — CAJAS DISPONIBLES (activas, sin sesión abierta)
+        // ============================================================
+        [HttpGet]
+        [AuthorizeRol("CajaVenta", "Index")]
+        public JsonResult CajasDisponibles(int idTienda = 0)
+        {
+            if (!EsSuperAdmin) idTienda = TiendaActiva;
+            var lista = CD_CajaVenta.Instancia.ObtenerCajasDisponibles(idTienda);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
         // ============================================================
@@ -33,7 +47,7 @@ namespace VentasWeb.Controllers
 
         [HttpPost]
         [AuthorizeRol("CajaVenta", "Index")]
-        public JsonResult Abrir(decimal montoApertura, int idTienda = 0)
+        public JsonResult Abrir(decimal montoApertura, int idPuntoCaja, int idTienda = 0)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
@@ -45,8 +59,11 @@ namespace VentasWeb.Controllers
             if (idTienda == 0)
                 return Json(new { resultado = false, mensaje = "Seleccioná una tienda para abrir la caja." });
 
+            if (idPuntoCaja == 0)
+                return Json(new { resultado = false, mensaje = "Seleccioná una caja disponible para abrir." });
+
             var r = CD_CajaVenta.Instancia.AbrirCaja(
-                idTienda, UsuarioActual.IdUsuario, montoApertura);
+                idTienda, UsuarioActual.IdUsuario, montoApertura, idPuntoCaja);
 
             // Guardar en sesión la tienda de la caja abierta
             // para que ventas y pre-ventas queden en la misma sucursal

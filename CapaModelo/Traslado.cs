@@ -12,7 +12,7 @@ namespace CapaModelo
         public int IdProducto { get; set; }
         public int IdTiendaOrigen { get; set; }
         public int IdTiendaDestino { get; set; }
-        public int Cantidad { get; set; }
+        public decimal Cantidad { get; set; }
         public string Observaciones { get; set; }
         public int IdUsuario { get; set; }
         public string FechaTraslado { get; set; }

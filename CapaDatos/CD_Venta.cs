@@ -109,7 +109,7 @@ namespace CapaDatos
         public (bool resultado, string mensaje, int idVenta, string numeroFactura) FacturarDesdeOrdenVenta(
             int idOrdenVenta, int idUsuarioCajero, int? idCliente,
             int idFormaCobro, decimal importeRecibido, int idCaja = 0,
-            string condicion = "Contado", int? plazoCredito = null)
+            string condicion = "Contado", int? plazoCredito = null, int idRolUsuario = 0)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -129,6 +129,7 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("@Condicion", condicion ?? "Contado");
                     cmd.Parameters.AddWithValue("@PlazoCredito",
                         plazoCredito.HasValue ? (object)plazoCredito.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@IdRolUsuario", idRolUsuario);
 
                     cmd.Parameters.Add("@IdVentaGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("@NumeroFactura", SqlDbType.VarChar, 20).Direction = ParameterDirection.Output;
@@ -264,6 +265,11 @@ namespace CapaDatos
                                                           ? (int?)Convert.ToInt32(dr["PlazoCredito"]) : null,
                                 FechaVencimientoCredito   = dr["FechaVencimientoCredito"] != DBNull.Value
                                                           ? dr["FechaVencimientoCredito"].ToString() : null,
+                                oTienda                   = new Tienda()
+                                {
+                                    IdTienda = dr.GetColumnIndex("IdTienda") >= 0 && dr["IdTienda"] != DBNull.Value
+                                               ? Convert.ToInt32(dr["IdTienda"]) : 0
+                                },
                                 oListaDetalleVenta        = new System.Collections.Generic.List<DetalleVenta>()
                             };
                         }

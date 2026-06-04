@@ -26,10 +26,12 @@ $(document).ready(function () {
     $.datepicker.setDefaults($.datepicker.regional['es']);
     activarMenu("Reportes");
 
-    $("#txtFechaInicio").datepicker();
-    $("#txtFechaFin").datepicker();
-    $("#txtFechaInicio").val(ObtenerFecha());
-    $("#txtFechaFin").val(ObtenerFecha());
+    // No permitir fechas futuras (máximo hoy)
+    $("#txtFechaInicio").datepicker({ maxDate: 0 });
+    $("#txtFechaFin").datepicker({ maxDate: 0 });
+    // Por defecto: desde un mes atrás hasta hoy
+    $("#txtFechaInicio").val(ObtenerFecha(-1));
+    $("#txtFechaFin").val(ObtenerFecha(0));
 
 
     //OBTENER TIENDAS
@@ -106,9 +108,10 @@ $('#btnBuscar').on('click', function () {
 
 
 
-function ObtenerFecha() {
+function ObtenerFecha(mesesOffset) {
 
     var d = new Date();
+    if (mesesOffset) d.setMonth(d.getMonth() + mesesOffset);
     var month = d.getMonth() + 1;
     var day = d.getDate();
     var output = (('' + day).length < 2 ? '0' : '') + day + '/' + (('' + month).length < 2 ? '0' : '') + month + '/' + d.getFullYear();

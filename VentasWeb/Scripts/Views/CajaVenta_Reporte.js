@@ -74,8 +74,10 @@ function cargarReporte(idCaja) {
 function formatGs(n) { return Math.round(n || 0).toLocaleString('es-PY'); }
 function formatFechaHora(dt) {
     if (!dt) return '—';
-    var m = dt.match(/(\d+)/g);
-    if (!m) return dt;
-    return ('0' + m[2]).slice(-2) + '/' + ('0' + m[1]).slice(-2) + '/' + m[0] +
-           ' ' + ('0' + m[3]).slice(-2) + ':' + ('0' + m[4]).slice(-2);
+    var ms = /\/Date\((\d+)/.exec(dt);
+    var f = ms ? new Date(parseInt(ms[1], 10)) : new Date(dt);
+    if (isNaN(f.getTime())) return '—';
+    var p = function (n) { return ('0' + n).slice(-2); };
+    return p(f.getDate()) + '/' + p(f.getMonth() + 1) + '/' + f.getFullYear() +
+           ' ' + p(f.getHours()) + ':' + p(f.getMinutes());
 }

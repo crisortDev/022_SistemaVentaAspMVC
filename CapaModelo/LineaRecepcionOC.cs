@@ -7,6 +7,6 @@ namespace CapaModelo
     public class LineaRecepcionOC
     {
         public int IdDetalleOC      { get; set; }
-        public int CantidadRecibida { get; set; }
+        public decimal CantidadRecibida { get; set; }
     }
 }

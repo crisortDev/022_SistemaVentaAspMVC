@@ -25,7 +25,14 @@ namespace VentasWeb.Controllers
         public ActionResult Documento(int idordenpago = 0)
         {
             OrdenPago op = CD_OrdenPago.Instancia.Obtener(idordenpago);
-            return View(op ?? new OrdenPago());
+            if (op == null)
+                return HttpNotFound();
+
+            // ── Aislamiento por sucursal (SuperAdmin pasa) ──
+            if (!TienePermiso(op.oTienda?.IdTienda ?? 0))
+                return new HttpStatusCodeResult(403, "No tiene permiso para ver una orden de pago de otra sucursal.");
+
+            return View(op);
         }
 
         // ── JSON ──────────────────────────────────────────────

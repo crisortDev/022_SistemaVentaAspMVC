@@ -61,6 +61,10 @@ namespace VentasWeb.Controllers
             if (oc.oListaDetalle == null)
                 oc.oListaDetalle = new List<DetalleOrdenCompra>();
 
+            // ── Aislamiento por sucursal (SuperAdmin pasa) ──
+            if (idordencompra > 0 && !TienePermiso(oc.oTienda?.IdTienda ?? 0))
+                return new HttpStatusCodeResult(403, "No tiene permiso para ver una orden de otra sucursal.");
+
             return View(oc);
         }
 

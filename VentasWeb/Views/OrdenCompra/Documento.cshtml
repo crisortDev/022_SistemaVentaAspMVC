@@ -215,8 +215,8 @@
                     int i = 1;
                     foreach (var item in items)
                     {
-                        int pedido     = item.Cantidad;
-                        int facturado  = item.CantidadFacturada;
+                        decimal pedido     = item.Cantidad;
+                        decimal facturado  = item.CantidadFacturada;
                         string factCls = facturado >= pedido ? "fact-completo"
                                        : facturado > 0      ? "fact-parcial"
                                        : "fact-sin";

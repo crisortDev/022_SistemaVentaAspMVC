@@ -114,6 +114,12 @@ namespace VentasWeb.Controllers
             if (recibo == null)
                 return HttpNotFound();
 
+            // ── Aislamiento por sucursal (SuperAdmin pasa) ──
+            // TODO: requiere que el SP usp_ObtenerReciboCobro devuelva IdTienda
+            // y que el modelo ComprobanteCobro exponga IdTienda. Ver checklist.
+            if (!EsSuperAdmin && recibo.IdTienda != 0 && recibo.IdTienda != TiendaActiva)
+                return new HttpStatusCodeResult(403, "No tiene permiso para ver un comprobante de otra sucursal.");
+
             return View(recibo);
         }
     }

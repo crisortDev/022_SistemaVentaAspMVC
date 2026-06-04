@@ -11,7 +11,7 @@ namespace CapaModelo
         public int IdDetalleCompra { get; set; }
         public int IdCompra { get; set; }
         public Producto oProducto { get; set; }
-        public int Cantidad { get; set; }
+        public decimal Cantidad { get; set; }
         public decimal PrecioUnitarioCompra { get; set; }
         public string TextoPrecioUnitarioCompra { get; set; }
         //public decimal PrecioUnitarioVenta { get; set; }
@@ -24,10 +24,10 @@ namespace CapaModelo
 
         // ── Campos de recepción ───────────────────────────────
         /// <summary>Cantidad que figura en la factura del proveedor.</summary>
-        public int CantidadFacturada { get; set; }
+        public decimal CantidadFacturada { get; set; }
 
         /// <summary>Cantidad efectivamente recibida en el depósito.</summary>
-        public int CantidadRecibida { get; set; }
+        public decimal CantidadRecibida { get; set; }
 
         /// <summary>
         /// Aceptada | Rechazada | NotaCredito

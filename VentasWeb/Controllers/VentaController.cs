@@ -31,6 +31,13 @@ namespace VentasWeb.Controllers
             if (UsuarioActual == null) return RedirectToAction("Index", "Login");
             if (idOrdenVenta == 0) return RedirectToAction("Consultar", "OrdenVenta");
 
+            // ── Control: debe tener una caja ABIERTA para poder facturar ──
+            if (CajaId == 0)
+            {
+                TempData["MensajeCaja"] = "Debe abrir una caja antes de facturar la pre-venta.";
+                return RedirectToAction("Index", "CajaVenta");
+            }
+
             var ov = CD_OrdenVenta.Instancia.ObtenerDetalleOrdenVenta(idOrdenVenta);
             if (ov == null || ov.Estado != "Pendiente")
                 return RedirectToAction("Consultar", "OrdenVenta");
@@ -50,7 +57,14 @@ namespace VentasWeb.Controllers
         public ActionResult Documento(int idVenta = 0)
         {
             Venta oVenta = CD_Venta.Instancia.ObtenerDetalleVenta_v2(idVenta);
-            return View(oVenta ?? new Venta());
+            if (oVenta == null)
+                return HttpNotFound();
+
+            // ── Aislamiento por sucursal (SuperAdmin pasa) ──
+            if (!TienePermiso(oVenta.oTienda?.IdTienda ?? 0))
+                return new HttpStatusCodeResult(403, "No tiene permiso para ver un comprobante de otra sucursal.");
+
+            return View(oVenta);
         }
 
         // ============================================================
@@ -122,15 +136,21 @@ namespace VentasWeb.Controllers
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
+            // Control: debe haber una caja abierta para este cajero antes de facturar
+            int idCajaActual = CajaId;
+            if (idCajaActual == 0)
+                return Json(new { resultado = false, mensaje = "Debe abrir una caja antes de facturar." });
+
             var r = CD_Venta.Instancia.FacturarDesdeOrdenVenta(
                 idOrdenVenta,
                 UsuarioActual.IdUsuario,
                 idCliente > 0 ? (int?)idCliente : null,
                 idFormaCobro,
                 importeRecibido,
-                CajaId,       // vincula la venta a la caja del cajero
+                idCajaActual,       // vincula la venta a la caja del cajero
                 condicion,
-                plazoCredito);
+                plazoCredito,
+                UsuarioActual.IdRol);  // para la segregación de funciones
 
             return Json(new
             {

@@ -5,13 +5,29 @@ $(function () {
     recargarPuntos();
 });
 
+// Formatea fechas .NET "/Date(ms)/" o ISO. Nombre único para evitar colisiones.
+function fmtFechaPC(dt) {
+    if (!dt) return '—';
+    var fecha;
+    var msMatch = /\/Date\((\d+)/.exec(dt);          // formato /Date(1780411021370)/
+    if (msMatch) {
+        fecha = new Date(parseInt(msMatch[1], 10));
+    } else {
+        fecha = new Date(dt);                          // ISO u otro
+    }
+    if (isNaN(fecha.getTime())) return '—';
+    var p = function (n) { return ('0' + n).slice(-2); };
+    return p(fecha.getDate()) + '/' + p(fecha.getMonth() + 1) + '/' + fecha.getFullYear() +
+           ' ' + p(fecha.getHours()) + ':' + p(fecha.getMinutes());
+}
+
 // ─── MAESTRO: listar puntos de caja ───────────────────────────────────────────
 function recargarPuntos() {
     var idTienda = parseInt($('#ddlFiltroTienda').val()) || 0;
     $.get($.MisUrls.url._PuntoCaja_Obtener, { idTienda: idTienda }, function (r) {
         var tbody = $('#tbodyPuntos').empty();
         if (!r.data || r.data.length === 0) {
-            tbody.append('<tr><td colspan="8" class="text-center text-muted">Sin cajas registradas.</td></tr>');
+            tbody.append('<tr><td colspan="10" class="text-center text-muted">Sin cajas registradas.</td></tr>');
             return;
         }
         r.data.forEach(function (p) {
@@ -21,7 +37,7 @@ function recargarPuntos() {
             var sesionBadge = p.SesionesAbiertas > 0
                 ? '<span class="badge badge-warning">Abierta</span>'
                 : '';
-            var ultimaAp = p.UltimaApertura ? formatFechaHora(p.UltimaApertura) : '—';
+            var ultimaAp = p.UltimaApertura ? fmtFechaPC(p.UltimaApertura) : '—';
 
             tbody.append(
                 '<tr>' +
@@ -31,7 +47,9 @@ function recargarPuntos() {
                 '</td>' +
                 '<td>' + p.NombreTienda + '</td>' +
                 '<td><strong>' + p.Nombre + '</strong></td>' +
-                '<td>' + (p.Descripcion || '—') + '</td>' +
+                '<td class="text-center"><span class="badge badge-info">' + (p.Codigo || '—') + '</span></td>' +
+                '<td class="text-center"><strong>' + (p.PuntoExpedicion || '—') + '</strong></td>' +
+                '<td class="text-center">' + ('0000000' + (p.SecuenciaActual || 0)).slice(-7) + '</td>' +
                 '<td class="text-center">' + p.TotalSesiones + ' ' + sesionBadge + '</td>' +
                 '<td class="text-center">' + estadoBadge + '</td>' +
                 '<td class="text-center">' + ultimaAp + '</td>' +
@@ -71,9 +89,9 @@ function verSesiones(idPuntoCaja, nombre) {
                 '<tr>' +
                 '<td>' + (i + 1) + '</td>' +
                 '<td>' + s.Aperturista + '</td>' +
-                '<td>' + formatFechaHora(s.FechaApertura) + '</td>' +
+                '<td>' + fmtFechaPC(s.FechaApertura) + '</td>' +
                 '<td class="text-right">Gs. ' + formatGs(s.MontoApertura) + '</td>' +
-                '<td>' + (s.FechaCierre ? formatFechaHora(s.FechaCierre) : '—') + '</td>' +
+                '<td>' + (s.FechaCierre ? fmtFechaPC(s.FechaCierre) : '—') + '</td>' +
                 '<td class="text-right">' + (s.MontoSistema != null ? 'Gs. ' + formatGs(s.MontoSistema) : '—') + '</td>' +
                 '<td class="text-right">' + (s.MontoContado != null ? 'Gs. ' + formatGs(s.MontoContado) : '—') + '</td>' +
                 '<td class="text-right">' + diff + '</td>' +

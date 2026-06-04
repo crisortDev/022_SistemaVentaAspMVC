@@ -16,6 +16,12 @@ namespace CapaModelo
         public bool     Activo         { get; set; }
         public DateTime FechaRegistro  { get; set; }
 
+        // Datos DNIT (informativos en la grilla de gestión)
+        public string   Codigo          { get; set; }   // nomenclatura caja, ej: CJ-001
+        public string   PuntoExpedicion { get; set; }   // ej: 001
+        public int      SecuenciaActual { get; set; }   // última factura emitida por esta caja
+        public string   EstadoOperativo { get; set; }   // Activo / Inactivo
+
         // Calculados (para la vista maestro)
         public int      TotalSesiones  { get; set; }
         public int      SesionesAbiertas { get; set; }
