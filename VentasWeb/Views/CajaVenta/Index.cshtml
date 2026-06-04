@@ -14,6 +14,14 @@
     </ol>
 </nav>
 
+@if (TempData["MensajeCaja"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle mr-1"></i> @TempData["MensajeCaja"]
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
+}
+
 <!-- ═══════════════════════════════════════════════════════ -->
 <!--  PANEL: SIN CAJA ABIERTA                               -->
 <!-- ═══════════════════════════════════════════════════════ -->
@@ -46,11 +54,21 @@
 
                     <div class="form-group">
                         <label class="col-form-label col-form-label-sm font-weight-bold">
-                            Monto de Apertura (Gs.) <span class="text-danger">*</span>
+                            Caja disponible <span class="text-danger">*</span>
+                        </label>
+                        <select id="ddlPuntoCaja" class="form-control form-control-sm">
+                            <option value="0">-- Seleccioná una caja --</option>
+                        </select>
+                        <small class="text-muted">Cada caja tiene su propio punto de expedición (numeración DNIT).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label col-form-label-sm font-weight-bold">
+                            Monto de Apertura (Gs.)
                         </label>
                         <input type="number" id="txtMontoApertura" class="form-control"
                                placeholder="0" min="0" value="0" />
-                        <small class="text-muted">Ingresá el efectivo disponible al inicio del turno.</small>
+                        <small class="text-muted">Puede ser 0 si la caja opera solo con lo recaudado.</small>
                     </div>
                     <button class="btn btn-success btn-block mt-3" onclick="abrirCaja()">
                         <i class="fas fa-lock-open mr-1"></i> Abrir Caja
@@ -294,7 +312,7 @@ else
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Tienda</th>
+                        <th>Tienda - Establecimiento</th>
                         <th>Aperturista</th>
                         <th>Apertura</th>
                         <th class="text-right">Monto Apertura</th>

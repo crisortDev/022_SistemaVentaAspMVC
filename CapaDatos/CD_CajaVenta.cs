@@ -12,9 +12,39 @@ namespace CapaDatos
         public static CD_CajaVenta Instancia => _instancia;
         private CD_CajaVenta() { }
 
+        // ── Cajas disponibles (activas, sin sesión abierta) ───────
+        public List<object> ObtenerCajasDisponibles(int idTienda)
+        {
+            var lista = new List<object>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            {
+                oConexion.Open();
+                using (var cmd = new SqlCommand("usp_ObtenerCajasDisponibles", oConexion))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new
+                            {
+                                IdPuntoCaja     = Convert.ToInt32(dr["IdPuntoCaja"]),
+                                Codigo          = dr["Codigo"].ToString(),
+                                Nombre          = dr["Nombre"].ToString(),
+                                PuntoExpedicion = dr["PuntoExpedicion"].ToString(),
+                                NombreTienda    = dr["NombreTienda"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            return lista;
+        }
+
         // ── Abrir caja ────────────────────────────────────────────
         public (bool resultado, string mensaje, int idCaja) AbrirCaja(
-            int idTienda, int idUsuario, decimal montoApertura)
+            int idTienda, int idUsuario, decimal montoApertura, int idPuntoCaja)
         {
             try
             {
@@ -27,6 +57,7 @@ namespace CapaDatos
                         cmd.Parameters.AddWithValue("@IdTienda",      idTienda);
                         cmd.Parameters.AddWithValue("@IdUsuario",     idUsuario);
                         cmd.Parameters.AddWithValue("@MontoApertura", montoApertura);
+                        cmd.Parameters.AddWithValue("@IdPuntoCaja",   idPuntoCaja);
 
                         var pResultado = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);
                         pResultado.Direction = ParameterDirection.Output;
@@ -52,7 +83,7 @@ namespace CapaDatos
         }
 
         // ── Obtener caja activa de la tienda ──────────────────────
-        public SesionCaja ObtenerCajaActiva(int idTienda)
+        public SesionCaja ObtenerCajaActiva(int idTienda, int idUsuario = 0)
         {
             try
             {
@@ -63,6 +94,7 @@ namespace CapaDatos
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                        cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
 
                         using (var dr = cmd.ExecuteReader())
                         {
@@ -121,6 +153,7 @@ namespace CapaDatos
 
                             if (ds.Tables.Count > 0)
                             {
+                                var cols0 = ds.Tables[0].Columns;
                                 foreach (DataRow dr in ds.Tables[0].Rows)
                                 {
                                     operaciones.Add(new OperacionCaja
@@ -134,8 +167,8 @@ namespace CapaDatos
                                         MontoRecibido = dr["MontoRecibido"] == DBNull.Value ? 0 : Convert.ToDecimal(dr["MontoRecibido"]),
                                         MontoCambio   = dr["MontoCambio"]   == DBNull.Value ? 0 : Convert.ToDecimal(dr["MontoCambio"]),
                                         NombreCajero  = dr["NombreCajero"].ToString(),
-                                        Estado        = dr["Estado"].ToString(),
-                                        Condicion     = dr["Condicion"].ToString()
+                                        Estado        = cols0.Contains("Estado")    ? dr["Estado"].ToString()    : "Activa",
+                                        Condicion     = cols0.Contains("Condicion") ? dr["Condicion"].ToString() : "Contado"
                                     });
                                 }
                             }
@@ -156,7 +189,10 @@ namespace CapaDatos
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("ObtenerOperaciones ERROR: " + ex.Message);
+            }
 
             return (operaciones, resumen);
         }
@@ -239,6 +275,8 @@ namespace CapaDatos
                                     NumeroTimbrado  = dr["NumeroTimbrado"].ToString(),
                                     Establecimiento = dr["Establecimiento"].ToString(),
                                     PuntoExpedicion = dr["PuntoExpedicion"].ToString(),
+                                    CodigoCaja      = dr.Table.Columns.Contains("CodigoCaja") ? dr["CodigoCaja"].ToString() : "",
+                                    NombreCaja      = dr.Table.Columns.Contains("NombreCaja") ? dr["NombreCaja"].ToString() : "",
                                     CantidadVentas  = Convert.ToInt32(dr["CantidadVentas"]),
                                     TotalVentas     = Convert.ToDecimal(dr["TotalVentas"])
                                 };
@@ -251,6 +289,7 @@ namespace CapaDatos
                             {
                                 foreach (DataRow dr in ds.Tables[1].Rows)
                                 {
+                                    var cols = dr.Table.Columns;
                                     detalle.Operaciones.Add(new OperacionCaja
                                     {
                                         IdVenta       = Convert.ToInt32(dr["IdVenta"]),
@@ -262,7 +301,7 @@ namespace CapaDatos
                                         MontoRecibido = Convert.ToDecimal(dr["MontoRecibido"]),
                                         MontoCambio   = Convert.ToDecimal(dr["MontoCambio"]),
                                         NombreCajero  = dr["NombreCajero"].ToString(),
-                                        Estado        = dr["Estado"].ToString()
+                                        Estado        = cols.Contains("Estado") ? dr["Estado"].ToString() : "Activa"
                                     });
                                 }
                             }
@@ -284,7 +323,10 @@ namespace CapaDatos
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("ObtenerDetalleCaja ERROR: " + ex.Message);
+            }
             return detalle;
         }
 

@@ -29,6 +29,8 @@ namespace CapaModelo
         public string    NumeroTimbrado  { get; set; }
         public string    Establecimiento { get; set; }
         public string    PuntoExpedicion { get; set; }
+        public string    CodigoCaja      { get; set; }
+        public string    NombreCaja      { get; set; }
         // ── Totales calculados ──
         public int       CantidadVentas  { get; set; }
         public decimal   TotalVentas     { get; set; }

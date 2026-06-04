@@ -229,7 +229,8 @@
     <!-- ── Datos de la sesión ── -->
     <div class="seccion-titulo">Datos de la sesión</div>
     <div class="datos-grid">
-        <div class="dato-item"><span class="lbl">Tienda:</span><span class="val">@Model.NombreTienda</span></div>
+        <div class="dato-item"><span class="lbl">Tienda - Establecimiento:</span><span class="val">@Model.NombreTienda</span></div>
+        <div class="dato-item"><span class="lbl">Caja:</span><span class="val">@Model.CodigoCaja @(string.IsNullOrWhiteSpace(Model.NombreCaja) ? "" : "— " + Model.NombreCaja) (Pto. Exp. @Model.PuntoExpedicion)</span></div>
         <div class="dato-item"><span class="lbl">Cajero apertura:</span><span class="val">@Model.Aperturista</span></div>
         <div class="dato-item"><span class="lbl">Fecha apertura:</span><span class="val">@Model.FechaApertura.ToString("dd/MM/yyyy HH:mm:ss")</span></div>
         @if (esCerrada && Model.FechaCierre.HasValue)

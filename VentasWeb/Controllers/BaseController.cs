@@ -46,11 +46,35 @@ namespace VentasWeb.Controllers
         }
 
         /// <summary>
-        /// Retorna el IdCaja de la sesión de caja actualmente abierta por este usuario.
-        /// 0 si no hay caja abierta (p.ej. venta sin caja, o rol sin caja).
+        /// Retorna el IdCaja de la caja abierta para este usuario/tienda.
+        /// Prioridad: lo guardado en sesión al abrir; si no, busca la caja abierta
+        /// de la tienda en la BD (cubre sesiones web expiradas o re-ingresos).
+        /// 0 si no hay ninguna caja abierta.
         /// </summary>
-        protected int CajaId =>
-            Session["CajaId"] is int id && id > 0 ? id : 0;
+        protected int CajaId
+        {
+            get
+            {
+                if (Session["CajaId"] is int id && id > 0)
+                    return id;
+
+                // Respaldo: buscar la caja abierta de la tienda en la BD
+                int idTienda = TiendaActiva;
+                var usr = UsuarioActual;
+                if (idTienda > 0 && usr != null)
+                {
+                    // Solo la caja abierta POR ESTE usuario (no la de otro cajero)
+                    var caja = CapaDatos.CD_CajaVenta.Instancia.ObtenerCajaActiva(idTienda, usr.IdUsuario);
+                    if (caja != null && caja.IdCaja > 0)
+                    {
+                        Session["CajaId"]       = caja.IdCaja;
+                        Session["CajaIdTienda"] = idTienda;
+                        return caja.IdCaja;
+                    }
+                }
+                return 0;
+            }
+        }
 
         /// <summary>
         /// Retorna el usuario logueado desde sesión, o null si no hay sesión.

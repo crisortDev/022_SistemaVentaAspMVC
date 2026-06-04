@@ -7,18 +7,49 @@ $(function () {
     if ($('#hdnIdCaja').length) {
         recargarOperaciones();
     }
+    // Si está el panel de apertura, cargar las cajas disponibles
+    if ($('#ddlPuntoCaja').length) {
+        cargarCajasDisponibles();
+        // Si el SuperAdmin cambia de tienda, recargar las cajas de esa tienda
+        $('#ddlTiendaApertura').on('change', cargarCajasDisponibles);
+    }
 });
+
+// ─── Cargar cajas disponibles (sin sesión abierta) ─────────
+function cargarCajasDisponibles() {
+    var idTienda = parseInt($('#ddlTiendaApertura').val()) || 0;
+    var $cbo = $('#ddlPuntoCaja');
+    $cbo.html('<option value="0">-- Seleccioná una caja --</option>');
+
+    $.get($.MisUrls.url._CajaVenta_CajasDisponibles, { idTienda: idTienda }, function (r) {
+        var lista = (r && r.data) ? r.data : [];
+        if (lista.length === 0) {
+            $cbo.append('<option value="0" disabled>No hay cajas disponibles</option>');
+            return;
+        }
+        $.each(lista, function (i, c) {
+            $cbo.append('<option value="' + c.IdPuntoCaja + '">' +
+                c.Nombre + ' (Pto. Exp. ' + c.PuntoExpedicion + ')</option>');
+        });
+    });
+}
 
 // ─── APERTURA ──────────────────────────────────────────────
 function abrirCaja() {
-    var monto    = parseFloat($('#txtMontoApertura').val()) || 0;
-    var idTienda = parseInt($('#ddlTiendaApertura').val()) || 0;
+    var monto       = parseFloat($('#txtMontoApertura').val()) || 0;
+    var idTienda    = parseInt($('#ddlTiendaApertura').val()) || 0;
+    var idPuntoCaja = parseInt($('#ddlPuntoCaja').val()) || 0;
 
     if (monto < 0) { toastr.warning('El monto no puede ser negativo.'); return; }
 
     // Validar tienda solo si el selector está presente (SuperAdmin)
     if ($('#ddlTiendaApertura').length && idTienda === 0) {
         toastr.warning('Seleccioná una tienda antes de abrir la caja.');
+        return;
+    }
+
+    if (idPuntoCaja === 0) {
+        toastr.warning('Seleccioná una caja disponible.');
         return;
     }
 
@@ -33,7 +64,7 @@ function abrirCaja() {
     }).then(function (r) {
         if (!r.isConfirmed) return;
 
-        var datos = { montoApertura: monto };
+        var datos = { montoApertura: monto, idPuntoCaja: idPuntoCaja };
         if (idTienda > 0) datos.idTienda = idTienda;
 
         $.ajax({
@@ -168,7 +199,11 @@ function cerrarCaja() {
                     toastr.success(res.mensaje);
                     // Abrir arqueo de cierre en nueva pestaña
                     window.open($.MisUrls.url._CajaVenta_Arqueo + '?idCaja=' + idCaja, '_blank');
-                    setTimeout(function () { location.reload(); }, 1200);
+                    // Volver a la pantalla de apertura (recarga forzada, sin caché)
+                    // para que el cajero pueda seleccionar otra caja.
+                    setTimeout(function () {
+                        window.location.href = $.MisUrls.url._CajaVenta_Index + '?t=' + Date.now();
+                    }, 1200);
                 } else {
                     toastr.error(res.mensaje);
                 }
@@ -220,16 +255,23 @@ function cargarHistorial() {
 
 // ─── HELPERS ───────────────────────────────────────────────
 function formatGs(n) { return Math.round(n || 0).toLocaleString('es-PY'); }
+// Convierte fechas .NET "/Date(ms)/" o ISO a objeto Date
+function _parseFecha(dt) {
+    if (!dt) return null;
+    var ms = /\/Date\((\d+)/.exec(dt);
+    var f = ms ? new Date(parseInt(ms[1], 10)) : new Date(dt);
+    return isNaN(f.getTime()) ? null : f;
+}
+function _pad(n) { return ('0' + n).slice(-2); }
+
 function formatHora(dt) {
-    if (!dt) return '—';
-    var m = dt.match(/(\d+)/g);
-    if (!m) return dt;
-    return ('0' + m[3]).slice(-2) + ':' + ('0' + m[4]).slice(-2);
+    var f = _parseFecha(dt);
+    if (!f) return '—';
+    return _pad(f.getHours()) + ':' + _pad(f.getMinutes());
 }
 function formatFechaHora(dt) {
-    if (!dt) return '—';
-    var m = dt.match(/(\d+)/g);
-    if (!m) return dt;
-    return ('0' + m[2]).slice(-2) + '/' + ('0' + m[1]).slice(-2) + '/' + m[0] +
-           ' ' + ('0' + m[3]).slice(-2) + ':' + ('0' + m[4]).slice(-2);
+    var f = _parseFecha(dt);
+    if (!f) return '—';
+    return _pad(f.getDate()) + '/' + _pad(f.getMonth() + 1) + '/' + f.getFullYear() +
+           ' ' + _pad(f.getHours()) + ':' + _pad(f.getMinutes());
 }

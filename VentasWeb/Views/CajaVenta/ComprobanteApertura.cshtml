@@ -175,8 +175,12 @@
         <!-- Datos -->
         <table class="datos-tabla">
             <tr>
-                <td class="label">Tienda:</td>
+                <td class="label">Tienda - Establecimiento:</td>
                 <td class="valor">@Model.NombreTienda</td>
+            </tr>
+            <tr>
+                <td class="label">Caja:</td>
+                <td class="valor">@Model.CodigoCaja @(string.IsNullOrWhiteSpace(Model.NombreCaja) ? "" : "— " + Model.NombreCaja) (Pto. Exp. @Model.PuntoExpedicion)</td>
             </tr>
             <tr>
                 <td class="label">Cajero:</td>
