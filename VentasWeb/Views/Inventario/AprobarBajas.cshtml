@@ -1,0 +1,54 @@
+@{
+    ViewBag.Title = "Aprobar Bajas";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Inventario</a></li>
+        <li class="breadcrumb-item active">Aprobar Bajas</li>
+    </ol>
+</nav>
+
+<div class="card border-warning">
+    <div class="card-header bg-warning">
+        <i class="fas fa-clipboard-check mr-1"></i> Aprobación de Bajas de Stock
+    </div>
+    <div class="card-body">
+        <div class="row align-items-end mb-2">
+            <div class="col-sm-3">
+                <label class="col-form-label-sm font-weight-bold">Estado:</label>
+                <select id="ddlEstado" class="form-control form-control-sm">
+                    <option value="Pendiente" selected>Pendientes</option>
+                    <option value="Aprobada">Aprobadas</option>
+                    <option value="Rechazada">Rechazadas</option>
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button id="btnBuscar" class="btn btn-sm btn-primary btn-block"><i class="fas fa-search"></i> Buscar</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table id="tbBajas" class="table table-sm table-bordered table-hover" style="width:100%">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tienda</th>
+                        <th>Producto</th>
+                        <th class="text-center">Cant.</th>
+                        <th>Motivo</th>
+                        <th>Solicitó</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyBajas"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/Inventario_AprobarBajas.js?v=" + DateTime.Now.Ticks)"></script>
+}

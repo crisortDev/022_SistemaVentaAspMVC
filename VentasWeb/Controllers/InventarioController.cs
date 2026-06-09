@@ -86,19 +86,61 @@ namespace VentasWeb.Controllers
                 if (cantidad <= 0)
                     return Json(new { resultado = false, mensaje = "La cantidad debe ser mayor a cero." });
 
+                if (UsuarioActual == null)
+                    return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
                 // ── Validar permiso por tienda activa ─────────────
                 if (!TienePermiso(TiendaActiva))
                     return Json(new { resultado = false, mensaje = "No tiene permisos para dar de baja stock en esta sucursal." });
 
-                string resultado = CD_Inventario.Instancia.BajarStock(idProductoTienda, cantidad, motivo, idProducto, idMotivoBaja);
+                // La baja queda PENDIENTE de aprobación (no descuenta stock todavía)
+                var r = CD_Inventario.Instancia.RegistrarBajaPendiente(
+                    idProductoTienda, idProducto, cantidad, idMotivoBaja, motivo, UsuarioActual.IdUsuario);
 
-                bool exito = resultado.Contains("correctamente");
-                return Json(new { resultado = exito, mensaje = resultado });
+                return Json(new { resultado = r.resultado, mensaje = r.mensaje });
             }
             catch (Exception ex)
             {
                 return Json(new { resultado = false, mensaje = ex.Message });
             }
+        }
+
+        // ── Pantalla de aprobación de bajas ────────────────────────────────
+        [AuthorizeRol("Inventario", "Aprobar Bajas")]
+        public ActionResult AprobarBajas()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AuthorizeRol("Inventario", "Aprobar Bajas")]
+        public JsonResult ObtenerBajas(string estado = "")
+        {
+            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            var lista = CD_Inventario.Instancia.ObtenerBajas(idTienda, estado);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Bajas")]
+        public JsonResult AprobarBaja(int idHistorial)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            var r = CD_Inventario.Instancia.AprobarBaja(idHistorial, UsuarioActual.IdUsuario, EsSuperAdmin);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Bajas")]
+        public JsonResult RechazarBaja(int idHistorial, string motivoRechazo)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            var r = CD_Inventario.Instancia.RechazarBaja(idHistorial, UsuarioActual.IdUsuario, motivoRechazo);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
 
         [HttpGet]

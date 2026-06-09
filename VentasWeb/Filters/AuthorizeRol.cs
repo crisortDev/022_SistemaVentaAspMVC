@@ -75,7 +75,12 @@ namespace VentasWeb.Filters
             // ── Parámetros Tributarios ────────────────────────────
             { "ParametrosTributarios|Index",               "Parámetros Tributarios"     },
             { "ParametrosTributarios|Guardar",             "Parámetros Tributarios"     },
-            { "ParametrosTributarios|Obtener",             "Parámetros Tributarios"     }
+            { "ParametrosTributarios|Obtener",             "Parámetros Tributarios"     },
+            // ── Inventario: Aprobación de bajas ───────────────────
+            { "Inventario|AprobarBajas",                   "Aprobar Bajas"              },
+            { "Inventario|ObtenerBajas",                   "Aprobar Bajas"              },
+            { "Inventario|AprobarBaja",                    "Aprobar Bajas"              },
+            { "Inventario|RechazarBaja",                   "Aprobar Bajas"              }
         };
 
         public AuthorizeRolAttribute(string controlador, string vista)

@@ -1,6 +1,21 @@
 @{
     ViewBag.Title = "Consultar Pre-ventas";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var usuarioActual = Session["Usuario"] as CapaModelo.Usuario;
+    bool esSuperAdminOV = Session["EsSuperAdmin"] is bool saOV && saOV;
+    int idRolActual = usuarioActual?.IdRol ?? 0;
+    bool esRepositor = idRolActual == 7;
+    // Cajero (4), Admin (1), SuperAdmin (14) pueden facturar
+    bool puedeFacturar = esSuperAdminOV || idRolActual == 4 || idRolActual == 1;
+}
+<input type="hidden" id="hdnPuedeFacturar" value="@(puedeFacturar ? "1" : "0")" />
+<input type="hidden" id="hdnEsRepositor" value="@(esRepositor ? "1" : "0")" />
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle mr-1"></i> @TempData["Error"]
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
 }
 
 <nav aria-label="breadcrumb">
@@ -98,6 +113,43 @@
                 <button type="button" class="btn btn-danger btn-sm" onclick="confirmarAnular()">
                     <i class="fas fa-ban"></i> Anular
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL VER DETALLE PRODUCTOS -->
+<div class="modal fade" id="modalDetalleOV" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white py-2">
+                <h5 class="modal-title"><i class="fas fa-clipboard-list mr-1"></i> Detalle Pre-venta: <span id="lblNumeroOVDetalle"></span></h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body p-2">
+                <div id="panelDetalleOV">
+                    <table class="table table-sm table-bordered table-hover mb-0" id="tbDetalleOV">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-right">Precio Unit.</th>
+                                <th class="text-right">IVA%</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDetalleOV"></tbody>
+                        <tfoot>
+                            <tr class="table-primary font-weight-bold">
+                                <td colspan="4" class="text-right">Total Estimado</td>
+                                <td class="text-right" id="tdTotalDetalleOV"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

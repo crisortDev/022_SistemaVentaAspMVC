@@ -107,6 +107,30 @@ function abrirModalCobrar(idCompCobro, factura, cliente, montoTotal, vencimiento
     $('#txtMontoRecibido').val('');
     $('#txtObservacion').val('');
     $('#alertCambio').hide();
+    $('#alertaFormasCobro').remove();
+
+    // ── Filtrar formas de pago según apertura de caja ──────────────────────
+    var apertura = parseFloat($('#hdnMontoAperturaFondo').val()) || 0;
+    var $select  = $('#ddlFormaCobro');
+
+    // Restaurar todas las opciones primero (en caso de re-apertura del modal)
+    $select.find('option').show().prop('disabled', false);
+
+    if (apertura === 0) {
+        // Sin fondo: no puede dar vuelto → deshabilitar Efectivo
+        $select.find('option').filter(function () {
+            return $(this).text().trim().toLowerCase() === 'efectivo';
+        }).hide().prop('disabled', true);
+
+        $select.closest('.form-group').prepend(
+            '<div class="alert alert-warning py-1 px-2 mb-2" id="alertaFormasCobro" style="font-size:12px;">' +
+            '<i class="fas fa-info-circle mr-1"></i>' +
+            'Caja sin fondo — solo se aceptan formas de pago sin efectivo (Transferencia, etc.).' +
+            '</div>'
+        );
+    }
+    // Si apertura > 0: todas las formas habilitadas (efectivo + transferencia + etc.)
+
     $('#modalCobrar').modal('show');
     setTimeout(function () { $('#txtMontoRecibido').focus(); }, 400);
 }

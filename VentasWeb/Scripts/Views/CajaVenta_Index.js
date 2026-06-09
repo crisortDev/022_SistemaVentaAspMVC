@@ -102,40 +102,69 @@ function recargarOperaciones() {
         if (!r.operaciones || r.operaciones.length === 0) {
             tbody.append('<tr><td colspan="9" class="text-center text-muted">Sin operaciones en este turno.</td></tr>');
         } else {
-            var totalContado = 0, totalCredito = 0;
+            var totalContado = 0, totalCredito = 0, totalCXC = 0;
             r.operaciones.forEach(function (op) {
                 var esCredito = (op.Condicion === 'Crédito');
-                var badgeEstado = op.Estado === 'Activa'
-                    ? '<span class="badge badge-success">Activa</span>'
-                    : '<span class="badge badge-danger">Anulada</span>';
-                var badgeCond = esCredito
-                    ? '<span class="badge badge-secondary ml-1">Crédito</span>'
-                    : '';
-                var monto = op.Estado === 'Activa' ? op.Monto : 0;
-                if (op.Estado === 'Activa') {
-                    if (esCredito) totalCredito += monto;
+                var esCXC     = (op.Condicion === 'CobroCXC');
+
+                var badgeEstado, badgeCond, trClass;
+
+                if (esCXC) {
+                    // Cobro de deuda CXC — fondo verde claro
+                    badgeEstado = '<span class="badge badge-info">Cobro CXC</span>';
+                    badgeCond   = '';
+                    trClass     = 'class="table-success"';
+                } else if (esCredito) {
+                    badgeEstado = '<span class="badge badge-warning">Pendiente</span>';
+                    badgeCond   = '<span class="badge badge-secondary ml-1">Crédito</span>';
+                    trClass     = 'class="table-secondary"';
+                } else {
+                    badgeEstado = op.Estado === 'Activa'
+                        ? '<span class="badge badge-success">Activa</span>'
+                        : '<span class="badge badge-danger">Anulada</span>';
+                    badgeCond = '';
+                    trClass   = '';
+                }
+
+                var monto = esCXC ? op.MontoRecibido : (op.Estado === 'Activa' ? op.Monto : 0);
+                if (esCXC) {
+                    totalCXC += monto;
+                } else if (op.Estado === 'Activa') {
+                    if (esCredito) totalCredito += op.Monto;
                     else           totalContado += monto;
                 }
                 total += monto;
+
                 var btnReimprimir = op.IdVenta
                     ? '<a href="' + $.MisUrls.url._Venta_Documento + '?idVenta=' + op.IdVenta + '" target="_blank" class="btn btn-xs btn-outline-primary btn-sm" title="Reimprimir factura"><i class="fas fa-print"></i></a>'
                     : '';
-                var trClass = esCredito ? 'class="table-secondary"' : '';
+
+                // Columnas según tipo de operación
+                var colFormaCobro = esCXC   ? op.FormaCobro
+                                  : esCredito ? '<em class="text-muted">Crédito</em>'
+                                  : op.FormaCobro;
+                var colRecibido   = esCXC   ? 'Gs. ' + formatGs(op.MontoRecibido)
+                                  : esCredito ? '<em class="text-muted">Pend.</em>'
+                                  : 'Gs. ' + formatGs(op.MontoRecibido);
+                var colCambio     = (esCXC || !esCredito) ? 'Gs. ' + formatGs(op.MontoCambio) : '—';
+                var colMonto      = esCXC ? 'Gs. ' + formatGs(op.MontoRecibido)
+                                          : 'Gs. ' + formatGs(op.Monto);
+
                 tbody.append(
                     '<tr ' + trClass + '>' +
                     '<td>' + fila++ + '</td>' +
                     '<td>' + formatHora(op.FechaRegistro) + '</td>' +
                     '<td><code>' + op.NumeroFactura + '</code> ' + btnReimprimir + '</td>' +
                     '<td>' + op.NombreCliente + '</td>' +
-                    '<td>' + (esCredito ? '<em class="text-muted">Crédito</em>' : op.FormaCobro) + '</td>' +
-                    '<td class="text-right">Gs. ' + formatGs(op.Monto) + '</td>' +
-                    '<td class="text-right">' + (esCredito ? '<em class="text-muted">Pend.</em>' : 'Gs. ' + formatGs(op.MontoRecibido)) + '</td>' +
-                    '<td class="text-right">' + (esCredito ? '—' : 'Gs. ' + formatGs(op.MontoCambio)) + '</td>' +
+                    '<td>' + colFormaCobro + '</td>' +
+                    '<td class="text-right">' + colMonto + '</td>' +
+                    '<td class="text-right">' + colRecibido + '</td>' +
+                    '<td class="text-right">' + colCambio + '</td>' +
                     '<td>' + badgeEstado + badgeCond + '</td>' +
                     '</tr>'
                 );
             });
-            // Actualizar tarjetas de contado/crédito
+            // Actualizar tarjetas de contado/crédito/CXC
             $('#lblTotalContado').text('Gs. ' + formatGs(totalContado));
             $('#lblTotalCredito').text('Gs. ' + formatGs(totalCredito));
         }

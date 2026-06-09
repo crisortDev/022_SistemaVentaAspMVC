@@ -3,7 +3,9 @@
     ViewBag.Title = "Cuentas por Cobrar";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var formasCobro = ViewBag.FormasCobro as List<FormaCobro> ?? new List<FormaCobro>();
+    decimal montoAperturaFondo = ViewBag.MontoAperturaFondo != null ? (decimal)ViewBag.MontoAperturaFondo : 0m;
 }
+<input type="hidden" id="hdnMontoAperturaFondo" value="@montoAperturaFondo" />
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">

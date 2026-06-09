@@ -19,9 +19,20 @@
                 Lista Tiendas
             </div>
             <div class="card-body">
+                @{
+                    bool esSuperAdminTienda = Session["EsSuperAdmin"] is bool sa && sa;
+                }
+                <input type="hidden" id="hdnSoloLectura" value="@(esSuperAdminTienda ? "0" : "1")" />
                 <div class="row">
                     <div class="col-sm-4">
-                        <button type="button" class="btn btn-sm btn-success" onclick="abrirPopUpForm(null)"><i class="fa fa-plus" aria-hidden="true"></i>  Agregar Nuevo</button>
+                        @if (esSuperAdminTienda)
+                        {
+                            <button type="button" class="btn btn-sm btn-success" onclick="abrirPopUpForm(null)"><i class="fa fa-plus" aria-hidden="true"></i>  Agregar Nuevo</button>
+                        }
+                        else
+                        {
+                            <span class="badge badge-info"><i class="fas fa-eye mr-1"></i> Solo consulta — las tiendas son administradas por el SuperAdmin.</span>
+                        }
                     </div>
                 </div>
                 <hr />

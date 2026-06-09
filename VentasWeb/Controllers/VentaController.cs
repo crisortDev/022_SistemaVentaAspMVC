@@ -25,11 +25,18 @@ namespace VentasWeb.Controllers
         }
 
         /// <summary>Pantalla de cobro/facturación desde una pre-venta.</summary>
-        [AuthorizeRol("Venta", "Registrar Venta Directa")]
+        [AuthorizeRol("OrdenVenta", "Consultar Pre-ventas")]
         public ActionResult Facturar(int idOrdenVenta = 0)
         {
             if (UsuarioActual == null) return RedirectToAction("Index", "Login");
             if (idOrdenVenta == 0) return RedirectToAction("Consultar", "OrdenVenta");
+
+            // ── Repositor no puede facturar ───────────────────────────────────
+            if (UsuarioActual.IdRol == 7)
+            {
+                TempData["Error"] = "Tu rol (Repositor) no tiene permiso para facturar pre-ventas. Solicitá a un Cajero o Administrador.";
+                return RedirectToAction("Consultar", "OrdenVenta");
+            }
 
             // ── Control: debe tener una caja ABIERTA para poder facturar ──
             if (CajaId == 0)
@@ -41,6 +48,10 @@ namespace VentasWeb.Controllers
             var ov = CD_OrdenVenta.Instancia.ObtenerDetalleOrdenVenta(idOrdenVenta);
             if (ov == null || ov.Estado != "Pendiente")
                 return RedirectToAction("Consultar", "OrdenVenta");
+
+            // ── MontoApertura de la caja activa (para lógica de fondo) ────────
+            var caja = CD_CajaVenta.Instancia.ObtenerDetalleCaja(CajaId);
+            ViewBag.MontoAperturaFondo = caja?.MontoApertura ?? 0m;
 
             ViewBag.DatosTributarios = CD_Venta.Instancia.ObtenerDatosTributarios();
             return View(ov);
@@ -127,7 +138,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("Venta", "Registrar Venta Directa")]
+        [AuthorizeRol("OrdenVenta", "Consultar Pre-ventas")]
         public JsonResult FacturarDesdeOV(
             int idOrdenVenta, int idCliente,
             int idFormaCobro, decimal importeRecibido,
@@ -135,6 +146,10 @@ namespace VentasWeb.Controllers
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            // ── Repositor no puede facturar ────────────────────────────────────
+            if (UsuarioActual.IdRol == 7)
+                return Json(new { resultado = false, mensaje = "Tu rol (Repositor) no tiene permiso para facturar. Solicitá a un Cajero o Administrador." });
 
             // Control: debe haber una caja abierta para este cajero antes de facturar
             int idCajaActual = CajaId;

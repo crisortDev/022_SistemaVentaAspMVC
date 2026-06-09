@@ -221,20 +221,29 @@ function actualizarCantidad(idx, val) {
     renderizarDetalle();
 }
 
+// Redondea al múltiplo de 50 superior (moneda mínima en Paraguay = 50 Gs)
+function r50(n) { return Math.ceil((n || 0) / 50) * 50; }
+
 function actualizarTotales() {
     var totalCant = 0, totalGs = 0, iva10 = 0, iva5 = 0, grav10 = 0, grav5 = 0;
     itemsDetalle.forEach(function (item) {
-        var desc      = item.descuento || 0;
+        var desc       = item.descuento || 0;
         var precioEfec = item.precio * (1 - desc / 100);
-        var linea = Math.round(precioEfec * item.cantidad); totalCant += item.cantidad; totalGs += linea;
+        var linea      = Math.round(precioEfec * item.cantidad);
+        totalCant += item.cantidad;
+        totalGs   += linea;
         if (item.iva == 10) { iva10 += Math.round(linea * 10 / 110); grav10 += Math.round(linea * 100 / 110); }
         else if (item.iva == 5) { iva5 += Math.round(linea * 5 / 105); }
     });
+
+    // Redondear el total al múltiplo de 50 superior
+    var totalRedondeado = r50(totalGs);
+
     $('#tfCantidad').text(totalCant);
-    $('#tfTotal').text('Gs. ' + formatGs(totalGs));
+    $('#tfTotal').text('Gs. ' + formatGs(totalRedondeado));
     $('#tfIva10').text(formatGs(iva10));
     $('#tfIva5').text(formatGs(iva5));
-    $('#tfTotalFinal').text('Gs. ' + formatGs(totalGs));
+    $('#tfTotalFinal').text('Gs. ' + formatGs(totalRedondeado));
 }
 
 function guardarPreVenta() {

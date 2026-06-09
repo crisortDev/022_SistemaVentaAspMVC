@@ -47,6 +47,13 @@ namespace VentasWeb.Controllers
         {
             // Cargar formas de cobro para el modal de cobrar
             ViewBag.FormasCobro = CD_Venta.Instancia.ObtenerFormasCobro();
+
+            // Pasar el MontoApertura de la caja activa para filtrar formas de pago
+            // Apertura = 0  → no puede dar vuelto → solo formas sin efectivo
+            // Apertura > 0  → puede dar vuelto → todas las formas habilitadas
+            var caja = CD_CajaVenta.Instancia.ObtenerDetalleCaja(CajaId);
+            ViewBag.MontoAperturaFondo = caja?.MontoApertura ?? 0m;
+
             return View();
         }
 
@@ -65,9 +72,10 @@ namespace VentasWeb.Controllers
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  REGISTRAR COBRO (Supervisor / Admin únicamente)
-        //  Segregación de funciones: el CAJERO NO puede cobrar cuentas a crédito.
-        //  Solo SUPERVISOR (IdRol 7) y SUPERADMIN (IdRol 14) tienen acceso.
+        //  REGISTRAR COBRO
+        //  Cualquier usuario con permiso "Cuentas por Cobrar" puede cobrar:
+        //  Cajero (4), Supervisor (11), Admin (1), SuperAdmin (14).
+        //  Debe tener caja abierta para que el cobro quede vinculado al turno.
         // ════════════════════════════════════════════════════════════════════
 
         [HttpPost]
@@ -75,18 +83,15 @@ namespace VentasWeb.Controllers
         public JsonResult Cobrar(int idCompCobro, int idFormaCobro,
                                   decimal montoRecibido, string observacion = "")
         {
-            // Verificar rol: solo supervisor o superadmin pueden cobrar
             var usuario = UsuarioActual;
             if (usuario == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            // IdRol 4 = CAJERO → no puede cobrar cuentas a crédito
-            if (usuario.IdRol == 4)
-                return Json(new { resultado = false,
-                    mensaje = "El cajero no puede registrar cobros de facturas a crédito. Contactá al supervisor." });
-
-            // Obtener caja activa del turno (puede ser 0 si no hay caja abierta)
+            // Debe tener caja abierta para vincular el cobro al turno
             int idCaja = CajaId;
+            if (idCaja == 0)
+                return Json(new { resultado = false,
+                    mensaje = "Debe tener una caja ABIERTA para registrar cobros. Abra una caja e intente de nuevo." });
 
             var (resultado, mensaje, idComp) = CD_ComprobanteCobro.Instancia.CobrarCuenta(
                 idCompCobro,

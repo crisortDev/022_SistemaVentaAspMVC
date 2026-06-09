@@ -44,9 +44,13 @@ $(document).ready(function () {
             },
             {
                 "data": "IdTienda", "render": function (data, type, row, meta) {
-                    return "<button class='btn btn-info btn-sm mr-1' type='button' onclick='verTienda(" + JSON.stringify(row) + ")' title='Ver detalle'><i class='fa fa-eye'></i></button>" +
-                        "<button class='btn btn-primary btn-sm mr-1' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>" +
-                        "<button class='btn btn-danger btn-sm' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>"
+                    var soloLectura = $('#hdnSoloLectura').val() === '1';
+                    var btns = "<button class='btn btn-info btn-sm mr-1' type='button' onclick='verTienda(" + JSON.stringify(row) + ")' title='Ver detalle'><i class='fa fa-eye'></i></button>";
+                    if (!soloLectura) {
+                        btns += "<button class='btn btn-primary btn-sm mr-1' type='button' onclick='abrirPopUpForm(" + JSON.stringify(row) + ")'><i class='fas fa-pen'></i></button>" +
+                                "<button class='btn btn-danger btn-sm' type='button' onclick='eliminar(" + data + ")'><i class='fa fa-trash'></i></button>";
+                    }
+                    return btns;
                 },
                 "orderable": false,
                 "searchable": false,

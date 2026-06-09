@@ -130,6 +130,110 @@ namespace CapaDatos
             }
         }
 
+        // ── Registrar baja PENDIENTE (no descuenta hasta aprobar) ──────────
+        public (bool resultado, string mensaje) RegistrarBajaPendiente(
+            int idProductoTienda, int idProducto, int cantidad,
+            int idMotivoBaja, string observaciones, int idUsuarioRegistro)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            {
+                using (var cmd = new SqlCommand("usp_RegistrarBajaPendiente", oConexion)
+                { CommandType = CommandType.StoredProcedure })
+                {
+                    cmd.Parameters.AddWithValue("@IdProductoTienda",  idProductoTienda);
+                    cmd.Parameters.AddWithValue("@IdProducto",        idProducto);
+                    cmd.Parameters.AddWithValue("@Cantidad",          cantidad);
+                    cmd.Parameters.AddWithValue("@IdMotivoBaja",      idMotivoBaja > 0 ? (object)idMotivoBaja : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Observaciones",     observaciones ?? "");
+                    cmd.Parameters.AddWithValue("@IdUsuarioRegistro", idUsuarioRegistro);
+                    var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit); pR.Direction = ParameterDirection.Output;
+                    var pM = cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                    try { oConexion.Open(); cmd.ExecuteNonQuery();
+                          return ((bool)pR.Value, pM.Value?.ToString()); }
+                    catch (Exception ex) { return (false, "Error: " + ex.Message); }
+                }
+            }
+        }
+
+        // ── Aprobar baja (descuenta stock) ─────────────────────────────────
+        public (bool resultado, string mensaje) AprobarBaja(int idHistorial, int idUsuarioAprueba, bool esSuperAdmin)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            {
+                using (var cmd = new SqlCommand("usp_AprobarBaja", oConexion)
+                { CommandType = CommandType.StoredProcedure })
+                {
+                    cmd.Parameters.AddWithValue("@IdHistorial",      idHistorial);
+                    cmd.Parameters.AddWithValue("@IdUsuarioAprueba", idUsuarioAprueba);
+                    cmd.Parameters.AddWithValue("@EsSuperAdmin",     esSuperAdmin);
+                    var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit); pR.Direction = ParameterDirection.Output;
+                    var pM = cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                    try { oConexion.Open(); cmd.ExecuteNonQuery();
+                          return ((bool)pR.Value, pM.Value?.ToString()); }
+                    catch (Exception ex) { return (false, "Error: " + ex.Message); }
+                }
+            }
+        }
+
+        // ── Rechazar baja (no toca stock) ──────────────────────────────────
+        public (bool resultado, string mensaje) RechazarBaja(int idHistorial, int idUsuarioAprueba, string motivoRechazo)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            {
+                using (var cmd = new SqlCommand("usp_RechazarBaja", oConexion)
+                { CommandType = CommandType.StoredProcedure })
+                {
+                    cmd.Parameters.AddWithValue("@IdHistorial",      idHistorial);
+                    cmd.Parameters.AddWithValue("@IdUsuarioAprueba", idUsuarioAprueba);
+                    cmd.Parameters.AddWithValue("@MotivoRechazo",    motivoRechazo ?? "");
+                    var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit); pR.Direction = ParameterDirection.Output;
+                    var pM = cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                    try { oConexion.Open(); cmd.ExecuteNonQuery();
+                          return ((bool)pR.Value, pM.Value?.ToString()); }
+                    catch (Exception ex) { return (false, "Error: " + ex.Message); }
+                }
+            }
+        }
+
+        // ── Listar bajas (con filtro por estado de aprobación) ─────────────
+        public List<dynamic> ObtenerBajas(int idTienda, string estadoAprobacion)
+        {
+            var lista = new List<dynamic>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            {
+                using (var cmd = new SqlCommand("usp_ObtenerBajas", oConexion)
+                { CommandType = CommandType.StoredProcedure })
+                {
+                    cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                    cmd.Parameters.AddWithValue("@EstadoAprobacion", estadoAprobacion ?? "");
+                    try
+                    {
+                        oConexion.Open();
+                        using (var dr = cmd.ExecuteReader())
+                            while (dr.Read())
+                                lista.Add(new {
+                                    IdHistorial      = Convert.ToInt32(dr["IdHistorial"]),
+                                    IdProducto       = dr["IdProducto"] == DBNull.Value ? 0 : Convert.ToInt32(dr["IdProducto"]),
+                                    CodigoProducto   = dr["CodigoProducto"]?.ToString(),
+                                    NombreProducto   = dr["NombreProducto"]?.ToString(),
+                                    Cantidad         = Convert.ToInt32(dr["Cantidad"]),
+                                    MotivoBaja       = dr["MotivoBaja"]?.ToString(),
+                                    Observaciones    = dr["Observaciones"]?.ToString(),
+                                    EstadoAprobacion = dr["EstadoAprobacion"]?.ToString(),
+                                    NombreTienda     = dr["NombreTienda"]?.ToString(),
+                                    FechaMovimiento  = dr["FechaMovimiento"]?.ToString(),
+                                    UsuarioRegistro  = dr["UsuarioRegistro"]?.ToString(),
+                                    UsuarioAprueba   = dr["UsuarioAprueba"]?.ToString(),
+                                    FechaAprobacion  = dr["FechaAprobacion"]?.ToString(),
+                                    MotivoRechazo    = dr["MotivoRechazo"]?.ToString()
+                                });
+                    }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("ObtenerBajas ERROR: " + ex.Message); }
+                }
+            }
+            return lista;
+        }
+
         public List<ProductoTiendaBaja> ObtenerProductosPorTiendaBaja(int idTienda)
         {
             List<ProductoTiendaBaja> lista = new List<ProductoTiendaBaja>();
