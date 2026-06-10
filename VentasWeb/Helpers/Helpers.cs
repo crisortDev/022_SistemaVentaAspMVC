@@ -50,7 +50,7 @@ namespace VentasWeb.Helpers
                 if (!subMenusActivos.Any()) continue;
 
                 sb.AppendLine($@"
-<li class='nav-item dropdown'>
+<li class='nav-item dropdown' name='{item.Nombre}'>
     <a class='nav-link dropdown-toggle' href='#' data-toggle='dropdown'>
         <i class='{item.Icono}'></i> {item.Nombre}
     </a>

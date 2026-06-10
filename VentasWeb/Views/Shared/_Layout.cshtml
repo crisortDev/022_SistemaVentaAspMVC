@@ -668,7 +668,12 @@
             _ObtenerMotivosBaja:                '@Url.Action("Obtener",                       "MotivoBaja")',
             _Inv_ObtenerBajas:                  '@Url.Action("ObtenerBajas",                  "Inventario")',
             _Inv_AprobarBaja:                   '@Url.Action("AprobarBaja",                   "Inventario")',
-            _Inv_RechazarBaja:                  '@Url.Action("RechazarBaja",                  "Inventario")'
+            _Inv_RechazarBaja:                  '@Url.Action("RechazarBaja",                  "Inventario")',
+            _Inv_RegistrarInventario:           '@Url.Action("RegistrarInventario",           "Inventario")',
+            _Inv_ObtenerInventarios:            '@Url.Action("ObtenerInventarios",            "Inventario")',
+            _Inv_ObtenerDetalleInventario:      '@Url.Action("ObtenerDetalleInventario",      "Inventario")',
+            _Inv_AprobarInventario:             '@Url.Action("AprobarInventario",             "Inventario")',
+            _Inv_RechazarInventario:            '@Url.Action("RechazarInventario",            "Inventario")'
         });
 
         // ---- DATATABLES ----
@@ -681,8 +686,11 @@
         function activarMenu(menuactivo) {
             $("ul.navbar-nav li.nav-item").each(function () {
                 var li = $(this);
+                // Coincidencia por nombre del menú padre (ej: "Compras", "Ventas")
+                if (li.attr("name") == menuactivo) { li.addClass("active"); return; }
                 var dropdown = li.find("div.dropdown-menu");
                 if (dropdown.length) {
+                    // Coincidencia por nombre del submenú (ej: "Baja de Productos")
                     dropdown.find("a.dropdown-item").each(function () {
                         if ($(this).attr("name") == menuactivo) li.addClass("active");
                     });

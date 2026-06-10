@@ -105,6 +105,90 @@ namespace VentasWeb.Controllers
             }
         }
 
+        // ════════ TOMA DE INVENTARIO (conteo físico) ════════════════════════
+
+        // Pantalla para cargar un conteo de inventario
+        [AuthorizeRol("Inventario", "Toma de Inventario")]
+        public ActionResult TomaInventario()
+        {
+            return View();
+        }
+
+        // Pantalla para aprobar inventarios
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public ActionResult Inventarios()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult ObtenerInventarios(string estado = "")
+        {
+            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            var lista = CD_Inventario.Instancia.ObtenerInventarios(idTienda, estado);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpGet]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult ObtenerDetalleInventario(int idInventario)
+        {
+            var lista = CD_Inventario.Instancia.ObtenerDetalleInventario(idInventario);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [ValidateInput(false)]
+        [AuthorizeRol("Inventario", "Toma de Inventario")]
+        public JsonResult RegistrarInventario(string detalleXml, string observacion, int idTienda = 0)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            if (string.IsNullOrWhiteSpace(detalleXml))
+                return Json(new { resultado = false, mensaje = "Debe contar al menos un producto." });
+
+            if (idTienda == 0) idTienda = TiendaActiva;
+            if (idTienda == 0)
+                return Json(new { resultado = false, mensaje = "No tiene una sucursal asignada." });
+
+            if (!TienePermiso(idTienda))
+                return AccesoDenegado();
+
+            var r = CD_Inventario.Instancia.RegistrarInventario(idTienda, UsuarioActual.IdUsuario, observacion, detalleXml);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje, idInventario = r.idInventario });
+        }
+
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult AprobarInventario(int idInventario)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            int idTiendaInv = CD_Inventario.Instancia.ObtenerTiendaDeInventario(idInventario);
+            if (!TienePermiso(idTiendaInv))
+                return Json(new { resultado = false, mensaje = "Solo puede aprobar inventarios de su propia sucursal." });
+
+            var r = CD_Inventario.Instancia.AprobarInventario(idInventario, UsuarioActual.IdUsuario, EsSuperAdmin);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult RechazarInventario(int idInventario, string motivoRechazo)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            int idTiendaInv = CD_Inventario.Instancia.ObtenerTiendaDeInventario(idInventario);
+            if (!TienePermiso(idTiendaInv))
+                return Json(new { resultado = false, mensaje = "Solo puede rechazar inventarios de su propia sucursal." });
+
+            var r = CD_Inventario.Instancia.RechazarInventario(idInventario, UsuarioActual.IdUsuario, motivoRechazo);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
         // ── Pantalla de aprobación de bajas ────────────────────────────────
         [AuthorizeRol("Inventario", "Aprobar Bajas")]
         public ActionResult AprobarBajas()

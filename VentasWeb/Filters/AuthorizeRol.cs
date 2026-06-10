@@ -80,7 +80,16 @@ namespace VentasWeb.Filters
             { "Inventario|AprobarBajas",                   "Aprobar Bajas"              },
             { "Inventario|ObtenerBajas",                   "Aprobar Bajas"              },
             { "Inventario|AprobarBaja",                    "Aprobar Bajas"              },
-            { "Inventario|RechazarBaja",                   "Aprobar Bajas"              }
+            { "Inventario|RechazarBaja",                   "Aprobar Bajas"              },
+            // ── Inventario: Toma de inventario (cargar conteo) ────
+            { "Inventario|TomaInventario",                 "Toma de Inventario"         },
+            { "Inventario|RegistrarInventario",            "Toma de Inventario"         },
+            // ── Inventario: aprobación de inventarios ─────────────
+            { "Inventario|Inventarios",                    "Inventarios"                },
+            { "Inventario|ObtenerInventarios",             "Inventarios"                },
+            { "Inventario|ObtenerDetalleInventario",       "Inventarios"                },
+            { "Inventario|AprobarInventario",              "Inventarios"                },
+            { "Inventario|RechazarInventario",             "Inventarios"                }
         };
 
         public AuthorizeRolAttribute(string controlador, string vista)

@@ -42,8 +42,8 @@
         var idMotivo = $("#cboMotivoBaja").val();
         var observaciones = $("#txtObservaciones").val().trim();
         var nombreProducto = $productoSeleccionado.text();
-        // Combinar motivo + observaciones para el campo Motivo del SP
-        var motivoCompleto = observaciones ? motivoDescripcion + " - " + observaciones : motivoDescripcion;
+        // Solo se envía el texto libre de observaciones; la descripción del motivo
+        // ya queda registrada por IdMotivoBaja y se recupera via JOIN en los reportes.
 
         // Validaciones
         if (!$("#cboTienda").val()) { swal("Atencion", "Seleccione una tienda.", "warning"); return; }
@@ -54,7 +54,7 @@
 
         swal({
             title: "Confirmar baja",
-            text: "Se daran de baja " + cantidad + " unidad(es) de: " + nombreProducto + " | Motivo: " + motivoCompleto,
+            text: "Se daran de baja " + cantidad + " unidad(es) de: " + nombreProducto + " | Motivo: " + motivoDescripcion + (observaciones ? " — " + observaciones : ""),
             type: "warning",
             showCancelButton: true,
             confirmButtonText: "Si, dar de baja",
@@ -65,7 +65,7 @@
                     idProductoTienda: idProductoTienda,
                     idProducto: idProducto,
                     cantidad: cantidad,
-                    motivo: motivoCompleto,
+                    motivo: observaciones,
                     idMotivoBaja: idMotivo
                 }, function (resp) {
                     if (resp.resultado) {

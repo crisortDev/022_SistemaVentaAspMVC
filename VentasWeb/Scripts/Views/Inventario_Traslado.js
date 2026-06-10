@@ -1,4 +1,4 @@
-﻿var tablaTraslados;
+var tablaTraslados;
 
 $(document).ready(function () {
     activarMenu("Traslado entre Tiendas");
@@ -36,40 +36,40 @@ $(document).ready(function () {
         var observaciones = $("#txtObservaciones").val().trim();
         var stockDisponible = parseInt($opcionProducto.attr("data-stock")) || 0;
 
-        if (!idTiendaOrigen) { swal("Atencion", "Seleccione la tienda origen.", "warning"); return; }
-        if (!idProducto) { swal("Atencion", "Seleccione un producto.", "warning"); return; }
-        if (!idTiendaDestino) { swal("Atencion", "Seleccione la tienda destino.", "warning"); return; }
-        if (String(idTiendaOrigen) === String(idTiendaDestino)) { swal("Atencion", "La tienda origen y destino no pueden ser la misma.", "warning"); return; }
-        if (cantidad <= 0) { swal("Atencion", "La cantidad debe ser mayor a cero.", "warning"); return; }
-        if (cantidad > stockDisponible) { swal("Atencion", "Stock insuficiente. Disponible: " + stockDisponible, "warning"); return; }
+        if (!idTiendaOrigen) { toastr.warning("Seleccione la tienda origen."); return; }
+        if (!idProducto) { toastr.warning("Seleccione un producto."); return; }
+        if (!idTiendaDestino) { toastr.warning("Seleccione la tienda destino."); return; }
+        if (String(idTiendaOrigen) === String(idTiendaDestino)) { toastr.warning("La tienda origen y destino no pueden ser la misma."); return; }
+        if (cantidad <= 0) { toastr.warning("La cantidad debe ser mayor a cero."); return; }
+        if (cantidad > stockDisponible) { toastr.warning("Stock insuficiente. Disponible: " + stockDisponible); return; }
 
-        swal({
+        Swal.fire({
             title: "Confirmar traslado",
-            text: cantidad + " unidad(es) de " + $opcionProducto.text() +
-                " | De: " + $("#cboTiendaOrigen option:selected").text() +
-                " | A: " + $("#cboTiendaDestino option:selected").text(),
-            type: "warning",
+            html: "<b>" + cantidad + "</b> unidad(es) de <b>" + $opcionProducto.text() + "</b><br>" +
+                  "De: <b>" + $("#cboTiendaOrigen option:selected").text() + "</b><br>" +
+                  "A: <b>" + $("#cboTiendaDestino option:selected").text() + "</b>",
+            icon: "warning",
             showCancelButton: true,
-            confirmButtonText: "Si, trasladar",
-            cancelButtonText: "Cancelar"
-        }, function (confirmado) {
-            if (confirmado) {
-                $.post("/Inventario/RegistrarTraslado", {
-                    idProducto: idProducto,
-                    idTiendaOrigen: idTiendaOrigen,
-                    idTiendaDestino: idTiendaDestino,
-                    cantidad: cantidad,
-                    observaciones: observaciones
-                }, function (resp) {
-                    if (resp.resultado) {
-                        swal("Exito", resp.mensaje, "success");
-                        limpiarFormulario();
-                        buscarHistorial();
-                    } else {
-                        swal("Error", resp.mensaje, "error");
-                    }
-                });
-            }
+            confirmButtonText: "Sí, trasladar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#28a745"
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.post($.MisUrls.url._RegistrarTraslado, {
+                idProducto: idProducto,
+                idTiendaOrigen: idTiendaOrigen,
+                idTiendaDestino: idTiendaDestino,
+                cantidad: cantidad,
+                observaciones: observaciones
+            }, function (resp) {
+                if (resp.resultado) {
+                    toastr.success(resp.mensaje);
+                    limpiarFormulario();
+                    buscarHistorial();
+                } else {
+                    toastr.error(resp.mensaje);
+                }
+            });
         });
     });
 });
@@ -91,7 +91,7 @@ function cargarTiendas() {
 }
 
 function cargarProductosPorTienda(idTienda) {
-    $.get("/Inventario/ObtenerProductosPorTienda", { idTienda: idTienda }, function (resp) {
+    $.get($.MisUrls.url._ObtenerProductosPorTiendaTraslado, { idTienda: idTienda }, function (resp) {
         var opts = '<option value="">-- Seleccione producto --</option>';
         (resp.data || []).forEach(function (p) {
             opts += '<option value="' + p.IdProducto + '" data-idproductotienda="' + p.IdProductoTienda + '" data-stock="' + p.Stock + '">' + p.Codigo + ' - ' + p.Nombre + ' (Stock: ' + p.Stock + ')</option>';
@@ -103,7 +103,7 @@ function cargarProductosPorTienda(idTienda) {
 function inicializarTablaHistorial() {
     tablaTraslados = $('#tbTraslados').DataTable({
         ajax: {
-            url: "/Inventario/ObtenerHistorialTraslados",
+            url: $.MisUrls.url._ObtenerHistorialTraslados,
             type: "GET",
             data: function () {
                 return {
@@ -132,7 +132,7 @@ function inicializarTablaHistorial() {
 
 function buscarHistorial() {
     if (!$("#txtFechaInicio").val() || !$("#txtFechaFin").val()) {
-        swal("Atencion", "Debe ingresar fechas para buscar.", "warning");
+        toastr.warning("Debe ingresar fechas para buscar.");
         return;
     }
     tablaTraslados.ajax.reload();

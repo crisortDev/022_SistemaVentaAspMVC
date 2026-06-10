@@ -35,11 +35,11 @@ $('#btnBuscar').on('click', function () {
     var fechaFin = $("#txtFechaFin").val();
 
     if (!fechaInicio || !fechaFin) {
-        Swal.fire("Atención", "Debe seleccionar un rango de fechas.", "warning");
+        Swal.fire("Atenciï¿½n", "Debe seleccionar un rango de fechas.", "warning");
         return;
     }
     if (fechaInicio > fechaFin) {
-        Swal.fire("Atención", "La fecha inicio no puede ser mayor a la fecha fin.", "warning");
+        Swal.fire("Atenciï¿½n", "La fecha inicio no puede ser mayor a la fecha fin.", "warning");
         return;
     }
 
@@ -63,7 +63,7 @@ $('#btnBuscar').on('click', function () {
             $tbody.empty();
 
             if (!data || data.length === 0) {
-                $tbody.html('<tr><td colspan="7" class="text-center text-muted">No se encontraron bajas en el período seleccionado.</td></tr>');
+                $tbody.html('<tr><td colspan="7" class="text-center text-muted">No se encontraron bajas en el perï¿½odo seleccionado.</td></tr>');
                 return;
             }
 
@@ -73,7 +73,6 @@ $('#btnBuscar').on('click', function () {
                     $("<td>").text(row.NombreTienda || ""),
                     $("<td>").text(row.CodigoProducto || ""),
                     $("<td>").text(row.NombreProducto || ""),
-                    $("<td>").text(row.MotivoDescripcion || ""),
                     $("<td>").text(row.Cantidad || 0),
                     $("<td>").text(row.Observaciones || ""),
                     $("<td>").text(row.RucTienda || "")

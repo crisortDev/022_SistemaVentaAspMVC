@@ -234,6 +234,137 @@ namespace CapaDatos
             return lista;
         }
 
+        // ════════ TOMA DE INVENTARIO (conteo físico) ════════════════════════
+
+        public (bool resultado, string mensaje, int idInventario) RegistrarInventario(
+            int idTienda, int idUsuarioRegistro, string observacion, string detalleXml)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_RegistrarInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                cmd.Parameters.AddWithValue("@IdUsuarioRegistro", idUsuarioRegistro);
+                cmd.Parameters.AddWithValue("@Observacion", observacion ?? "");
+                cmd.Parameters.AddWithValue("@DetalleXml", detalleXml ?? "");
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit); pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                var pI = cmd.Parameters.Add("@IdInventario", SqlDbType.Int); pI.Direction = ParameterDirection.Output;
+                try { oConexion.Open(); cmd.ExecuteNonQuery();
+                      return ((bool)pR.Value, pM.Value?.ToString(), pI.Value == DBNull.Value ? 0 : (int)pI.Value); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message, 0); }
+            }
+        }
+
+        public (bool resultado, string mensaje) AprobarInventario(int idInventario, int idUsuarioAprueba, bool esSuperAdmin)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_AprobarInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario", idInventario);
+                cmd.Parameters.AddWithValue("@IdUsuarioAprueba", idUsuarioAprueba);
+                cmd.Parameters.AddWithValue("@EsSuperAdmin", esSuperAdmin);
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit); pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                try { oConexion.Open(); cmd.ExecuteNonQuery();
+                      return ((bool)pR.Value, pM.Value?.ToString()); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message); }
+            }
+        }
+
+        public (bool resultado, string mensaje) RechazarInventario(int idInventario, int idUsuarioAprueba, string motivoRechazo)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_RechazarInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario", idInventario);
+                cmd.Parameters.AddWithValue("@IdUsuarioAprueba", idUsuarioAprueba);
+                cmd.Parameters.AddWithValue("@MotivoRechazo", motivoRechazo ?? "");
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit); pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje", SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                try { oConexion.Open(); cmd.ExecuteNonQuery();
+                      return ((bool)pR.Value, pM.Value?.ToString()); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message); }
+            }
+        }
+
+        public List<dynamic> ObtenerInventarios(int idTienda, string estado)
+        {
+            var lista = new List<dynamic>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerInventarios", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                cmd.Parameters.AddWithValue("@Estado", estado ?? "");
+                try
+                {
+                    oConexion.Open();
+                    using (var dr = cmd.ExecuteReader())
+                        while (dr.Read())
+                            lista.Add(new {
+                                IdInventario    = Convert.ToInt32(dr["IdInventario"]),
+                                Numero          = dr["Numero"]?.ToString(),
+                                NombreTienda    = dr["NombreTienda"]?.ToString(),
+                                Estado          = dr["Estado"]?.ToString(),
+                                Observacion     = dr["Observacion"]?.ToString(),
+                                FechaRegistro   = dr["FechaRegistro"]?.ToString(),
+                                UsuarioRegistro = dr["UsuarioRegistro"]?.ToString(),
+                                UsuarioAprueba  = dr["UsuarioAprueba"]?.ToString(),
+                                FechaAprobacion = dr["FechaAprobacion"]?.ToString(),
+                                MotivoRechazo   = dr["MotivoRechazo"]?.ToString(),
+                                CantItems       = Convert.ToInt32(dr["CantItems"]),
+                                CantDiferencias = Convert.ToInt32(dr["CantDiferencias"])
+                            });
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("ObtenerInventarios ERROR: " + ex.Message); }
+            }
+            return lista;
+        }
+
+        public List<dynamic> ObtenerDetalleInventario(int idInventario)
+        {
+            var lista = new List<dynamic>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerDetalleInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario", idInventario);
+                try
+                {
+                    oConexion.Open();
+                    using (var dr = cmd.ExecuteReader())
+                        while (dr.Read())
+                            lista.Add(new {
+                                CodigoProducto = dr["CodigoProducto"]?.ToString(),
+                                NombreProducto = dr["NombreProducto"]?.ToString(),
+                                StockSistema   = Convert.ToInt64(dr["StockSistema"]),
+                                StockContado   = Convert.ToInt64(dr["StockContado"]),
+                                Diferencia     = Convert.ToInt64(dr["Diferencia"])
+                            });
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("ObtenerDetalleInventario ERROR: " + ex.Message); }
+            }
+            return lista;
+        }
+
+        /// <summary>
+        /// Retorna el IdTienda al que pertenece un inventario. 0 si no existe.
+        /// Se usa para validar que el aprobador pertenece a la misma sucursal.
+        /// </summary>
+        public int ObtenerTiendaDeInventario(int idInventario)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("SELECT IdTienda FROM dbo.INVENTARIO WHERE IdInventario = @Id", oConexion))
+            {
+                cmd.Parameters.AddWithValue("@Id", idInventario);
+                try
+                {
+                    oConexion.Open();
+                    var val = cmd.ExecuteScalar();
+                    return val != null && val != DBNull.Value ? Convert.ToInt32(val) : 0;
+                }
+                catch { return 0; }
+            }
+        }
+
         public List<ProductoTiendaBaja> ObtenerProductosPorTiendaBaja(int idTienda)
         {
             List<ProductoTiendaBaja> lista = new List<ProductoTiendaBaja>();

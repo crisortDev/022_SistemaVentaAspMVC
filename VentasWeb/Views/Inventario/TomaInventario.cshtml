@@ -1,0 +1,79 @@
+@{
+    ViewBag.Title = "Toma de Inventario";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Inventario</a></li>
+        <li class="breadcrumb-item active">Toma de Inventario</li>
+    </ol>
+</nav>
+
+<div class="card border-info">
+    <div class="card-header bg-info text-white">
+        <i class="fas fa-clipboard-list mr-1"></i> Conteo físico de inventario
+    </div>
+    <div class="card-body">
+
+        @* ── Selector de sucursal ── *@
+        <div class="row mb-3">
+            <div class="col-sm-4">
+                <label class="col-form-label-sm font-weight-bold"><i class="fas fa-store mr-1"></i>Sucursal:</label>
+                @if (esSuperAdmin) {
+                    <select id="cboTiendaInventario" class="form-control form-control-sm">
+                        <option value="">-- Seleccione sucursal --</option>
+                    </select>
+                } else {
+                    <div class="mt-1">
+                        <span id="lblNombreTienda" class="badge badge-info px-3 py-2" style="font-size:0.85rem;">Cargando...</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="row align-items-end mb-3">
+            <div class="col-sm-5">
+                <label class="col-form-label-sm font-weight-bold">Buscar producto (código o nombre):</label>
+                <input type="text" id="txtBuscar" class="form-control form-control-sm" autocomplete="off" placeholder="Escriba y seleccione..." />
+                <div id="sugerencias" class="list-group position-absolute" style="z-index:1000; width:40%;"></div>
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label-sm font-weight-bold">Stock contado:</label>
+                <input type="number" id="txtContado" class="form-control form-control-sm" min="0" step="1" />
+            </div>
+            <div class="col-sm-2">
+                <button id="btnAgregar" class="btn btn-sm btn-primary btn-block"><i class="fas fa-plus"></i> Agregar</button>
+            </div>
+        </div>
+
+        <input type="hidden" id="hdnIdProductoTienda" />
+        <input type="hidden" id="hdnIdProducto" />
+        <input type="hidden" id="hdnStockSistema" />
+
+        <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th>Producto</th>
+                    <th class="text-center">Stock sistema</th>
+                    <th class="text-center">Contado</th>
+                    <th class="text-center">Diferencia</th>
+                    <th class="text-center">Quitar</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyConteo"></tbody>
+        </table>
+
+        <div class="form-group">
+            <label class="col-form-label-sm font-weight-bold">Observación:</label>
+            <input type="text" id="txtObservacion" class="form-control form-control-sm" maxlength="500" />
+        </div>
+
+        <button id="btnGuardar" class="btn btn-success"><i class="fas fa-save mr-1"></i> Registrar inventario</button>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/Inventario_TomaInventario.js?v=" + DateTime.Now.Ticks)"></script>
+}
