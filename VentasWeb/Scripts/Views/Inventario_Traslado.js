@@ -122,7 +122,17 @@ function inicializarTablaHistorial() {
             { data: "TiendaDestino" },
             { data: "Cantidad", className: "text-center" },
             { data: "Usuario" },
-            { data: "Observaciones" }
+            { data: "Observaciones" },
+            {
+                data: "EstadoAprobacion",
+                className: "text-center",
+                render: function (d) {
+                    if (d === "Pendiente") return '<span class="badge badge-warning">Pendiente</span>';
+                    if (d === "Aprobado")  return '<span class="badge badge-success">Aprobado</span>';
+                    if (d === "Rechazado") return '<span class="badge badge-danger">Rechazado</span>';
+                    return '<span class="badge badge-secondary">' + (d || '') + '</span>';
+                }
+            }
         ],
         language: { url: $.MisUrls.url.Url_datatable_spanish },
         responsive: true,

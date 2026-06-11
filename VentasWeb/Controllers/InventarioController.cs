@@ -16,6 +16,13 @@ namespace VentasWeb.Controllers
             return View();
         }
 
+        // GET: Inventario/AprobarTraslados
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public ActionResult AprobarTraslados()
+        {
+            return View();
+        }
+
         // GET: Inventario/Baja
         public ActionResult Baja()
         {
@@ -38,18 +45,18 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                var usuario = (Usuario)Session["Usuario"];
-                if (usuario == null)
+                if (UsuarioActual == null)
                     return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-                // ── Validar permiso sobre tienda origen ───────────
+                // Validar permiso sobre tienda origen
                 if (!TienePermiso(idTiendaOrigen))
                     return Json(new { resultado = false, mensaje = "No tiene permisos para trasladar desde esta sucursal." });
 
-                var (resultado, mensaje) = CD_Inventario.Instancia.RegistrarTraslado(
-                    idProducto, idTiendaOrigen, idTiendaDestino, cantidad, observaciones, usuario.IdUsuario);
+                // El traslado queda PENDIENTE — no mueve stock hasta que lo apruebe el encargado destino
+                var r = CD_Inventario.Instancia.RegistrarTrasladoPendiente(
+                    idProducto, idTiendaOrigen, idTiendaDestino, cantidad, observaciones, UsuarioActual.IdUsuario);
 
-                return Json(new { resultado, mensaje });
+                return Json(new { resultado = r.resultado, mensaje = r.mensaje });
             }
             catch (Exception ex)
             {
@@ -58,20 +65,65 @@ namespace VentasWeb.Controllers
         }
 
         [HttpGet]
-        public JsonResult ObtenerHistorialTraslados(string fechainicio, string fechafin, int idtienda = 0)
+        public JsonResult ObtenerHistorialTraslados(string fechainicio, string fechafin, int idtienda = 0, string estado = "")
         {
             try
             {
+                // No-SuperAdmin solo ve traslados de su sucursal
+                if (!EsSuperAdmin && idtienda == 0) idtienda = TiendaActiva;
+
                 var lista = CD_Inventario.Instancia.ObtenerHistorialTraslados(
                     Convert.ToDateTime(fechainicio),
                     Convert.ToDateTime(fechafin),
-                    idtienda);
+                    idtienda, estado);
                 return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
                 return Json(new { data = new List<Traslado>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
+        }
+
+        [HttpGet]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult ObtenerTrasladosPendientes()
+        {
+            // Trae solo los Pendientes del día anterior en adelante para la sucursal del encargado
+            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            var lista = CD_Inventario.Instancia.ObtenerHistorialTraslados(
+                DateTime.Today.AddDays(-30), DateTime.Today, idTienda, "Pendiente");
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult AprobarTraslado(int idTraslado)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            // Validar que el aprobador sea de la sucursal DESTINO del traslado
+            int idTiendaDestino = CD_Inventario.Instancia.ObtenerTiendaDestinoDeTraslado(idTraslado);
+            if (!TienePermiso(idTiendaDestino))
+                return Json(new { resultado = false, mensaje = "Solo puede aprobar traslados destinados a su propia sucursal." });
+
+            var r = CD_Inventario.Instancia.AprobarTraslado(idTraslado, UsuarioActual.IdUsuario, EsSuperAdmin);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult RechazarTraslado(int idTraslado, string motivoRechazo)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            int idTiendaDestino = CD_Inventario.Instancia.ObtenerTiendaDestinoDeTraslado(idTraslado);
+            if (!TienePermiso(idTiendaDestino))
+                return Json(new { resultado = false, mensaje = "Solo puede rechazar traslados destinados a su propia sucursal." });
+
+            var r = CD_Inventario.Instancia.RechazarTraslado(idTraslado, UsuarioActual.IdUsuario, motivoRechazo);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
 
         // =============================================
@@ -212,6 +264,10 @@ namespace VentasWeb.Controllers
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
+            int idTiendaBaja = CD_Inventario.Instancia.ObtenerTiendaDeBaja(idHistorial);
+            if (!TienePermiso(idTiendaBaja))
+                return Json(new { resultado = false, mensaje = "Solo puede aprobar bajas de su propia sucursal." });
+
             var r = CD_Inventario.Instancia.AprobarBaja(idHistorial, UsuarioActual.IdUsuario, EsSuperAdmin);
             return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
@@ -222,6 +278,10 @@ namespace VentasWeb.Controllers
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            int idTiendaBaja = CD_Inventario.Instancia.ObtenerTiendaDeBaja(idHistorial);
+            if (!TienePermiso(idTiendaBaja))
+                return Json(new { resultado = false, mensaje = "Solo puede rechazar bajas de su propia sucursal." });
 
             var r = CD_Inventario.Instancia.RechazarBaja(idHistorial, UsuarioActual.IdUsuario, motivoRechazo);
             return Json(new { resultado = r.resultado, mensaje = r.mensaje });
@@ -269,19 +329,5 @@ namespace VentasWeb.Controllers
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
-        // Obtener productos con stock para traslado (origen)
-        [HttpGet]
-        public JsonResult ObtenerProductosPorTienda(int idTienda)
-        {
-            try
-            {
-                var lista = CD_Inventario.Instancia.ObtenerProductosPorTiendaBaja(idTienda);
-                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
-            }
-            catch (Exception ex)
-            {
-                return Json(new { data = new List<ProductoTiendaBaja>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
-            }
-        }
     }
 }

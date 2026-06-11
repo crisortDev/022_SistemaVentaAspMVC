@@ -22,5 +22,12 @@ namespace CapaModelo
         public string TiendaOrigen { get; set; }
         public string TiendaDestino { get; set; }
         public string Usuario { get; set; }
+
+        // Flujo de aprobación
+        public string EstadoAprobacion { get; set; }
+        public string UsuarioAprueba { get; set; }
+        public string FechaAprobacion { get; set; }
+        public string MotivoRechazo { get; set; }
+        public int IdTiendaDestino2 => IdTiendaDestino; // alias para binding JS
     }
 }
