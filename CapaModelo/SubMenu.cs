@@ -15,6 +15,7 @@ namespace CapaModelo
         public string Vista { get; set; }
         public string Icono { get; set; }
         public bool Activo { get; set; }
+        public bool EsGrupo { get; set; }
         public DateTime FechaRegistro { get; set; }
     }
 }

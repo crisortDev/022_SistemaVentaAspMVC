@@ -224,7 +224,8 @@ namespace CapaDatos
                                                     Controlador = subNode.Element("Controlador") != null ? subNode.Element("Controlador").Value : "",
                                                     Vista = subNode.Element("Vista") != null ? subNode.Element("Vista").Value : "",
                                                     Icono = subNode.Element("Icono") != null ? subNode.Element("Icono").Value : "",
-                                                    Activo = subNode.Element("Activo") != null && subNode.Element("Activo").Value == "1"
+                                                    Activo   = subNode.Element("Activo")  != null && subNode.Element("Activo").Value  == "1",
+                                                    EsGrupo  = subNode.Element("EsGrupo") != null && subNode.Element("EsGrupo").Value == "1"
                                                 });
                                             }
                                         }

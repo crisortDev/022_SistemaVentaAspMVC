@@ -157,20 +157,88 @@ namespace VentasWeb.Controllers
             }
         }
 
-        // ════════ TOMA DE INVENTARIO (conteo físico) ════════════════════════
+        // ════════ TOMA DE INVENTARIO — OPERADOR ════════════════════════════════
 
-        // Pantalla para cargar un conteo de inventario
         [AuthorizeRol("Inventario", "Toma de Inventario")]
         public ActionResult TomaInventario()
         {
             return View();
         }
 
-        // Pantalla para aprobar inventarios
+        /// <summary>Inventarios asignados al operador actual (sin stock/diferencias).</summary>
+        [HttpGet]
+        [AuthorizeRol("Inventario", "Toma de Inventario")]
+        public JsonResult ObtenerInventariosOperador()
+        {
+            if (UsuarioActual == null) return Json(new { data = new List<object>() }, JsonRequestBehavior.AllowGet);
+            var lista = CD_Inventario.Instancia.ObtenerInventariosOperador(UsuarioActual.IdUsuario);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        /// <summary>Productos de la tienda SIN stock/costo — para el conteo del operador.</summary>
+        [HttpGet]
+        [AuthorizeRol("Inventario", "Toma de Inventario")]
+        public JsonResult ObtenerProductosParaConteo(int idTienda)
+        {
+            if (idTienda == 0) idTienda = TiendaActiva;
+            var lista = CD_Inventario.Instancia.ObtenerProductosParaConteo(idTienda);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        /// <summary>Operador abre el inventario asignado → estado En Progreso.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Toma de Inventario")]
+        public JsonResult IniciarConteo(int idInventario)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var r = CD_Inventario.Instancia.IniciarConteoInventario(idInventario, UsuarioActual.IdUsuario);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        /// <summary>Operador finaliza el conteo → Pendiente de Aprobación.</summary>
+        [HttpPost]
+        [ValidateInput(false)]
+        [AuthorizeRol("Inventario", "Toma de Inventario")]
+        public JsonResult FinalizarConteo(int idInventario, string detalleXml, string observacion)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            if (string.IsNullOrWhiteSpace(detalleXml))
+                return Json(new { resultado = false, mensaje = "Debe registrar al menos un producto contado." });
+
+            var r = CD_Inventario.Instancia.FinalizarConteoInventario(
+                idInventario, UsuarioActual.IdUsuario, detalleXml, observacion);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        // ════════ GESTIÓN DE INVENTARIO — SUPERVISOR ════════════════════════════
+
         [AuthorizeRol("Inventario", "Inventarios")]
         public ActionResult Inventarios()
         {
             return View();
+        }
+
+        /// <summary>Supervisor crea un nuevo proceso de inventario.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult CrearInventario(int idTienda, string observacion)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            if (idTienda == 0) idTienda = TiendaActiva;
+            if (!TienePermiso(idTienda)) return AccesoDenegado();
+
+            var r = CD_Inventario.Instancia.CrearInventario(idTienda, UsuarioActual.IdUsuario, observacion);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje, idInventario = r.idInventario });
+        }
+
+        /// <summary>Supervisor asigna un operador a un inventario.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult AsignarOperadorInventario(int idInventario, int idOperador)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var r = CD_Inventario.Instancia.AsignarOperadorInventario(idInventario, idOperador);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
 
         [HttpGet]
@@ -178,7 +246,7 @@ namespace VentasWeb.Controllers
         public JsonResult ObtenerInventarios(string estado = "")
         {
             int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
-            var lista = CD_Inventario.Instancia.ObtenerInventarios(idTienda, estado);
+            var lista = CD_Inventario.Instancia.ObtenerInventariosSupervisor(idTienda, estado);
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
 
@@ -191,32 +259,10 @@ namespace VentasWeb.Controllers
         }
 
         [HttpPost]
-        [ValidateInput(false)]
-        [AuthorizeRol("Inventario", "Toma de Inventario")]
-        public JsonResult RegistrarInventario(string detalleXml, string observacion, int idTienda = 0)
-        {
-            if (UsuarioActual == null)
-                return Json(new { resultado = false, mensaje = "Sesión expirada." });
-            if (string.IsNullOrWhiteSpace(detalleXml))
-                return Json(new { resultado = false, mensaje = "Debe contar al menos un producto." });
-
-            if (idTienda == 0) idTienda = TiendaActiva;
-            if (idTienda == 0)
-                return Json(new { resultado = false, mensaje = "No tiene una sucursal asignada." });
-
-            if (!TienePermiso(idTienda))
-                return AccesoDenegado();
-
-            var r = CD_Inventario.Instancia.RegistrarInventario(idTienda, UsuarioActual.IdUsuario, observacion, detalleXml);
-            return Json(new { resultado = r.resultado, mensaje = r.mensaje, idInventario = r.idInventario });
-        }
-
-        [HttpPost]
         [AuthorizeRol("Inventario", "Inventarios")]
         public JsonResult AprobarInventario(int idInventario)
         {
-            if (UsuarioActual == null)
-                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
             int idTiendaInv = CD_Inventario.Instancia.ObtenerTiendaDeInventario(idInventario);
             if (!TienePermiso(idTiendaInv))
@@ -230,8 +276,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("Inventario", "Inventarios")]
         public JsonResult RechazarInventario(int idInventario, string motivoRechazo)
         {
-            if (UsuarioActual == null)
-                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
             int idTiendaInv = CD_Inventario.Instancia.ObtenerTiendaDeInventario(idInventario);
             if (!TienePermiso(idTiendaInv))

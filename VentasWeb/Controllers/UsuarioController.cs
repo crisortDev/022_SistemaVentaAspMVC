@@ -1,7 +1,9 @@
 ﻿using CapaDatos;
 using CapaModelo;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
@@ -343,6 +345,42 @@ namespace VentasWeb.Controllers
                     Este es un correo automático, por favor no respondas.
                 </div>
             </div>";
+        }
+
+        // ── GET: Repositores activos de una sucursal para asignar como operador ─
+        // idTienda: sucursal del inventario (0 = todas, solo SuperAdmin)
+        // IdRol 7 = REPOSITOR — único rol habilitado como operador de inventario
+        [HttpGet]
+        public JsonResult ObtenerUsuariosActivos(int idTienda = 0)
+        {
+            const int ID_ROL_REPOSITOR = 7;
+            try
+            {
+                var lista = CD_Usuario.Instancia.ObtenerUsuarios();
+                var query = lista
+                    .Where(u => u.Activo && u.IdRol == ID_ROL_REPOSITOR);
+
+                // SuperAdmin (sin tienda asignada) ve todos; los demás solo su sucursal
+                if (idTienda > 0)
+                    query = query.Where(u => u.IdTienda.HasValue && u.IdTienda == idTienda);
+
+                var resultado = query
+                    .Select(u => new
+                    {
+                        u.IdUsuario,
+                        NombreCompleto = u.Nombres + " " + u.Apellidos,
+                        DescripcionRol = u.oRol != null ? u.oRol.Descripcion : "",
+                        u.IdTienda
+                    })
+                    .OrderBy(u => u.NombreCompleto)
+                    .ToList();
+
+                return Json(new { data = resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { data = new List<object>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
     }
 }

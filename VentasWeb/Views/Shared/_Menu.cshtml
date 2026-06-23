@@ -1,4 +1,4 @@
-﻿@model List<CapaModelo.Menu>
+@model List<CapaModelo.Menu>
 
 @if (Model != null)
 {
@@ -8,15 +8,24 @@
             <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
                 <i class="@item.Icono"></i> @item.Nombre
             </a>
-
             <div class="dropdown-menu drop-menu">
                 @foreach (var subitem in item.oSubMenu ?? new List<CapaModelo.SubMenu>())
                 {
                     if (subitem.Activo)
                     {
-                        <a class="dropdown-item" name="@item.Nombre" href="/@subitem.Controlador/@subitem.Vista">
-                            <i class="@subitem.Icono"></i> @subitem.Nombre
-                        </a>
+                        if (string.IsNullOrWhiteSpace(subitem.Controlador))
+                        {
+                            <div class="dropdown-divider"></div>
+                            <h6 class="dropdown-header">
+                                <i class="@subitem.Icono"></i> @subitem.Nombre
+                            </h6>
+                        }
+                        else
+                        {
+                            <a class="dropdown-item" name="@item.Nombre" href="/@subitem.Controlador/@subitem.Vista">
+                                <i class="@subitem.Icono"></i> @subitem.Nombre
+                            </a>
+                        }
                     }
                 }
             </div>

@@ -1,76 +1,102 @@
 @{
     ViewBag.Title = "Toma de Inventario";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">Inventario</a></li>
+        <li class="breadcrumb-item"><a href="#">Existencia</a></li>
         <li class="breadcrumb-item active">Toma de Inventario</li>
     </ol>
 </nav>
 
-<div class="card border-info">
-    <div class="card-header bg-info text-white">
-        <i class="fas fa-clipboard-list mr-1"></i> Conteo físico de inventario
+@* ── Panel A: Lista de inventarios asignados al operador ── *@
+<div id="panelLista">
+    <div class="card border-info mb-3">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-clipboard-list mr-1"></i> Mis inventarios asignados
+        </div>
+        <div class="card-body p-2">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Número</th>
+                            <th>Sucursal</th>
+                            <th>Asignado</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyAsignados">
+                        <tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
+</div>
 
-        @* ── Selector de sucursal ── *@
-        <div class="row mb-3">
-            <div class="col-sm-4">
-                <label class="col-form-label-sm font-weight-bold"><i class="fas fa-store mr-1"></i>Sucursal:</label>
-                @if (esSuperAdmin) {
-                    <select id="cboTiendaInventario" class="form-control form-control-sm">
-                        <option value="">-- Seleccione sucursal --</option>
-                    </select>
-                } else {
-                    <div class="mt-1">
-                        <span id="lblNombreTienda" class="badge badge-info px-3 py-2" style="font-size:0.85rem;">Cargando...</span>
-                    </div>
-                }
-            </div>
+@* ── Panel B: Conteo físico (DataTable con todos los productos) ── *@
+<div id="panelConteo" style="display:none;">
+    <div class="card border-warning">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fas fa-pencil-alt mr-1"></i> Conteo físico —
+                <strong id="lblNumeroConteo"></strong>
+            </span>
+            <button class="btn btn-sm btn-outline-dark" id="btnVolver">
+                <i class="fas fa-arrow-left mr-1"></i> Volver
+            </button>
         </div>
+        <div class="card-body">
 
-        <div class="row align-items-end mb-3">
-            <div class="col-sm-5">
-                <label class="col-form-label-sm font-weight-bold">Buscar producto (código o nombre):</label>
-                <input type="text" id="txtBuscar" class="form-control form-control-sm" autocomplete="off" placeholder="Escriba y seleccione..." />
-                <div id="sugerencias" class="list-group position-absolute" style="z-index:1000; width:40%;"></div>
+            @* Aviso de corrección *@
+            <div id="alertaCorreccion" class="alert alert-warning d-none mb-3">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                <strong>Este inventario fue devuelto para corrección.</strong>
+                <div id="textoMotivo" class="mt-1 small"></div>
             </div>
-            <div class="col-sm-2">
-                <label class="col-form-label-sm font-weight-bold">Stock contado:</label>
-                <input type="number" id="txtContado" class="form-control form-control-sm" min="0" step="1" />
+
+            @* Instrucción *@
+            <p class="text-muted small mb-2">
+                <i class="fas fa-info-circle mr-1"></i>
+                Ingrese la cantidad física contada para cada producto. Solo se registrarán los productos con cantidad mayor a <strong>0</strong>.
+                Use el buscador de la tabla para filtrar por categoría o producto.
+            </p>
+
+            <input type="hidden" id="hdnIdInventarioActivo" />
+            <input type="hidden" id="hdnIdTiendaConteo" />
+
+            @* DataTable de productos *@
+            <div class="table-responsive">
+                <table id="tblConteo" class="table table-sm table-bordered table-hover w-100">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Categoría</th>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th class="text-center" style="width:160px;">Cantidad Contada</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyConteo"></tbody>
+                </table>
             </div>
-            <div class="col-sm-2">
-                <button id="btnAgregar" class="btn btn-sm btn-primary btn-block"><i class="fas fa-plus"></i> Agregar</button>
+
+            <div class="row mt-3">
+                <div class="col-sm-6">
+                    <label class="col-form-label-sm font-weight-bold">Observación (opcional):</label>
+                    <input type="text" id="txtObservacion" class="form-control form-control-sm" maxlength="500" />
+                </div>
+                <div class="col-sm-6 d-flex align-items-end justify-content-end">
+                    <span class="text-muted small mr-3" id="lblCantItems"></span>
+                    <button id="btnFinalizar" class="btn btn-success">
+                        <i class="fas fa-check-circle mr-1"></i> Finalizar inventario
+                    </button>
+                </div>
             </div>
+
         </div>
-
-        <input type="hidden" id="hdnIdProductoTienda" />
-        <input type="hidden" id="hdnIdProducto" />
-        <input type="hidden" id="hdnStockSistema" />
-
-        <table class="table table-sm table-bordered">
-            <thead class="thead-light">
-                <tr>
-                    <th>Producto</th>
-                    <th class="text-center">Stock sistema</th>
-                    <th class="text-center">Contado</th>
-                    <th class="text-center">Diferencia</th>
-                    <th class="text-center">Quitar</th>
-                </tr>
-            </thead>
-            <tbody id="tbodyConteo"></tbody>
-        </table>
-
-        <div class="form-group">
-            <label class="col-form-label-sm font-weight-bold">Observación:</label>
-            <input type="text" id="txtObservacion" class="form-control form-control-sm" maxlength="500" />
-        </div>
-
-        <button id="btnGuardar" class="btn btn-success"><i class="fas fa-save mr-1"></i> Registrar inventario</button>
     </div>
 </div>
 

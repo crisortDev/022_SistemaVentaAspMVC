@@ -321,6 +321,162 @@ namespace CapaDatos
             }
         }
 
+        // ─── NUEVO FLUJO SUPERVISOR / OPERADOR ───────────────────────────────────
+
+        public (bool resultado, string mensaje, int idInventario) CrearInventario(
+            int idTienda, int idSupervisor, string observacion)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_CrearInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                cmd.Parameters.AddWithValue("@IdSupervisor", idSupervisor);
+                cmd.Parameters.AddWithValue("@Observacion", observacion ?? "");
+                var pR = cmd.Parameters.Add("@Resultado",    SqlDbType.Bit);       pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje",      SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                var pI = cmd.Parameters.Add("@IdInventario", SqlDbType.Int);       pI.Direction = ParameterDirection.Output;
+                try
+                {
+                    oConexion.Open(); cmd.ExecuteNonQuery();
+                    return ((bool)pR.Value, pM.Value?.ToString(), pI.Value == DBNull.Value ? 0 : (int)pI.Value);
+                }
+                catch (Exception ex) { return (false, "Error: " + ex.Message, 0); }
+            }
+        }
+
+        public (bool resultado, string mensaje) AsignarOperadorInventario(int idInventario, int idOperador)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_AsignarOperadorInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario", idInventario);
+                cmd.Parameters.AddWithValue("@IdOperador",   idOperador);
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                try { oConexion.Open(); cmd.ExecuteNonQuery(); return ((bool)pR.Value, pM.Value?.ToString()); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message); }
+            }
+        }
+
+        public (bool resultado, string mensaje) IniciarConteoInventario(int idInventario, int idOperador)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_IniciarConteoInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario", idInventario);
+                cmd.Parameters.AddWithValue("@IdOperador",   idOperador);
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                try { oConexion.Open(); cmd.ExecuteNonQuery(); return ((bool)pR.Value, pM.Value?.ToString()); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message); }
+            }
+        }
+
+        public (bool resultado, string mensaje) FinalizarConteoInventario(
+            int idInventario, int idOperador, string detalleXml, string observacion)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_FinalizarConteoInventario", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario", idInventario);
+                cmd.Parameters.AddWithValue("@IdOperador",   idOperador);
+                cmd.Parameters.Add("@DetalleXml", SqlDbType.Xml).Value = detalleXml ?? "<Detalle/>";
+                cmd.Parameters.AddWithValue("@Observacion",  observacion ?? "");
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                try { oConexion.Open(); cmd.ExecuteNonQuery(); return ((bool)pR.Value, pM.Value?.ToString()); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message); }
+            }
+        }
+
+        public List<dynamic> ObtenerInventariosSupervisor(int idTienda, string estado)
+        {
+            var lista = new List<dynamic>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerInventariosSupervisor", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                cmd.Parameters.AddWithValue("@Estado",   estado ?? "");
+                try
+                {
+                    oConexion.Open();
+                    using (var dr = cmd.ExecuteReader())
+                        while (dr.Read())
+                            lista.Add(new {
+                                IdInventario       = Convert.ToInt32(dr["IdInventario"]),
+                                Numero             = dr["Numero"]?.ToString(),
+                                NombreTienda       = dr["NombreTienda"]?.ToString(),
+                                Estado             = dr["Estado"]?.ToString(),
+                                Observacion        = dr["Observacion"]?.ToString(),
+                                MotivoRechazo      = dr["MotivoRechazo"]?.ToString(),
+                                FechaRegistro      = dr["FechaRegistro"]?.ToString(),
+                                FechaInicio        = dr["FechaInicio"]?.ToString(),
+                                FechaFinalizacion  = dr["FechaFinalizacion"]?.ToString(),
+                                Supervisor         = dr["Supervisor"]?.ToString(),
+                                Aprobador          = dr["Aprobador"]?.ToString(),
+                                Operadores         = dr["Operadores"]?.ToString(),
+                                FechaAprobacion    = dr["FechaAprobacion"]?.ToString(),
+                                CantItems          = Convert.ToInt32(dr["CantItems"]),
+                                CantDiferencias    = Convert.ToInt32(dr["CantDiferencias"])
+                            });
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("ObtenerInventariosSupervisor ERROR: " + ex.Message); }
+            }
+            return lista;
+        }
+
+        public List<dynamic> ObtenerInventariosOperador(int idOperador)
+        {
+            var lista = new List<dynamic>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerInventariosOperador", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdOperador", idOperador);
+                try
+                {
+                    oConexion.Open();
+                    using (var dr = cmd.ExecuteReader())
+                        while (dr.Read())
+                            lista.Add(new {
+                                IdInventario   = Convert.ToInt32(dr["IdInventario"]),
+                                Numero         = dr["Numero"]?.ToString(),
+                                NombreTienda   = dr["NombreTienda"]?.ToString(),
+                                IdTienda       = Convert.ToInt32(dr["IdTienda"]),
+                                Estado         = dr["Estado"]?.ToString(),
+                                MotivoRechazo  = dr["MotivoRechazo"]?.ToString(),
+                                FechaRegistro  = dr["FechaRegistro"]?.ToString(),
+                                FechaInicio    = dr["FechaInicio"]?.ToString()
+                            });
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("ObtenerInventariosOperador ERROR: " + ex.Message); }
+            }
+            return lista;
+        }
+
+        public List<dynamic> ObtenerProductosParaConteo(int idTienda)
+        {
+            var lista = new List<dynamic>();
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerProductosParaConteo", oConexion) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                try
+                {
+                    oConexion.Open();
+                    using (var dr = cmd.ExecuteReader())
+                        while (dr.Read())
+                            lista.Add(new {
+                                IdProducto = Convert.ToInt32(dr["IdProducto"]),
+                                Codigo     = dr["Codigo"]?.ToString(),
+                                Nombre     = dr["Nombre"]?.ToString(),
+                                Categoria  = dr["Categoria"]?.ToString()
+                            });
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("ObtenerProductosParaConteo ERROR: " + ex.Message); }
+            }
+            return lista;
+        }
+
         public (bool resultado, string mensaje) AprobarInventario(int idInventario, int idUsuarioAprueba, bool esSuperAdmin)
         {
             using (var oConexion = new SqlConnection(Conexion.CN))
@@ -401,6 +557,7 @@ namespace CapaDatos
                             lista.Add(new {
                                 CodigoProducto = dr["CodigoProducto"]?.ToString(),
                                 NombreProducto = dr["NombreProducto"]?.ToString(),
+                                Categoria      = dr["Categoria"]?.ToString(),
                                 StockSistema   = Convert.ToInt64(dr["StockSistema"]),
                                 StockContado   = Convert.ToInt64(dr["StockContado"]),
                                 Diferencia     = Convert.ToInt64(dr["Diferencia"])

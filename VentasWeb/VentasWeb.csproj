@@ -2135,6 +2135,12 @@
     <Content Include="Scripts\popper.js.map" />
     <Content Include="Scripts\popper-utils.min.js.map" />
     <Content Include="Scripts\popper-utils.js.map" />
+    <Content Include="Views\Reporte\NotaCredito.cshtml" />
+    <Content Include="Views\Reporte\Proveedores.cshtml" />
+    <Content Include="Views\Reporte\Rentabilidad.cshtml" />
+    <Content Include="Views\Compra\Recepcion.cshtml" />
+    <Content Include="Views\Compra\Revision.cshtml" />
+    <Content Include="Views\ComprobanteCobro\CuentasPorCobrar.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

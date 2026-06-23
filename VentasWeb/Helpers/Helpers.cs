@@ -58,9 +58,18 @@ namespace VentasWeb.Helpers
 
                 foreach (SubMenu subitem in subMenusActivos)
                 {
-                    sb.AppendLine($@"        <a class='dropdown-item' name='{subitem.Nombre}' href='/{subitem.Controlador}/{subitem.Vista}'>
+                    if (subitem.EsGrupo || string.IsNullOrWhiteSpace(subitem.Controlador))
+                    {
+                        // Cabecera de grupo — no es navegable
+                        sb.AppendLine($@"        <div class='dropdown-divider'></div>
+        <h6 class='dropdown-header'><i class='{subitem.Icono}'></i> {subitem.Nombre}</h6>");
+                    }
+                    else
+                    {
+                        sb.AppendLine($@"        <a class='dropdown-item' name='{subitem.Nombre}' href='/{subitem.Controlador}/{subitem.Vista}'>
             <i class='{subitem.Icono}'></i> {subitem.Nombre}
         </a>");
+                    }
                 }
 
                 sb.AppendLine("    </div>");

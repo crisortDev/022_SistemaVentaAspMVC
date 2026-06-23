@@ -1,44 +1,53 @@
 @{
-    ViewBag.Title = "Inventarios";
+    ViewBag.Title = "Gestión de Inventarios";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">Inventario</a></li>
-        <li class="breadcrumb-item active">Inventarios registrados</li>
+        <li class="breadcrumb-item"><a href="#">Existencia</a></li>
+        <li class="breadcrumb-item active">Inventarios</li>
     </ol>
 </nav>
 
 <div class="card border-primary">
-    <div class="card-header bg-primary text-white">
-        <i class="fas fa-clipboard-check mr-1"></i> Inventarios — aprobación
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-clipboard-check mr-1"></i> Gestión de inventarios</span>
+        <button class="btn btn-sm btn-light" id="btnNuevoInventario">
+            <i class="fas fa-plus mr-1"></i> Nuevo inventario
+        </button>
     </div>
     <div class="card-body">
         <div class="row align-items-end mb-2">
             <div class="col-sm-3">
                 <label class="col-form-label-sm font-weight-bold">Estado:</label>
                 <select id="ddlEstado" class="form-control form-control-sm">
-                    <option value="Pendiente" selected>Pendientes</option>
+                    <option value="Pendiente de Aprobación">Pendientes de aprobación</option>
+                    <option value="En Progreso">En progreso</option>
+                    <option value="Abierto">Abiertos</option>
+                    <option value="En Corrección">En corrección</option>
                     <option value="Aprobado">Aprobados</option>
-                    <option value="Rechazado">Rechazados</option>
                     <option value="">Todos</option>
                 </select>
             </div>
             <div class="col-sm-2">
-                <button id="btnBuscar" class="btn btn-sm btn-primary btn-block"><i class="fas fa-search"></i> Buscar</button>
+                <button id="btnBuscar" class="btn btn-sm btn-primary btn-block">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
             </div>
         </div>
+
         <div class="table-responsive">
-            <table class="table table-sm table-bordered table-hover" style="width:100%">
+            <table class="table table-sm table-bordered table-hover">
                 <thead class="thead-light">
                     <tr>
                         <th>Número</th>
-                        <th>Fecha</th>
-                        <th>Tienda</th>
-                        <th>Responsable</th>
-                        <th class="text-center">Ítems</th>
-                        <th class="text-center">Con dif.</th>
+                        <th>Sucursal</th>
+                        <th>Supervisor</th>
+                        <th>Operador(es)</th>
+                        <th>Registro</th>
+                        <th>Finalizado</th>
                         <th class="text-center">Estado</th>
                         <th class="text-center">Acciones</th>
                     </tr>
@@ -49,22 +58,98 @@
     </div>
 </div>
 
-<!-- Modal detalle -->
+<!-- Modal: Nuevo inventario -->
+<div class="modal fade" id="modalNuevo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2 bg-primary text-white">
+                <h6 class="modal-title"><i class="fas fa-plus mr-1"></i> Nuevo inventario</h6>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                @if (esSuperAdmin) {
+                    <div class="form-group">
+                        <label class="col-form-label-sm font-weight-bold">Sucursal:</label>
+                        <select id="cboTiendaNuevo" class="form-control form-control-sm">
+                            <option value="">-- Seleccione --</option>
+                        </select>
+                    </div>
+                } else {
+                    <input type="hidden" id="cboTiendaNuevo" value="" />
+                    <div class="form-group">
+                        <label class="col-form-label-sm">Sucursal asignada:</label>
+                        <div id="lblTiendaNuevo" class="form-control-plaintext form-control-sm text-info"></div>
+                    </div>
+                }
+                <div class="form-group">
+                    <label class="col-form-label-sm font-weight-bold">Observación (opcional):</label>
+                    <input type="text" id="txtObsNuevo" class="form-control form-control-sm" maxlength="500" />
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" id="btnConfirmarNuevo">
+                    <i class="fas fa-save mr-1"></i> Crear
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Asignar operadores -->
+<div class="modal fade" id="modalAsignar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2 bg-info text-white">
+                <h6 class="modal-title">
+                    <i class="fas fa-user-plus mr-1"></i> Asignar operador —
+                    <span id="lblNumAsignar"></span>
+                </h6>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="col-form-label-sm font-weight-bold">Operador:</label>
+                    <select id="cboOperador" class="form-control form-control-sm">
+                        <option value="">-- Seleccione usuario --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
+                <button class="btn btn-sm btn-info" id="btnConfirmarAsignar">
+                    <i class="fas fa-user-check mr-1"></i> Asignar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Detalle / Reporte de diferencias -->
 <div class="modal fade" id="modalDetalle" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header py-2">
-                <h6 class="modal-title">Detalle del inventario <span id="lblNumero"></span></h6>
+                <h6 class="modal-title">
+                    <i class="fas fa-chart-bar mr-1"></i> Reporte de diferencias —
+                    <span id="lblNumDetalle"></span>
+                </h6>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
                 <table class="table table-sm table-bordered">
-                    <thead class="thead-light"><tr>
-                        <th>Producto</th><th class="text-center">Sistema</th>
-                        <th class="text-center">Contado</th><th class="text-center">Diferencia</th>
-                    </tr></thead>
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Categoría</th>
+                            <th>Producto</th>
+                            <th class="text-center">Stock Sistema</th>
+                            <th class="text-center">Cantidad Contada</th>
+                            <th class="text-center">Diferencia</th>
+                        </tr>
+                    </thead>
                     <tbody id="tbodyDet"></tbody>
                 </table>
+                <div id="resumenDiferencias" class="mt-2 small text-muted"></div>
             </div>
         </div>
     </div>
