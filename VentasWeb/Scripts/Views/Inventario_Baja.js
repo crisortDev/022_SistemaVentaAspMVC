@@ -95,12 +95,26 @@
 
 function cargarTiendas() {
     $.get($.MisUrls.url._ObtenerTiendas, function (data) {
-        var opts = '<option value="">-- Seleccione tienda --</option>';
-        (data.data || []).forEach(function (t) {
-            if (t.Activo)
+        var tiendas  = (data.data || []).filter(function (t) { return t.Activo; });
+        var esSA     = AppSession.esSuperAdmin;
+        var miTienda = AppSession.tiendaOperativa;
+
+        if (esSA) {
+            // SuperAdmin: elige cualquier sucursal
+            var opts = '<option value="">-- Seleccione tienda --</option>';
+            tiendas.forEach(function (t) {
                 opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
-        });
-        $("#cboTienda").html(opts);
+            });
+            $("#cboTienda").html(opts).prop("disabled", false);
+        } else {
+            // No-SuperAdmin: tienda fija a la propia, se carga automáticamente
+            var miNombre = (tiendas.find(function (t) { return t.IdTienda == miTienda; }) || {}).Nombre || 'Mi sucursal';
+            $("#cboTienda")
+                .html('<option value="' + miTienda + '">' + miNombre + '</option>')
+                .val(miTienda)
+                .prop("disabled", true)
+                .trigger("change"); // disparar carga de productos
+        }
     });
 }
 

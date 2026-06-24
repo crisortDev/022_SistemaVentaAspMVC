@@ -76,17 +76,45 @@ $(document).ready(function () {
 
 function cargarTiendas() {
     $.get($.MisUrls.url._ObtenerTiendas, function (data) {
-        var tiendas = data.data || [];
-        var optsTienda = '<option value="">-- Seleccione --</option>';
-        var optsFiltro = '<option value="0">-- Todas --</option>';
+        var tiendas  = (data.data || []).filter(function (t) { return t.Activo; });
+        var esSA     = AppSession.esSuperAdmin;
+        var miTienda = AppSession.tiendaOperativa;
+
+        // ── Combo origen ─────────────────────────────────────────────────────
+        if (esSA) {
+            var optsOrigen = '<option value="">-- Seleccione --</option>';
+            tiendas.forEach(function (t) {
+                optsOrigen += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
+            });
+            $("#cboTiendaOrigen").html(optsOrigen).prop("disabled", false);
+        } else {
+            // No-SuperAdmin: origen fijo a su sucursal
+            var miNombre = (tiendas.find(function (t) { return t.IdTienda == miTienda; }) || {}).Nombre || 'Mi sucursal';
+            $("#cboTiendaOrigen")
+                .html('<option value="' + miTienda + '">' + miNombre + '</option>')
+                .val(miTienda)
+                .prop("disabled", true);
+            // Cargar productos de su sucursal automáticamente
+            cargarProductosPorTienda(miTienda);
+            $("#cboProducto").prop("disabled", false);
+        }
+
+        // ── Combo destino: todas las sucursales excepto la propia ────────────
+        var optsDest = '<option value="">-- Seleccione --</option>';
         tiendas.forEach(function (t) {
-            if (t.Activo) {
-                optsTienda += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
-                optsFiltro += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
-            }
+            if (t.IdTienda == miTienda && !esSA) return; // excluir origen = destino para no-SA
+            optsDest += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
         });
-        $("#cboTiendaOrigen, #cboTiendaDestino").html(optsTienda);
+        $("#cboTiendaDestino").html(optsDest);
+
+        // ── Filtro historial ─────────────────────────────────────────────────
+        var optsFiltro = esSA ? '<option value="0">-- Todas --</option>' : '';
+        tiendas.forEach(function (t) {
+            if (!esSA && t.IdTienda != miTienda) return; // no-SA solo ve su sucursal
+            optsFiltro += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
+        });
         $("#cboFiltroTienda").html(optsFiltro);
+        if (!esSA) $("#cboFiltroTienda").val(miTienda);
     });
 }
 
@@ -149,11 +177,15 @@ function buscarHistorial() {
 }
 
 function limpiarFormulario() {
-    $("#cboTiendaOrigen, #cboTiendaDestino").val("");
-    $("#cboProducto").html('<option value="">-- Seleccione producto --</option>').prop("disabled", true);
+    // Solo resetear origen si es SuperAdmin (no-SA tiene el campo bloqueado)
+    if (AppSession.esSuperAdmin) $("#cboTiendaOrigen").val("");
+    $("#cboTiendaDestino").val("");
+    $("#cboProducto").html('<option value="">-- Seleccione producto --</option>').prop("disabled", AppSession.esSuperAdmin);
     $("#txtCantidad").val(1);
     $("#txtObservaciones").val("");
     $("#lblStockDisponible").text("-");
+    // Para no-SA recargar productos de su sucursal
+    if (!AppSession.esSuperAdmin) cargarProductosPorTienda(AppSession.tiendaOperativa);
 }
 
 function obtenerFechaHoy() {
