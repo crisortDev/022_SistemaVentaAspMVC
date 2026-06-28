@@ -42,6 +42,7 @@ $(document).ready(function () {
         if (String(idTiendaOrigen) === String(idTiendaDestino)) { toastr.warning("La tienda origen y destino no pueden ser la misma."); return; }
         if (cantidad <= 0) { toastr.warning("La cantidad debe ser mayor a cero."); return; }
         if (cantidad > stockDisponible) { toastr.warning("Stock insuficiente. Disponible: " + stockDisponible); return; }
+        if (observaciones.length < 3) { toastr.warning("La observación es obligatoria."); $("#txtObservaciones").focus(); return; }
 
         Swal.fire({
             title: "Confirmar traslado",

@@ -46,32 +46,13 @@ namespace VentasWeb.Controllers
             var usuario = (Usuario)Session["Usuario"];
             XDocument xmlDoc = XDocument.Parse(xml);
 
-            // Lista de permisos críticos que nunca se pueden desactivar
-            List<int> permisosCriticos = new List<int> { 1, 2, 3 };
+            // Roles con acceso total a la gestión de permisos
+            bool esSuperAdmin   = usuario.IdRol == 14;
+            bool esAdministrador = usuario.IdRol == 1;
 
-            // Si el usuario es admin
-            if (usuario.oRol.Descripcion == "ADMINISTRADOR")
-            {
-                // Forzar los permisos críticos a activo
-                foreach (int id in permisosCriticos)
-                {
-                    var permiso = xmlDoc.Descendants("PERMISO")
-                                        .FirstOrDefault(p => (int)p.Element("IdPermisos") == id);
-                    if (permiso != null)
-                        permiso.Element("Activo").Value = "1"; // Siempre activo
-                }
-            }
-            else
-            {
-                // Usuario no admin no puede modificar permisos de admin (criticos)
-                bool intentaModificarAdmin = xmlDoc.Descendants("PERMISO")
-                                                   .Any(p => permisosCriticos.Contains((int)p.Element("IdPermisos")));
-                if (intentaModificarAdmin)
-                {
-                    return Json(new { resultado = false, mensaje = "No tiene permisos para modificar este rol" },
-                                JsonRequestBehavior.AllowGet);
-                }
-            }
+            if (!esSuperAdmin && !esAdministrador)
+                return Json(new { resultado = false, mensaje = "No tiene permisos para modificar permisos de roles." },
+                            JsonRequestBehavior.AllowGet);
 
             xml = xmlDoc.ToString();
             bool Respuesta = CD_Permisos.Instancia.ActualizarPermisos(xml);

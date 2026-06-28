@@ -177,6 +177,13 @@ function finalizar() {
         return;
     }
 
+    var observacion = $('#txtObservacion').val().trim();
+    if (observacion.length < 3) {
+        toastr.warning('La observación es obligatoria antes de finalizar el conteo.');
+        $('#txtObservacion').focus();
+        return;
+    }
+
     var conCantidad = inputs.filter(function () { return parseInt($(this).val()) > 0; }).length;
     var enCero      = inputs.length - conCantidad;
 

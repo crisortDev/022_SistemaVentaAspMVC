@@ -332,6 +332,21 @@ namespace VentasWeb.Controllers
             return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
 
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult AnularInventario(int idInventario)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            int idTiendaInv = CD_Inventario.Instancia.ObtenerTiendaDeInventario(idInventario);
+            if (!TienePermiso(idTiendaInv))
+                return Json(new { resultado = false, mensaje = "Solo puede anular inventarios de su propia sucursal." });
+
+            var r = CD_Inventario.Instancia.AnularInventario(idInventario, UsuarioActual.IdUsuario);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
         [HttpGet]
         public JsonResult ObtenerProductosPorTiendaBaja(int idTienda)
         {

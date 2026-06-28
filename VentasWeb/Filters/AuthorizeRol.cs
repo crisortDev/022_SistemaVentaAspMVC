@@ -81,15 +81,22 @@ namespace VentasWeb.Filters
             { "Inventario|ObtenerBajas",                   "Aprobar Bajas"              },
             { "Inventario|AprobarBaja",                    "Aprobar Bajas"              },
             { "Inventario|RechazarBaja",                   "Aprobar Bajas"              },
-            // ── Inventario: Toma de inventario (cargar conteo) ────
+            // ── Inventario: Toma de inventario (operador) ─────────
             { "Inventario|TomaInventario",                 "Toma de Inventario"         },
             { "Inventario|RegistrarInventario",            "Toma de Inventario"         },
-            // ── Inventario: aprobación de inventarios ─────────────
+            { "Inventario|IniciarConteo",                  "Toma de Inventario"         },
+            { "Inventario|FinalizarConteo",                "Toma de Inventario"         },
+            { "Inventario|ObtenerInventariosOperador",     "Toma de Inventario"         },
+            { "Inventario|ObtenerProductosParaConteo",     "Toma de Inventario"         },
+            // ── Inventario: gestión supervisor ────────────────────
             { "Inventario|Inventarios",                    "Inventarios"                },
+            { "Inventario|CrearInventario",                "Inventarios"                },
+            { "Inventario|AsignarOperadorInventario",      "Inventarios"                },
             { "Inventario|ObtenerInventarios",             "Inventarios"                },
             { "Inventario|ObtenerDetalleInventario",       "Inventarios"                },
             { "Inventario|AprobarInventario",              "Inventarios"                },
-            { "Inventario|RechazarInventario",             "Inventarios"                }
+            { "Inventario|RechazarInventario",             "Inventarios"                },
+            { "Inventario|AnularInventario",               "Inventarios"                }
         };
 
         public AuthorizeRolAttribute(string controlador, string vista)

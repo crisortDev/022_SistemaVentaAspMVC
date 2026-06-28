@@ -50,7 +50,8 @@
         if (!idProductoTienda) { swal("Atencion", "Seleccione un producto.", "warning"); return; }
         if (cantidad <= 0) { swal("Atencion", "La cantidad debe ser mayor a cero.", "warning"); return; }
         if (cantidad > stockActual) { swal("Atencion", "La cantidad supera el stock disponible (" + stockActual + ").", "warning"); return; }
-        if (!idMotivo) { swal("Atencion", "Seleccione el motivo de la baja.", "warning"); return; }
+        if (!idMotivo) { toastr.warning("Seleccione el motivo de la baja."); return; }
+        if (observaciones.length < 3) { toastr.warning("La observación es obligatoria."); $("#txtObservaciones").focus(); return; }
 
         swal({
             title: "Confirmar baja",

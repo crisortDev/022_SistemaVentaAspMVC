@@ -142,14 +142,32 @@ function cargarPermisosDisponibles() {
             if (!lista || lista.length === 0) {
                 html = '<div class="text-muted text-center w-100">No hay permisos disponibles.</div>';
             } else {
+                // Agrupar por NombreMenu
+                var grupos = {};
                 lista.forEach(function (p) {
-                    html += '<div class="form-check">' +
-                        '<input class="form-check-input permisoCheck" type="checkbox"' +
-                        ' value="' + p.IdSubMenu + '" id="perm_' + p.IdSubMenu + '">' +
-                        '<label class="form-check-label" for="perm_' + p.IdSubMenu + '" title="' + p.NombreSubMenu + '">' +
-                        p.NombreSubMenu +
-                        '</label>' +
-                        '</div>';
+                    if (!grupos[p.NombreMenu]) grupos[p.NombreMenu] = [];
+                    grupos[p.NombreMenu].push(p);
+                });
+
+                Object.keys(grupos).forEach(function (menu) {
+                    html += '<div style="width:100%;margin-bottom:.4rem">' +
+                            '<div style="font-weight:600;font-size:.78rem;color:#117a8b;' +
+                            'text-transform:uppercase;letter-spacing:.05em;padding:4px 2px 2px;' +
+                            'border-bottom:1px solid #bee5eb;margin-bottom:.3rem">' +
+                            '<i class="fas fa-folder-open fa-xs mr-1"></i>' + menu +
+                            '</div>';
+
+                    grupos[menu].forEach(function (p) {
+                        html += '<div class="form-check" style="padding-left:1.5rem">' +
+                            '<input class="form-check-input permisoCheck" type="checkbox"' +
+                            ' value="' + p.IdSubMenu + '" id="perm_' + p.IdSubMenu + '">' +
+                            '<label class="form-check-label" for="perm_' + p.IdSubMenu + '" title="' + p.NombreSubMenu + '">' +
+                            p.NombreSubMenu +
+                            '</label>' +
+                            '</div>';
+                    });
+
+                    html += '</div>';
                 });
             }
 
@@ -181,7 +199,7 @@ function cargarRoles() {
 // ── Cargar permisos de un rol (panel derecho) ─────────
 function cargarPermisosPorRol(idRol) {
     $("#tbodyPermisos").html(
-        '<tr><td colspan="2" class="text-center py-2">' +
+        '<tr><td colspan="3" class="text-center py-2">' +
         '<i class="fa fa-spinner fa-spin"></i> Cargando...</td></tr>'
     );
 
@@ -194,14 +212,23 @@ function cargarPermisosPorRol(idRol) {
             var html = "";
 
             if (!lista || lista.length === 0) {
-                html = '<tr><td colspan="2" class="text-center text-muted py-3">Este rol no tiene permisos asignados.</td></tr>';
+                html = '<tr><td colspan="3" class="text-center text-muted py-3">Este rol no tiene permisos asignados.</td></tr>';
             } else {
+                var menuActual = null;
                 lista.forEach(function (p) {
+                    if (p.Menu !== menuActual) {
+                        menuActual = p.Menu;
+                        html += '<tr style="background:#e8f4f8">' +
+                            '<td colspan="3" style="font-weight:600;font-size:.8rem;' +
+                            'color:#117a8b;text-transform:uppercase;letter-spacing:.05em">' +
+                            '<i class="fas fa-folder-open fa-xs mr-1"></i>' + menuActual +
+                            '</td></tr>';
+                    }
                     var badge = p.Activo
                         ? '<span class="badge-activo">Activo</span>'
                         : '<span class="badge-inactivo">Inactivo</span>';
                     html += '<tr>' +
-                        '<td>' + p.SubMenu + '</td>' +
+                        '<td style="padding-left:1.5rem">' + p.SubMenu + '</td>' +
                         '<td class="text-center">' + badge + '</td>' +
                         '</tr>';
                 });
@@ -210,7 +237,7 @@ function cargarPermisosPorRol(idRol) {
             $("#tbodyPermisos").html(html);
         },
         error: function () {
-            $("#tbodyPermisos").html('<tr><td colspan="2" class="text-danger text-center">Error al cargar permisos.</td></tr>');
+            $("#tbodyPermisos").html('<tr><td colspan="3" class="text-danger text-center">Error al cargar permisos.</td></tr>');
         }
     });
 }

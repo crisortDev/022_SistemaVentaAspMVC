@@ -334,11 +334,6 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <!-- Menú izquierdo -->
             <ul class="navbar-nav mr-auto">
-                <li class="nav-item">
-                    <a class="nav-link" name="Home" href="@Url.Action("Index", "Home")">
-                        <i class="fas fa-home"></i> Inicio
-                    </a>
-                </li>
                 @Html.ActionLinkAllow() <!-- Menús dinámicos -->
             </ul>
 
@@ -684,7 +679,8 @@
             _Inv_ObtenerTrasladosPendientes:    '@Url.Action("ObtenerTrasladosPendientes",    "Inventario")',
             _Inv_ObtenerHistorialTraslados:     '@Url.Action("ObtenerHistorialTraslados",     "Inventario")',
             _Inv_AprobarTraslado:               '@Url.Action("AprobarTraslado",               "Inventario")',
-            _Inv_RechazarTraslado:              '@Url.Action("RechazarTraslado",              "Inventario")'
+            _Inv_RechazarTraslado:              '@Url.Action("RechazarTraslado",              "Inventario")',
+            _Inv_AnularInventario:              '@Url.Action("AnularInventario",              "Inventario")'
         });
 
         // ---- DATATABLES ----

@@ -404,6 +404,7 @@ namespace CapaDatos
                         while (dr.Read())
                             lista.Add(new {
                                 IdInventario       = Convert.ToInt32(dr["IdInventario"]),
+                                IdTienda           = Convert.ToInt32(dr["IdTienda"]),
                                 Numero             = dr["Numero"]?.ToString(),
                                 NombreTienda       = dr["NombreTienda"]?.ToString(),
                                 Estado             = dr["Estado"]?.ToString(),
@@ -592,6 +593,23 @@ namespace CapaDatos
         /// Retorna el IdTienda al que pertenece un inventario. 0 si no existe.
         /// Se usa para validar que el aprobador pertenece a la misma sucursal.
         /// </summary>
+        /// <summary>
+        /// Anula un inventario que aún no fue aprobado.
+        /// </summary>
+        public (bool resultado, string mensaje) AnularInventario(int idInventario, int idUsuarioAnula)
+        {
+            using (var cn = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_AnularInventario", cn) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario",   idInventario);
+                cmd.Parameters.AddWithValue("@IdUsuarioAnula", idUsuarioAnula);
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                try { cn.Open(); cmd.ExecuteNonQuery(); return ((bool)pR.Value, pM.Value?.ToString()); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message); }
+            }
+        }
+
         public int ObtenerTiendaDeInventario(int idInventario)
         {
             using (var oConexion = new SqlConnection(Conexion.CN))

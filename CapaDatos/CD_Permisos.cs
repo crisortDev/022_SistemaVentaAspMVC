@@ -141,14 +141,20 @@ namespace CapaDatos
             using (SqlConnection cn = new SqlConnection(Conexion.CN))
             {
                 string sql = @"
-            SELECT  
+            SELECT
                 p.IdPermisos AS IdPermiso,
+                m.Nombre AS NombreMenu,
                 s.Nombre AS NombreSubMenu,
                 p.Activo
             FROM PERMISOS p
             INNER JOIN SUBMENU s ON s.IdSubMenu = p.IdSubMenu
+            INNER JOIN MENU m    ON m.IdMenu    = s.IdMenu
             WHERE p.IdRol = @IdRol
-            ORDER BY s.Nombre";
+              AND s.Activo  = 1
+              AND m.Activo  = 1
+              AND s.EsGrupo = 0
+              AND m.Nombre <> 'Inicio'
+            ORDER BY m.Orden, s.Orden";
 
                 SqlCommand cmd = new SqlCommand(sql, cn);
                 cmd.Parameters.AddWithValue("@IdRol", idRol);
@@ -163,8 +169,9 @@ namespace CapaDatos
                         lista.Add(new Permisos()
                         {
                             IdPermisos = Convert.ToInt32(dr["IdPermiso"]),
+                            Menu    = dr["NombreMenu"].ToString(),
                             SubMenu = dr["NombreSubMenu"].ToString(),
-                            Activo = Convert.ToBoolean(dr["Activo"])
+                            Activo  = Convert.ToBoolean(dr["Activo"])
                         });
                     }
 
@@ -186,8 +193,9 @@ namespace CapaDatos
                 string sql = @"SELECT s.IdSubMenu, m.Nombre AS NombreMenu, s.Nombre AS NombreSubMenu
                        FROM SubMenu s
                        INNER JOIN Menu m ON s.IdMenu = m.IdMenu
-                       WHERE s.Activo = 1
-                       ORDER BY m.Nombre, s.Nombre";
+                       WHERE s.Activo = 1 AND m.Activo = 1 AND s.EsGrupo = 0
+                         AND m.Nombre <> 'Inicio'
+                       ORDER BY m.Orden, s.Orden";
                 SqlCommand cmd = new SqlCommand(sql, oConexion);
                 oConexion.Open();
                 SqlDataReader dr = cmd.ExecuteReader();

@@ -2,11 +2,11 @@
 var usuarioActualEsAdmin = false;
 
 $(document).ready(function () {
-    activarMenu("Mantenedor");
+    activarMenu("Configuración");
 
     // Capturar IdRol del usuario actual desde el hidden
     idRolUsuarioActual = parseInt($("#hdIdRolUsuario").val(), 10) || 0;
-    usuarioActualEsAdmin = idRolUsuarioActual === 1; // 1 = ADMINISTRADOR
+    usuarioActualEsAdmin = idRolUsuarioActual === 1 || idRolUsuarioActual === 14; // 1 = ADMINISTRADOR, 14 = SUPERADMIN
     console.log("IdRol usuario actual:", idRolUsuarioActual, "Es admin?", usuarioActualEsAdmin);
 
     // Cargar roles
@@ -18,15 +18,8 @@ $(document).ready(function () {
         if (idRol > 0) {
             cargarPermisos(idRol);
         } else {
-            $("#tblPermisos tbody").html(`<tr><td colspan="2" class="text-center text-muted">Seleccione un rol para ver sus permisos</td></tr>`);
+            $("#tbpermiso tbody").html(`<tr><td colspan="4" class="text-center text-muted">Seleccione un rol para ver sus permisos</td></tr>`);
         }
-    });
-
-    // Evento cambio de checkbox de permisos
-    $(document).on('change', '.chkPermiso', function () {
-        var idPermiso = $(this).data("idpermiso");
-        var activo = $(this).is(':checked');
-        actualizarPermiso(idPermiso, activo, this);
     });
 });
 
@@ -51,18 +44,29 @@ function cargarRoles() {
 }
 
 // ==========================
+// Buscar (botón de la vista)
+// ==========================
+function buscar() {
+    var idRol = parseInt($("#cboRol").val(), 10) || 0;
+    if (idRol > 0) {
+        cargarPermisos(idRol);
+    } else {
+        Swal.fire({ title: "Atención", text: "Seleccione un rol primero", icon: "warning" });
+    }
+}
+
+// ==========================
 // Cargar permisos por rol
 // ==========================
 function cargarPermisos(idRol) {
-    // Validación: usuario no admin no puede ver permisos de admin
     if (!usuarioActualEsAdmin && idRol === 1) {
-        swal("Mensaje", "No puede modificar permisos de administradores", "warning");
-        $("#tblPermisos tbody").html(`<tr><td colspan="2" class="text-center text-muted">No puede ver permisos de administradores</td></tr>`);
+        Swal.fire({ title: "Atención", text: "No puede modificar permisos de administradores", icon: "warning" });
+        $("#tbpermiso tbody").html(`<tr><td colspan="4" class="text-center text-muted">No puede ver permisos de administradores</td></tr>`);
         return;
     }
 
     $.ajax({
-        url: '/Permiso/ListarPermisosPorRol',
+        url: '/Rol/ListPermisosPorRol',
         type: 'GET',
         data: { idRol: idRol },
         success: function (data) {
@@ -70,47 +74,38 @@ function cargarPermisos(idRol) {
             let html = "";
 
             if (permisos.length === 0) {
-                html = `<tr><td colspan="2" class="text-center text-muted">Este rol no tiene permisos asignados.</td></tr>`;
+                html = `<tr><td colspan="4" class="text-center text-muted">Este rol no tiene permisos asignados.</td></tr>`;
             } else {
-                permisos.forEach(p => {
+                let menuActual = null;
+                let contador = 0;
+                permisos.forEach((p) => {
+                    if (p.Menu !== menuActual) {
+                        menuActual = p.Menu;
+                        html += `<tr style="background:#e8f4f8">
+                            <td colspan="4" style="font-weight:600;font-size:.8rem;
+                                color:#117a8b;text-transform:uppercase;letter-spacing:.05em">
+                                <i class="fas fa-folder-open fa-xs mr-1"></i>${menuActual}
+                            </td>
+                        </tr>`;
+                    }
+                    contador++;
                     html += `<tr>
-                        <td>${p.NombreSubMenu}</td>
+                        <td style="padding-left:1.5rem">${contador}</td>
                         <td class="text-center">
-                            <input type="checkbox" class="chkPermiso" 
-                                   data-idpermiso="${p.IdPermiso}" 
+                            <input type="checkbox" class="chkPermiso"
+                                   data-idpermiso="${p.IdPermisos}"
                                    ${p.Activo ? 'checked' : ''}>
                         </td>
+                        <td>${p.Menu || ''}</td>
+                        <td>${p.SubMenu || ''}</td>
                     </tr>`;
                 });
             }
 
-            $("#tblPermisos tbody").html(html);
+            $("#tbpermiso tbody").html(html);
         },
         error: function () {
             alert("Error al cargar permisos del rol seleccionado.");
-        }
-    });
-}
-
-// ==========================
-// Actualizar permiso individual
-// ==========================
-function actualizarPermiso(idPermiso, activo, checkbox) {
-    $.ajax({
-        url: '/Permiso/ActualizarEstadoPermiso',
-        type: 'POST',
-        data: { idPermiso: idPermiso, activo: activo },
-        success: function (data) {
-            if (data.resultado) {
-                console.log("Permiso actualizado correctamente.");
-            } else {
-                alert("No se pudo actualizar el permiso.");
-                $(checkbox).prop('checked', !activo); // revertir checkbox
-            }
-        },
-        error: function () {
-            alert("Error al actualizar el permiso.");
-            $(checkbox).prop('checked', !activo); // revertir checkbox
         }
     });
 }
@@ -121,13 +116,13 @@ function actualizarPermiso(idPermiso, activo, checkbox) {
 function Guardar() {
     const idRol = parseInt($("#cboRol").val(), 10) || 0;
     if (idRol === 0) {
-        swal("Mensaje", "Seleccione un rol", "warning");
+        Swal.fire({ title: "Atención", text: "Seleccione un rol", icon: "warning" });
         return;
     }
 
     const permisosArray = $(".chkPermiso").map(function () {
         return `<PERMISO>
-                    <IdPermiso>${$(this).data("idpermiso")}</IdPermiso>
+                    <IdPermisos>${$(this).data("idpermiso")}</IdPermisos>
                     <Activo>${$(this).is(':checked') ? 1 : 0}</Activo>
                 </PERMISO>`;
     }).get();
@@ -141,10 +136,10 @@ function Guardar() {
         contentType: 'application/json; charset=utf-8',
         success: function (data) {
             if (data.resultado) {
-                swal("Éxito", "Permisos guardados correctamente", "success");
-                cargarPermisos(idRol); // recargar tabla
+                Swal.fire({ title: "Éxito", text: "Permisos guardados correctamente", icon: "success" });
+                cargarPermisos(idRol);
             } else {
-                swal("Error", data.mensaje || "No se pudo guardar", "warning");
+                Swal.fire({ title: "Error", text: data.mensaje || "No se pudo guardar", icon: "warning" });
             }
         },
         error: function (err) {

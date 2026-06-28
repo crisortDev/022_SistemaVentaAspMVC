@@ -46,8 +46,8 @@
                         <th>Sucursal</th>
                         <th>Supervisor</th>
                         <th>Operador(es)</th>
-                        <th>Registro</th>
-                        <th>Finalizado</th>
+                        <th>Apertura</th>
+                        <th>Fin de conteo</th>
                         <th class="text-center">Estado</th>
                         <th class="text-center">Acciones</th>
                     </tr>
@@ -58,45 +58,59 @@
     </div>
 </div>
 
-<!-- Modal: Nuevo inventario -->
+<!-- Modal: Nuevo inventario (sucursal + operador + observación en un solo paso) -->
 <div class="modal fade" id="modalNuevo" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header py-2 bg-primary text-white">
-                <h6 class="modal-title"><i class="fas fa-plus mr-1"></i> Nuevo inventario</h6>
+                <h6 class="modal-title"><i class="fas fa-clipboard-list mr-1"></i> Nuevo inventario</h6>
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
+
                 @if (esSuperAdmin) {
                     <div class="form-group">
-                        <label class="col-form-label-sm font-weight-bold">Sucursal:</label>
+                        <label class="col-form-label-sm font-weight-bold">Sucursal: <span class="text-danger">*</span></label>
                         <select id="cboTiendaNuevo" class="form-control form-control-sm">
-                            <option value="">-- Seleccione --</option>
+                            <option value="">-- Seleccione sucursal --</option>
                         </select>
                     </div>
                 } else {
                     <input type="hidden" id="cboTiendaNuevo" value="" />
                     <div class="form-group">
-                        <label class="col-form-label-sm">Sucursal asignada:</label>
-                        <div id="lblTiendaNuevo" class="form-control-plaintext form-control-sm text-info"></div>
+                        <label class="col-form-label-sm font-weight-bold">Sucursal:</label>
+                        <div class="form-control form-control-sm bg-light text-info font-weight-bold" id="lblTiendaNuevo"
+                             style="pointer-events:none"></div>
                     </div>
                 }
+
                 <div class="form-group">
-                    <label class="col-form-label-sm font-weight-bold">Observación (opcional):</label>
-                    <input type="text" id="txtObsNuevo" class="form-control form-control-sm" maxlength="500" />
+                    <label class="col-form-label-sm font-weight-bold">
+                        Repositor a cargo: <span class="text-danger">*</span>
+                        <small class="text-muted font-weight-normal">(rol Repositor)</small>
+                    </label>
+                    <select id="cboOperadorNuevo" class="form-control form-control-sm">
+                        <option value="">@(esSuperAdmin ? "-- Seleccione sucursal primero --" : "-- Cargando repositores... --")</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label class="col-form-label-sm font-weight-bold">Observación: <span class="text-danger">*</span></label>
+                    <input type="text" id="txtObsNuevo" class="form-control form-control-sm" maxlength="500"
+                           placeholder="Ej: Conteo mensual de stock — turno mañana" />
                 </div>
             </div>
             <div class="modal-footer py-2">
                 <button class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
                 <button class="btn btn-sm btn-primary" id="btnConfirmarNuevo">
-                    <i class="fas fa-save mr-1"></i> Crear
+                    <i class="fas fa-save mr-1"></i> Crear y asignar
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal: Asignar operadores -->
+<!-- Modal: Asignar operador adicional (desde tabla, inventarios ya existentes) -->
 <div class="modal fade" id="modalAsignar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -108,7 +122,7 @@
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
+                <div class="form-group mb-0">
                     <label class="col-form-label-sm font-weight-bold">Operador:</label>
                     <select id="cboOperador" class="form-control form-control-sm">
                         <option value="">-- Seleccione usuario --</option>

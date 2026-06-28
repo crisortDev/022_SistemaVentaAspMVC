@@ -13,8 +13,16 @@ namespace VentasWeb.Controllers
                 return RedirectToAction("Index", "Login");
 
             ViewBag.NombreUsuario = usuario.Nombres + " " + usuario.Apellidos;
-            ViewBag.RolUsuario = usuario.oRol?.Descripcion ?? "";
-            ViewBag.EsSuperAdmin = EsSuperAdmin;
+            ViewBag.RolUsuario    = usuario.oRol?.Descripcion ?? "";
+            ViewBag.EsSuperAdmin  = EsSuperAdmin;
+
+            bool esSuperAdmin = usuario.IdRol == 14;
+            if (esSuperAdmin)
+                ViewBag.NombreSucursal = "Todas las sucursales";
+            else if (usuario.oTienda != null && !string.IsNullOrEmpty(usuario.oTienda.Nombre))
+                ViewBag.NombreSucursal = usuario.oTienda.Nombre;
+            else
+                ViewBag.NombreSucursal = "Sin sucursal asignada";
 
             // Construir set de controladores a los que el usuario tiene acceso
             // basado en su oListaMenu (ya filtrado por permisos en BD)
