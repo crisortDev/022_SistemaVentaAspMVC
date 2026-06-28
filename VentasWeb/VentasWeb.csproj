@@ -2017,8 +2017,14 @@
     <Content Include="Scripts\umd\popper.js" />
     <Content Include="Scripts\umd\popper.min.js" />
     <Content Include="Scripts\Views\Compra_Recepcion.js" />
+    <Content Include="Scripts\Views\Compra_Revision.js" />
+    <Content Include="Scripts\Views\CuentasPorCobrar_Index.js" />
+    <Content Include="Scripts\Views\Inventario_AprobarBajas.js" />
+    <Content Include="Scripts\Views\Inventario_AprobarTraslados.js" />
+    <Content Include="Scripts\Views\Inventario_Inventarios.js" />
     <Content Include="Scripts\Views\Inventario_Stock.js" />
     <Content Include="Scripts\Views\Inventario_Baja.js" />
+    <Content Include="Scripts\Views\Inventario_TomaInventario.js" />
     <Content Include="Scripts\Views\Inventario_Traslado.js" />
     <Content Include="Scripts\Views\Empleado_Crear.js" />
     <Content Include="Scripts\Views\Index_login.js" />
@@ -2029,6 +2035,7 @@
     <Content Include="Scripts\PDF\generar_reporte_compras.py" />
     <Content Include="Scripts\Views\Persona_Crear.js" />
     <Content Include="Scripts\Views\Reporte_Bajas.js" />
+    <Content Include="Scripts\Views\Usuario_Contrasena.js" />
     <Content Include="Scripts\Views\Usuario_Contraseña.js" />
     <Content Include="Scripts\Views\ConsultarCompraCaja.js" />
     <Content Include="Scripts\Views\Compra_Consultar.js" />
