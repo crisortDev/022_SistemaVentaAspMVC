@@ -36,11 +36,18 @@ namespace CapaDatos
         }
 
         // =================== MÉTODOS AUXILIARES ===================
+
+        // Pepper: valor secreto almacenado en Web.config (no en la BD).
+        // Protege contra ataques de rainbow table si la BD es comprometida.
+        private static readonly string _pepper =
+            ConfigurationManager.AppSettings["PasswordPepper"] ?? string.Empty;
+
         private string GetSHA256(string str)
         {
             using (SHA256 sha256 = SHA256.Create())
             {
-                byte[] bytes = Encoding.UTF8.GetBytes(str);
+                // Concatenar pepper antes de hashear
+                byte[] bytes = Encoding.UTF8.GetBytes(str + _pepper);
                 byte[] hash = sha256.ComputeHash(bytes);
                 StringBuilder sb = new StringBuilder();
                 foreach (byte b in hash)

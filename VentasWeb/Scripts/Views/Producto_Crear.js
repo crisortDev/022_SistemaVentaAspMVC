@@ -188,6 +188,14 @@ function abrirPopUpForm(jsonString) {
 
 function Guardar() {
     if ($("#form").valid()) {
+
+        // Validar que se haya seleccionado una categoría
+        var idCategoria = parseInt($("#cboCategoria").val()) || 0;
+        if (idCategoria === 0) {
+            Swal.fire('Atención', 'Debe seleccionar una categoría para el producto.', 'warning');
+            return;
+        }
+
         showLoading();
 
         var request = {
@@ -195,7 +203,7 @@ function Guardar() {
                 IdProducto:    parseInt($("#txtid").val()) || 0,
                 Nombre:        $("#txtNombre").val(),
                 Descripcion:   $("#txtDescripcion").val(),
-                IdCategoria:   parseInt($("#cboCategoria").val()) || 0,
+                IdCategoria:   idCategoria,
                 IvaPorcentaje: parseFloat($("#cboIva").val()) || 10,
                 StockMaximo:   parseInt($("#txtStockMaximo").val()) || 0,
                 Activo:        $("#cboEstado").val() === "1"

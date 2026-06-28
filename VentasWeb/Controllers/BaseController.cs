@@ -1,4 +1,5 @@
-﻿using CapaModelo;
+﻿using CapaDatos;
+using CapaModelo;
 using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
@@ -111,5 +112,22 @@ namespace VentasWeb.Controllers
                 resultado = false,
                 mensaje = "No tiene permisos para operar en esta sucursal."
             });
+
+        // ── Auditoría ─────────────────────────────────────────────
+        /// <summary>
+        /// Registra un evento de auditoría usando la sesión activa.
+        /// Llamar desde cualquier controller heredado.
+        /// Ejemplo: RegistrarAuditoria(CD_Auditoria.CREAR, "Producto: Mouse Gamer");
+        /// </summary>
+        protected void RegistrarAuditoria(string accion, string detalle = null)
+        {
+            var usr = UsuarioActual;
+            CD_Auditoria.Instancia.Registrar(
+                idUsuario: usr?.IdUsuario,
+                accion:    accion,
+                detalle:   detalle,
+                ip:        Request?.UserHostAddress
+            );
+        }
     }
 }

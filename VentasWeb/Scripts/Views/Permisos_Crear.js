@@ -66,7 +66,7 @@ function cargarPermisos(idRol) {
     }
 
     $.ajax({
-        url: '/Rol/ListPermisosPorRol',
+        url: $.MisUrls.url._ListPermisosPorRol,
         type: 'GET',
         data: { idRol: idRol },
         success: function (data) {

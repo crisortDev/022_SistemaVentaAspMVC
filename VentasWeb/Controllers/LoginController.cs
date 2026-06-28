@@ -20,6 +20,8 @@ namespace VentasWeb.Controllers
         private const int MAX_INTENTOS = 5;
         private const int ID_ROL_SUPERADMIN = 14;  // IdRol del SuperAdmin en BD
 
+        private string IP => Request?.UserHostAddress ?? "desconocida";
+
         // ── GET: Index ────────────────────────────────────────────
         public ActionResult Index() => View();
 
@@ -49,7 +51,10 @@ namespace VentasWeb.Controllers
 
             // ── Bloqueo por intentos fallidos ─────────────────────
             if (usuario.IntentosFallidos >= MAX_INTENTOS)
+            {
+                CD_Auditoria.Instancia.Registrar(usuario.IdUsuario, CD_Auditoria.CUENTA_BLOQUEADA, correo, IP);
                 return Json(new { success = false, mensaje = "Tu cuenta está bloqueada por demasiados intentos fallidos. Contactá al administrador." });
+            }
 
             string hashIngresado = GetSHA256(clave);
 
@@ -123,6 +128,7 @@ namespace VentasWeb.Controllers
                 usuario.FechaUltimoLogin = DateTime.Now;
                 CD_Usuario.Instancia.ActualizarUsuario(usuario);
 
+                CD_Auditoria.Instancia.Registrar(usuario.IdUsuario, CD_Auditoria.LOGIN_OK, correo, IP);
                 IniciarSesion(usuario);
 
 #if DEBUG
@@ -134,6 +140,8 @@ namespace VentasWeb.Controllers
             // ── Contraseña incorrecta — sumar intento fallido ─────
             usuario.IntentosFallidos++;
             CD_Usuario.Instancia.ActualizarUsuario(usuario);
+            CD_Auditoria.Instancia.Registrar(usuario.IdUsuario, CD_Auditoria.LOGIN_FAIL,
+                $"{correo} — intento {usuario.IntentosFallidos}/{MAX_INTENTOS}", IP);
 
             int restantes = MAX_INTENTOS - usuario.IntentosFallidos;
             string msgIntentos = restantes > 0
@@ -268,11 +276,14 @@ namespace VentasWeb.Controllers
             }
         }
 
+        private static readonly string _pepper =
+            ConfigurationManager.AppSettings["PasswordPepper"] ?? string.Empty;
+
         private string GetSHA256(string input)
         {
             using (SHA256 sha = SHA256.Create())
             {
-                byte[] bytes = Encoding.UTF8.GetBytes(input);
+                byte[] bytes = Encoding.UTF8.GetBytes(input + _pepper);
                 byte[] hash = sha.ComputeHash(bytes);
                 var sb = new StringBuilder();
                 foreach (byte b in hash)

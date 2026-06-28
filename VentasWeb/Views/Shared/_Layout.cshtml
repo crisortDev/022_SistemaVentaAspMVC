@@ -683,6 +683,52 @@
             _Inv_AnularInventario:              '@Url.Action("AnularInventario",              "Inventario")'
         });
 
+        // ---- INVENTARIO (complemento) ----
+        $.MisUrls.urls({
+            _Inv_ObtenerTiendas: '@Url.Action("ObtenerTiendas", "Inventario")'
+        });
+
+        // ---- EMPLEADO (CRUD completo) ----
+        $.MisUrls.urls({
+            _Empleado_Obtener:       '@Url.Action("Obtener",       "Empleado")',
+            _Empleado_Guardar:       '@Url.Action("Guardar",       "Empleado")',
+            _Empleado_ObtenerPorId:  '@Url.Action("ObtenerPorId",  "Empleado")',
+            _Empleado_CambiarEstado: '@Url.Action("CambiarEstado", "Empleado")'
+        });
+
+        // ---- PERSONA (CRUD completo) ----
+        $.MisUrls.urls({
+            _Persona_Obtener:       '@Url.Action("Obtener",       "Persona")',
+            _Persona_Guardar:       '@Url.Action("Guardar",       "Persona")',
+            _Persona_ObtenerPorId:  '@Url.Action("ObtenerPorId",  "Persona")',
+            _Persona_CambiarEstado: '@Url.Action("CambiarEstado", "Persona")'
+        });
+
+        // ---- MOTIVO BAJA ----
+        $.MisUrls.urls({
+            _MotivoBaja_ObtenerTodos:   '@Url.Action("ObtenerTodos",   "MotivoBaja")',
+            _MotivoBaja_Guardar:        '@Url.Action("Guardar",        "MotivoBaja")',
+            _MotivoBaja_CambiarEstado:  '@Url.Action("CambiarEstado",  "MotivoBaja")'
+        });
+
+        // ---- USUARIO (complemento) ----
+        $.MisUrls.urls({
+            _Usuario_ObtenerActivos: '@Url.Action("ObtenerUsuariosActivos", "Usuario")'
+        });
+
+        // ---- PRODUCTO (complemento Asignar) ----
+        $.MisUrls.urls({
+            _Producto_BajaStock:     '@Url.Action("BajaStockProductoTienda", "Producto")',
+            _Producto_MotivosBaja:   '@Url.Action("ObtenerMotivosBaja",      "Producto")'
+        });
+
+        // ---- REPORTE (complemento) ----
+        $.MisUrls.urls({
+            _Reporte_ObtenerNC:          '@Url.Action("ObtenerReporteNC",         "Reporte")',
+            _Reporte_ObtenerProveedores: '@Url.Action("ObtenerReporteProveedores","Reporte")',
+            _Reporte_ProveedoresCombo:   '@Url.Action("ObtenerProveedoresCombo",  "Reporte")'
+        });
+
         // ---- DATATABLES ----
         $.MisUrls.urls({
             Url_datatable_spanish: '@Url.Content("~/content/plugins/datatables/js/datatable_spanish.json")'

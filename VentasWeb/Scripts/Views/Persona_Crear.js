@@ -4,7 +4,7 @@
     var tabla = $('#tbdata').DataTable({
         responsive: true,
         autoWidth: false,
-        ajax: { url: '/Persona/Obtener', type: 'GET', datatype: 'json' },
+        ajax: { url: $.MisUrls.url._Persona_Obtener, type: 'GET', datatype: 'json' },
         order: [[10, 'desc']],
         language: { url: $.MisUrls.url.Url_datatable_spanish },
         columns: [
@@ -134,7 +134,7 @@ function CambiarEstado(id, activar) {
     }).then(function (result) {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/Persona/CambiarEstado',
+                url: $.MisUrls.url._Persona_CambiarEstado,
                 type: 'POST',
                 data: { id: id, activo: activar, afectarHijos: !activar },
                 success: function (resp) {
@@ -177,7 +177,7 @@ function abrirPopUpForm(idPersona) {
 
     } else {
         // ── EDITAR ────────────────────────────────────────
-        $.get("/Persona/ObtenerPorId", { id: idPersona }, function (data) {
+        $.get($.MisUrls.url._Persona_ObtenerPorId, { id: idPersona }, function (data) {
             if (!data) { Swal.fire("Error", "No se encontró la persona.", "error"); return; }
 
             $("#txtid").val(data.IdPersona);
@@ -321,7 +321,7 @@ function GuardarPersona() {
     };
 
     $.ajax({
-        url: '/Persona/Guardar',
+        url: $.MisUrls.url._Persona_Guardar,
         type: 'POST',
         data: persona,
         success: function (resp) {

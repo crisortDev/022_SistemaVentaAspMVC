@@ -142,7 +142,7 @@ function cargar() {
 function abrirAsignar(idInventario, numero, idTienda) {
     inventarioSeleccionado = idInventario;
     $('#lblNumAsignar').text(numero);
-    var url = '/Usuario/ObtenerUsuariosActivos' + (idTienda ? '?idTienda=' + idTienda : '');
+    var url = $.MisUrls.url._Usuario_ObtenerActivos + (idTienda ? '?idTienda=' + idTienda : '');
     $.get(url, function (r) {
         var $cbo = $('#cboOperador').empty().append('<option value="">-- Seleccione repositor --</option>');
         var lista = (r && r.data) ? r.data : [];
@@ -268,7 +268,7 @@ function badge(e) {
 // ── Cargar operadores por tienda en un <select> ───────────────────────────────
 function cargarOperadoresPorTienda(idTienda, selector) {
     var $cbo = $(selector).empty().append('<option value="">-- Cargando... --</option>');
-    var url = '/Usuario/ObtenerUsuariosActivos' + (idTienda ? '?idTienda=' + idTienda : '');
+    var url = $.MisUrls.url._Usuario_ObtenerActivos + (idTienda ? '?idTienda=' + idTienda : '');
     $.get(url, function (r) {
         $cbo.empty().append('<option value="">-- Seleccione operador --</option>');
         var lista = (r && r.data) ? r.data : [];

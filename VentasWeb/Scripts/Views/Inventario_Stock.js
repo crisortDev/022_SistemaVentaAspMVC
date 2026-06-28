@@ -12,7 +12,7 @@ $(document).ready(function () {
 
 // ── Cargar combo Tiendas ──────────────────────────────────
 function cargarTiendas() {
-    $.get('/Inventario/ObtenerTiendas', function (data) {
+    $.get($.MisUrls.url._Inv_ObtenerTiendas, function (data) {
         var opts = '<option value="0">-- Todas las tiendas --</option>';
         (data.data || []).forEach(function (t) {
             if (t.Activo) opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
@@ -38,7 +38,7 @@ function buscarStock() {
     var idtienda = parseInt($('#cboTienda').val()) || 0;
     $('body').LoadingOverlay('show');
 
-    $.get('/Inventario/ObtenerStock', { idtienda: idtienda, idproducto: 0 }, function (res) {
+    $.get($.MisUrls.url._ObtenerStock, { idtienda: idtienda, idproducto: 0 }, function (res) {
         _datosStock = res.data || [];
         actualizarComboCategorias(_datosStock);
         renderizarTabla();

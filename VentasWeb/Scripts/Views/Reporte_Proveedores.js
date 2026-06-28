@@ -17,8 +17,8 @@ $(document).ready(function () {
 
 // ── Cargar combo Tiendas ──────────────────────────────────
 function cargarTiendas() {
-    $.get('/Inventario/ObtenerTiendas', function (res) {
-        var opts = '<option value="0">-- Todas las tiendas --</option>';
+    $.get($.MisUrls.url._Inv_ObtenerTiendas, function (res) {
+        var opts = '<option value="0">-- Todas las sucursales --</option>';
         (res.data || []).forEach(function (t) {
             if (t.Activo) opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
         });
@@ -28,16 +28,28 @@ function cargarTiendas() {
 
 // ── Buscar ────────────────────────────────────────────────
 function buscarProveedores() {
+    var fi = $('#txtFechaInicio').val();
+    var ff = $('#txtFechaFin').val();
+
+    if (!fi || !ff) {
+        Swal.fire('Atención', 'Debe seleccionar un rango de fechas.', 'warning');
+        return;
+    }
+    if (fi > ff) {
+        Swal.fire('Atención', 'La fecha inicio no puede ser mayor a la fecha fin.', 'warning');
+        return;
+    }
+
     var params = {
-        fechainicio: $('#txtFechaInicio').val(),
-        fechafin:    $('#txtFechaFin').val(),
+        fechainicio: fi,
+        fechafin:    ff,
         idtienda:    parseInt($('#cboTienda').val()) || 0,
         solodeuda:   $('#cboFiltro').val() === '1'
     };
 
     $('body').LoadingOverlay('show');
 
-    $.get('/Reporte/ObtenerReporteProveedores', params, function (res) {
+    $.get($.MisUrls.url._Reporte_ObtenerProveedores, params, function (res) {
         _datosProv = res.data || [];
         renderizarTabla();
         $('#btnExportarPDF').prop('disabled', _datosProv.length === 0);

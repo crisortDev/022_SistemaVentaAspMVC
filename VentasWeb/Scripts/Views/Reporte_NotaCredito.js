@@ -17,7 +17,7 @@ $(document).ready(function () {
 
 // ── Cargar combos Proveedor y Tienda ─────────────────────
 function cargarCombos() {
-    $.get('/Reporte/ObtenerProveedoresCombo', function (res) {
+    $.get($.MisUrls.url._Reporte_ProveedoresCombo, function (res) {
         var opts = '<option value="0">-- Todos los proveedores --</option>';
         (res.data || []).forEach(function (p) {
             opts += '<option value="' + p.IdProveedor + '">' + p.RazonSocial + ' (' + p.Ruc + ')</option>';
@@ -25,7 +25,7 @@ function cargarCombos() {
         $('#cboProveedor').html(opts);
     });
 
-    $.get('/Inventario/ObtenerTiendas', function (res) {
+    $.get($.MisUrls.url._Inv_ObtenerTiendas, function (res) {
         var opts = '<option value="0">-- Todas --</option>';
         (res.data || []).forEach(function (t) {
             if (t.Activo) opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
@@ -36,9 +36,21 @@ function cargarCombos() {
 
 // ── Buscar ────────────────────────────────────────────────
 function buscarNC() {
+    var fi = $('#txtFechaInicio').val();
+    var ff = $('#txtFechaFin').val();
+
+    if (!fi || !ff) {
+        Swal.fire('Atención', 'Debe seleccionar un rango de fechas.', 'warning');
+        return;
+    }
+    if (fi > ff) {
+        Swal.fire('Atención', 'La fecha inicio no puede ser mayor a la fecha fin.', 'warning');
+        return;
+    }
+
     var params = {
-        fechainicio: $('#txtFechaInicio').val(),
-        fechafin:    $('#txtFechaFin').val(),
+        fechainicio: fi,
+        fechafin:    ff,
         idproveedor: parseInt($('#cboProveedor').val()) || 0,
         idtienda:    parseInt($('#cboTienda').val())    || 0,
         estado:      $('#cboEstado').val()
@@ -46,7 +58,7 @@ function buscarNC() {
 
     $('body').LoadingOverlay('show');
 
-    $.get('/Reporte/ObtenerReporteNC', params, function (res) {
+    $.get($.MisUrls.url._Reporte_ObtenerNC, params, function (res) {
         _datosNC = res.data || [];
         renderizarTablaNC();
         $('#btnExportarPDF').prop('disabled', _datosNC.length === 0);

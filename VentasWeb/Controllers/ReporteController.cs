@@ -72,6 +72,9 @@ namespace VentasWeb.Controllers
 
         public JsonResult ObtenerBajas(string fechainicio, string fechafin, int idtienda)
         {
+            // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
+            if (!EsSuperAdmin) idtienda = TiendaActiva;
+
             List<ReporteBaja> lista = CD_Reportes.Instancia.ReporteBajas(
                 Convert.ToDateTime(fechainicio),
                 Convert.ToDateTime(fechafin),
@@ -96,6 +99,9 @@ namespace VentasWeb.Controllers
         {
             try
             {
+                // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
                 DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
 
@@ -124,6 +130,9 @@ namespace VentasWeb.Controllers
         {
             try
             {
+                // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
                 DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
 

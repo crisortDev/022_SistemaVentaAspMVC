@@ -1,4 +1,5 @@
-﻿using CapaModelo;
+﻿using CapaDatos;
+using CapaModelo;
 using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
@@ -49,6 +50,11 @@ namespace VentasWeb.Controllers
 
         public ActionResult Salir()
         {
+            var usuario = Session["Usuario"] as Usuario;
+            if (usuario != null)
+                CD_Auditoria.Instancia.Registrar(usuario.IdUsuario, CD_Auditoria.LOGOUT,
+                    usuario.Correo, Request?.UserHostAddress);
+
             Session["Usuario"] = null;
             Session["EsSuperAdmin"] = null;
             Session["TiendaActiva"] = null;
@@ -56,7 +62,16 @@ namespace VentasWeb.Controllers
         }
         public ActionResult AccesoDenegado()
         {
-            // Si quieres mostrar el mismo layout y navbar que Index
+            return View();
+        }
+
+        /// <summary>
+        /// Página genérica de error del servidor.
+        /// Invocada por GlobalExceptionFilter para peticiones no-AJAX.
+        /// No requiere autenticación para que funcione incluso si la sesión expiró.
+        /// </summary>
+        public ActionResult Error()
+        {
             return View();
         }
 

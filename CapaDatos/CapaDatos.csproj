@@ -50,6 +50,7 @@
     <Compile Include="CD_CajaVenta.cs" />
     <Compile Include="CD_ParametrosTributarios.cs" />
     <Compile Include="CD_PuntoCaja.cs" />
+    <Compile Include="CD_Auditoria.cs" />
     <Compile Include="CD_Inventario.cs" />
     <Compile Include="CD_MotivoBaja.cs" />
     <Compile Include="CD_Categoria.cs" />

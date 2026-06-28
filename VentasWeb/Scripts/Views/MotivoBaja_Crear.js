@@ -10,7 +10,7 @@ $(document).ready(function () {
         responsive: true,
         autoWidth: false,
         ajax: {
-            url: '/MotivoBaja/ObtenerTodos', // CAMBIO: nuevo endpoint que trae activos e inactivos
+            url: $.MisUrls.url._MotivoBaja_ObtenerTodos,
             type: 'GET',
             datatype: 'json'
         },
@@ -121,7 +121,7 @@ function Guardar() {
     };
 
     $.ajax({
-        url: '/MotivoBaja/Guardar',
+        url: $.MisUrls.url._MotivoBaja_Guardar,
         type: 'POST',
         data: JSON.stringify(objeto),
         contentType: 'application/json; charset=utf-8',
@@ -160,7 +160,7 @@ function cambiarEstado(id, activar) {
     }).then(function (result) {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/MotivoBaja/CambiarEstado?id=' + id + '&activar=' + activar,
+                url: $.MisUrls.url._MotivoBaja_CambiarEstado + '?id=' + id + '&activar=' + activar,
                 type: 'GET',
                 success: function (resp) {
                     if (resp.resultado) {

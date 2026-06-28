@@ -149,6 +149,7 @@
     <Compile Include="Controllers\PuntoCajaController.cs" />
     <Compile Include="Controllers\ReporteGerenciaController.cs" />
     <Compile Include="Filters\AuthorizeRol.cs" />
+    <Compile Include="Filters\GlobalExceptionFilter.cs" />
     <Compile Include="Filters\VerificarSession.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
@@ -2101,6 +2102,7 @@
     <Content Include="Views\ConsultarCajaCompra\ConsultarCajaCompra.cshtml" />
     <Content Include="Views\Producto\ConsultarPrecioVenta.cshtml" />
     <Content Include="Views\Home\AccesoDenegado.cshtml" />
+    <Content Include="Views\Home\Error.cshtml" />
     <Content Include="Views\Shared\_Menu.cshtml" />
     <Content Include="Views\Usuario\CambioContraseña.cshtml" />
     <Content Include="Views\Empleado\Crear.cshtml" />
@@ -2197,6 +2199,12 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target> -->
   <Import Project="..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets" Condition="Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -2204,10 +2212,4 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.4.1.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets'))" />
   </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target> -->
 </Project>

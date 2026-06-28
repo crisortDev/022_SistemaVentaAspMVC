@@ -11,7 +11,7 @@
         $("#lblStockActual").text("-");
         if (!idTienda) return;
 
-        $.get("/Inventario/ObtenerProductosPorTiendaBaja", { idTienda: idTienda }, function (resp) {
+        $.get($.MisUrls.url._ObtenerProductosPorTiendaBaja, { idTienda: idTienda }, function (resp) {
             var opts = '<option value="">-- Seleccione producto --</option>';
             (resp.data || []).forEach(function (p) {
                 opts += '<option value="' + p.IdProductoTienda + '"'
@@ -62,7 +62,7 @@
             cancelButtonText: "Cancelar"
         }, function (confirmado) {
             if (confirmado) {
-                $.post("/Inventario/BajarStock", {
+                $.post($.MisUrls.url._BajarStock, {
                     idProductoTienda: idProductoTienda,
                     idProducto: idProducto,
                     cantidad: cantidad,

@@ -90,7 +90,7 @@ $(document).ready(function () {
 // ==================== MOTIVOS DE BAJA ====================
 function cargarMotivosBaja() {
     $.ajax({
-        url: '/Producto/ObtenerMotivosBaja',
+        url: $.MisUrls.url._Producto_MotivosBaja,
         type: 'GET',
         dataType: 'json',
         success: function (data) {
@@ -142,7 +142,7 @@ function registrarBaja() {
     }
 
     $.ajax({
-        url: '/Producto/BajaStockProductoTienda',
+        url: $.MisUrls.url._Producto_BajaStock,
         type: 'POST',
         data: {
             idProductoTienda: $("#bajaIdProductoTienda").val(),

@@ -92,7 +92,7 @@
         };
 
         $.ajax({
-            url: '/Empleado/Guardar',
+            url: $.MisUrls.url._Empleado_Guardar,
             type: 'POST',
             data: JSON.stringify(emp),
             contentType: 'application/json; charset=utf-8',
@@ -112,7 +112,7 @@
     $('#tbEmpleados').DataTable({
         responsive: true,
         autoWidth: false,
-        ajax: { url: '/Empleado/Obtener', type: 'GET', datatype: 'json' },
+        ajax: { url: $.MisUrls.url._Empleado_Obtener, type: 'GET', datatype: 'json' },
         order: [[4, 'desc']],
         columns: [
             { data: 'Documento' },
@@ -205,7 +205,7 @@
             confirmButtonColor: confirmColor
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post('/Empleado/CambiarEstado', { id: id, activo: activar }, function (resp) {
+                $.post($.MisUrls.url._Empleado_CambiarEstado, { id: id, activo: activar }, function (resp) {
                     if (resp.resultado) {
                         let msg = activar ? "Empleado activado correctamente." : "Empleado desactivado correctamente.";
                         Swal.fire("Éxito", msg, "success");
@@ -229,7 +229,7 @@
             $("#divBuscarPersona").hide();
             $("#FormEmpleado .modal-title").text("Editar Empleado");
 
-            $.get("/Empleado/ObtenerPorId", { id: idEmpleado }, function (data) {
+            $.get($.MisUrls.url._Empleado_ObtenerPorId, { id: idEmpleado }, function (data) {
                 if (data) {
                     $("#txtIdEmpleado").val(data.IdEmpleado);  // ← CRÍTICO: Asegurar que IdEmpleado se establece
                     $("#txtIdPersona").val(data.IdPersona);

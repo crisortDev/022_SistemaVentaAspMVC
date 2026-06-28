@@ -14,7 +14,7 @@ function inicializarDataTable() {
         serverSide: true,
         processing: true,
         ajax: {
-            url: '/ConsultarCajaCompra/BuscarCompras',
+            url: $.MisUrls.url._BuscarMovimientosCaja,
             type: 'POST',
             data: d => {
                 d.FechaInicio = $('#txtFechaInicio').val();
@@ -129,7 +129,7 @@ function ejecutarPago(idMovimiento, btn) {
     boton.prop('disabled', true).text('Procesando...');
 
     $.ajax({
-        url: '/ConsultarCajaCompra/Pagar',
+        url: $.MisUrls.url._PagarMovimiento,
         type: 'POST',
         data: { idMovimiento },
         success: function (response) {
@@ -184,7 +184,7 @@ function ejecutarCancelar(idMovimiento, btn) {
     boton.prop('disabled', true).text('Procesando...');
 
     $.ajax({
-        url: '/ConsultarCajaCompra/Cancelar',
+        url: $.MisUrls.url._CancelarMovimiento,
         type: 'POST',
         data: { idMovimiento },
         success: function (response) {

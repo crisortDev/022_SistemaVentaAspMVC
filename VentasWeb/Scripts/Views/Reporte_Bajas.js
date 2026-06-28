@@ -35,11 +35,11 @@ $('#btnBuscar').on('click', function () {
     var fechaFin = $("#txtFechaFin").val();
 
     if (!fechaInicio || !fechaFin) {
-        Swal.fire("Atenci�n", "Debe seleccionar un rango de fechas.", "warning");
+        Swal.fire("Atención", "Debe seleccionar un rango de fechas.", "warning");
         return;
     }
     if (fechaInicio > fechaFin) {
-        Swal.fire("Atenci�n", "La fecha inicio no puede ser mayor a la fecha fin.", "warning");
+        Swal.fire("Atención", "La fecha inicio no puede ser mayor a la fecha fin.", "warning");
         return;
     }
 
