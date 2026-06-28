@@ -2141,6 +2141,7 @@
     <Content Include="Views\Compra\Recepcion.cshtml" />
     <Content Include="Views\Compra\Revision.cshtml" />
     <Content Include="Views\ComprobanteCobro\CuentasPorCobrar.cshtml" />
+    <Content Include="Views\ComprobanteCobro\Documento.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

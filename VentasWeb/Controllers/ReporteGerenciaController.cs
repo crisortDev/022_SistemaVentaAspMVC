@@ -24,7 +24,16 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("ReporteGerencia", "Index")]
         public ActionResult Index()
         {
-            ViewBag.Tiendas = CD_Tienda.Instancia.ObtenerTiendas();
+            var tiendas = CD_Tienda.Instancia.ObtenerTiendas();
+            ViewBag.Tiendas = tiendas;
+
+            // Para usuarios normales: pasar el nombre de su sucursal
+            if (!EsSuperAdmin && TiendaActiva > 0)
+            {
+                var tiendaActual = tiendas?.Find(t => t.IdTienda == TiendaActiva);
+                ViewBag.NombreTiendaActual = tiendaActual?.Nombre ?? "Sucursal " + TiendaActiva;
+            }
+
             return View();
         }
 

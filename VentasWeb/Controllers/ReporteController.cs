@@ -17,6 +17,7 @@ namespace VentasWeb.Controllers
         // GET: Reporte
         public ActionResult Producto()
         {
+            SetNombreTienda();
             return View();
         }
 
@@ -65,6 +66,7 @@ namespace VentasWeb.Controllers
 
         public ActionResult Bajas()
         {
+            SetNombreTienda();
             return View();
         }
 
@@ -84,6 +86,7 @@ namespace VentasWeb.Controllers
 
         public ActionResult NotaCredito()
         {
+            SetNombreTienda();
             return View();
         }
 
@@ -111,6 +114,7 @@ namespace VentasWeb.Controllers
 
         public ActionResult Proveedores()
         {
+            SetNombreTienda();
             return View();
         }
 
@@ -155,6 +159,20 @@ namespace VentasWeb.Controllers
         }
 
         [HttpGet]
+        public JsonResult ObtenerCategorias()
+        {
+            try
+            {
+                var lista = CD_Categoria.Instancia.ObtenerCategoria();
+                return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { data = new List<object>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
         public JsonResult ObtenerRentabilidad(
             string fechainicio = "", string fechafin = "",
             int idtienda = 0, int idcategoria = 0)
@@ -174,6 +192,17 @@ namespace VentasWeb.Controllers
             {
                 return Json(new { data = new List<ReporteRentabilidad>(), error = ex.Message },
                     JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ── Helper: pasa el nombre de la sucursal activa al ViewBag ──
+        private void SetNombreTienda()
+        {
+            if (!EsSuperAdmin && TiendaActiva > 0)
+            {
+                var tienda = CD_Tienda.Instancia.ObtenerTiendas()
+                                      ?.Find(t => t.IdTienda == TiendaActiva);
+                ViewBag.NombreTiendaActual = tienda?.Nombre ?? "Sucursal " + TiendaActiva;
             }
         }
     }

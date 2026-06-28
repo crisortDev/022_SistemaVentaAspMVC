@@ -27,12 +27,28 @@
             </div>
             <div class="card-body">
                 <div class="row align-items-end">
-                    <div class="col-sm-2">
-                        <div class="form-group mb-0">
-                            <label for="cboTienda" class="col-form-label col-form-label-sm">Tienda:</label>
-                            <select class="form-control form-control-sm model" id="cboTienda" name="Tienda"></select>
+                    @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+                    {
+                        <div class="col-sm-2">
+                            <div class="form-group mb-0">
+                                <label for="cboTienda" class="col-form-label col-form-label-sm">Sucursal:</label>
+                                <select class="form-control form-control-sm model" id="cboTienda" name="Tienda"></select>
+                            </div>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="col-sm-2">
+                            <div class="form-group mb-0">
+                                <label class="col-form-label col-form-label-sm">Sucursal:</label>
+                                <div class="form-control form-control-sm bg-light" style="line-height:1.8;">
+                                    <i class="fas fa-store text-info mr-1"></i>
+                                    <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
+                                </div>
+                                <input type="hidden" id="cboTienda" name="Tienda" value="@(Session["TiendaActiva"] ?? 0)" />
+                            </div>
+                        </div>
+                    }
                     <div class="col-sm-2">
                         <div class="form-group mb-0">
                             <label for="txtCodigoProducto" class="col-form-label col-form-label-sm">Codigo Producto:</label>

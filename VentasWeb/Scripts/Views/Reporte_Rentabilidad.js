@@ -28,7 +28,7 @@ function cargarTiendas() {
 }
 
 function cargarCategorias() {
-    $.get('/Producto/ObtenerCategorias', function (res) {
+    $.get('/Reporte/ObtenerCategorias', function (res) {
         var datos = res.data || res || [];
         if (!Array.isArray(datos)) return;
         var opts = '<option value="0">-- Todas las categorías --</option>';

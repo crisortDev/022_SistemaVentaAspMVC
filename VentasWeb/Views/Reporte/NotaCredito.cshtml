@@ -35,12 +35,26 @@
                     <option value="0">-- Todos los proveedores --</option>
                 </select>
             </div>
-            <div class="col-sm-2">
-                <label class="col-form-label col-form-label-sm">Tienda</label>
-                <select id="cboTienda" class="form-control form-control-sm">
-                    <option value="0">-- Todas --</option>
-                </select>
-            </div>
+            @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+            {
+                <div class="col-sm-2">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <select id="cboTienda" class="form-control form-control-sm">
+                        <option value="0">-- Todas --</option>
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-2">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <div class="form-control form-control-sm bg-light" style="line-height:1.8; font-size:0.78rem;">
+                        <i class="fas fa-store text-info mr-1"></i>
+                        <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
+                    </div>
+                    <input type="hidden" id="cboTienda" value="@(Session["TiendaActiva"] ?? 0)" />
+                </div>
+            }
             <div class="col-sm-2">
                 <label class="col-form-label col-form-label-sm">Estado</label>
                 <select id="cboEstado" class="form-control form-control-sm">

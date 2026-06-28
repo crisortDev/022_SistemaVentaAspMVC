@@ -48,16 +48,30 @@
                 <label class="col-form-label col-form-label-sm">Fecha Fin</label>
                 <input type="text" class="form-control form-control-sm datepicker-rg" id="txtFechaFin" placeholder="dd/mm/aaaa" autocomplete="off">
             </div>
-            <div class="col-sm-3" id="divTienda" style="@(Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"] ? "" : "display:none;")">
-                <label class="col-form-label col-form-label-sm">Tienda</label>
-                <select class="form-control form-control-sm" id="cboTienda">
-                    <option value="0">Todas las tiendas</option>
-                    @foreach (var t in tiendas)
-                    {
-                        <option value="@t.IdTienda">@t.Nombre</option>
-                    }
-                </select>
-            </div>
+            @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+            {
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <select class="form-control form-control-sm" id="cboTienda">
+                        <option value="0">Todas las sucursales</option>
+                        @foreach (var t in tiendas)
+                        {
+                            <option value="@t.IdTienda">@t.Nombre</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <div class="form-control form-control-sm bg-light" style="line-height:1.8;">
+                        <i class="fas fa-store text-info mr-1"></i>
+                        <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
+                    </div>
+                    <input type="hidden" id="cboTienda" value="@(Session["TiendaActiva"] ?? 0)" />
+                </div>
+            }
             <div class="col-sm-2">
                 <button class="btn btn-primary btn-sm btn-block" onclick="generarReporte()">
                     <i class="fas fa-search"></i> Generar

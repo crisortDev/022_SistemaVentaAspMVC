@@ -29,12 +29,26 @@
                 <label class="col-form-label col-form-label-sm">Fecha Hasta</label>
                 <input type="date" id="txtFechaFin" class="form-control form-control-sm" />
             </div>
-            <div class="col-sm-3">
-                <label class="col-form-label col-form-label-sm">Tienda</label>
-                <select id="cboTienda" class="form-control form-control-sm">
-                    <option value="0">-- Todas las tiendas --</option>
-                </select>
-            </div>
+            @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+            {
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <select id="cboTienda" class="form-control form-control-sm">
+                        <option value="0">-- Todas las sucursales --</option>
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <div class="form-control form-control-sm bg-light" style="line-height:1.8;">
+                        <i class="fas fa-store text-info mr-1"></i>
+                        <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
+                    </div>
+                    <input type="hidden" id="cboTienda" value="@(Session["TiendaActiva"] ?? 0)" />
+                </div>
+            }
             <div class="col-sm-3">
                 <label class="col-form-label col-form-label-sm">Filtrar</label>
                 <select id="cboFiltro" class="form-control form-control-sm">

@@ -44,7 +44,7 @@ namespace VentasWeb.Filters
             { "ConsultarCajaVenta|ConsultarCajaVenta",     "Caja Venta"                 },
             { "Usuario|CambioContraseña",                  "Cambio de Contraseña"       },
             { "NotaCredito|Index",                         "Registrar NC"               },
-            { "ReporteGerencia|Index",                     "Reporte Gerencia Compras"   },
+            { "ReporteGerencia|Index",                     "Reporte Gerencial de Compras" },
             // ── Módulo Ventas v2 ──────────────────────────────────────
             { "Venta|Facturar",                            "Registrar Venta Directa"    },
             { "Venta|Guardar",                             "Registrar Venta Directa"    },
@@ -133,19 +133,24 @@ namespace VentasWeb.Filters
 
             bool tienePermiso;
 
+            // Aplanar todos los submenús del usuario de una sola vez
+            var todosLosSubmenus = listaMenu
+                .SelectMany(menu => menu.oSubMenu ?? Enumerable.Empty<SubMenu>())
+                .Where(sm => !string.IsNullOrEmpty(sm.Controlador))
+                .ToList();
+
             if (vistaValidar == "*")
             {
-                // Permitir si tiene cualquier submenú activo del controlador
-                tienePermiso = listaMenu
-                    .SelectMany(menu => menu.oSubMenu ?? Enumerable.Empty<SubMenu>())
-                    .Any(sm => sm.Controlador.Equals(controladorValidar, StringComparison.OrdinalIgnoreCase)
-                               && sm.Activo);
+                // Wildcard: basta con que el usuario tenga CUALQUIER submenú del controlador.
+                // El SP ya garantiza que solo devuelve submenús con permiso activo,
+                // así que no se necesita chequear sm.Activo aquí.
+                tienePermiso = todosLosSubmenus
+                    .Any(sm => sm.Controlador.Equals(controladorValidar, StringComparison.OrdinalIgnoreCase));
             }
             else
             {
-                // Validar acción específica dentro del submenú
-                tienePermiso = listaMenu
-                    .SelectMany(menu => menu.oSubMenu ?? Enumerable.Empty<SubMenu>())
+                // Validar submenú específico por nombre (y controlador + Activo)
+                tienePermiso = todosLosSubmenus
                     .Any(sm => sm.Controlador.Equals(controladorValidar, StringComparison.OrdinalIgnoreCase)
                                && sm.Nombre.Equals(vistaValidar, StringComparison.OrdinalIgnoreCase)
                                && sm.Activo);
@@ -156,20 +161,22 @@ namespace VentasWeb.Filters
 
         protected override void HandleUnauthorizedRequest(AuthorizationContext filterContext)
         {
+            var session = filterContext.HttpContext.Session;
+            var request = filterContext.HttpContext.Request;
+            bool sinSesion = session["Usuario"] == null;
+
             // ── Auditoría: registrar intento de acceso denegado ───
             try
             {
-                var session  = filterContext.HttpContext.Session;
-                var request  = filterContext.HttpContext.Request;
-                var usuario  = session["Usuario"] as CapaModelo.Usuario;
-                string user  = usuario != null
+                var usuario = session["Usuario"] as CapaModelo.Usuario;
+                string user = usuario != null
                     ? $"{usuario.Correo} (IdUsuario={usuario.IdUsuario})"
                     : "Sin sesión";
-                string url   = request.Url?.PathAndQuery ?? "desconocida";
-                string ip    = request.UserHostAddress ?? "IP desconocida";
-                string msg   = $"[ACCESO DENEGADO] {DateTime.Now:yyyy-MM-dd HH:mm:ss} | " +
-                               $"Usuario: {user} | URL: {url} | IP: {ip} | " +
-                               $"Controlador: {_controlador} | Vista: {_vista}";
+                string url  = request.Url?.PathAndQuery ?? "desconocida";
+                string ip   = request.UserHostAddress ?? "IP desconocida";
+                string msg  = $"[ACCESO DENEGADO] {DateTime.Now:yyyy-MM-dd HH:mm:ss} | " +
+                              $"Usuario: {user} | URL: {url} | IP: {ip} | " +
+                              $"Controlador: {_controlador} | Vista: {_vista}";
 
                 System.Diagnostics.Trace.TraceWarning(msg);
             }
@@ -178,16 +185,23 @@ namespace VentasWeb.Filters
                 // El log nunca debe interrumpir el flujo de la aplicación
             }
 
-            if (filterContext.HttpContext.Request.IsAjaxRequest())
+            if (request.IsAjaxRequest())
             {
+                string mensaje = sinSesion ? "Sesión expirada. Por favor, iniciá sesión nuevamente." : "Acceso denegado";
                 filterContext.Result = new JsonResult
                 {
-                    Data = new { resultado = false, mensaje = "Acceso denegado" },
+                    Data = new { resultado = false, mensaje = mensaje },
                     JsonRequestBehavior = JsonRequestBehavior.AllowGet
                 };
             }
+            else if (sinSesion)
+            {
+                // Sesión expirada o no autenticado → redirigir al login
+                filterContext.Result = new RedirectResult("~/Login/Index");
+            }
             else
             {
+                // Autenticado pero sin permisos → AccesoDenegado
                 filterContext.Result = new RedirectResult("~/Home/AccesoDenegado");
             }
         }
