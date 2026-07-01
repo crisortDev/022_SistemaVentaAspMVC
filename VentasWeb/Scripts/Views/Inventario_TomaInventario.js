@@ -3,6 +3,7 @@
 'use strict';
 
 var dtConteo = null;   // instancia DataTable
+var LIMITE_CANTIDAD = 99999;   // tope máximo de cantidad contada por producto (debe coincidir con el SP)
 
 $(function () {
     activarMenu("Inventario");
@@ -126,8 +127,8 @@ function construirTabla(productos) {
                 '<input type="number" ' +
                     'class="form-control form-control-sm text-center qty-input" ' +
                     'data-id="' + p.IdProducto + '" ' +
-                    'min="0" step="1" value="0" ' +
-                    'oninput="this.value = Math.max(0, parseInt(this.value) || 0)" ' +
+                    'min="0" max="' + LIMITE_CANTIDAD + '" step="1" value="0" ' +
+                    'oninput="this.value = Math.min(' + LIMITE_CANTIDAD + ', Math.max(0, parseInt(this.value) || 0))" ' +
                     'onkeypress="return /[0-9]/.test(event.key)" />' +
             '</td>' +
             '</tr>'
@@ -184,6 +185,16 @@ function finalizar() {
         return;
     }
 
+    // Validación defensiva: ningún valor puede superar el tope permitido
+    var fueraDeRango = inputs.filter(function () {
+        var v = parseInt($(this).val()) || 0;
+        return v < 0 || v > LIMITE_CANTIDAD;
+    }).length;
+    if (fueraDeRango > 0) {
+        toastr.error('Hay ' + fueraDeRango + ' producto(s) con una cantidad fuera de rango (0 a ' + LIMITE_CANTIDAD + '). Corríjalos antes de finalizar.');
+        return;
+    }
+
     var conCantidad = inputs.filter(function () { return parseInt($(this).val()) > 0; }).length;
     var enCero      = inputs.length - conCantidad;
 
@@ -234,8 +245,13 @@ function finalizar() {
                 mostrarLista();
                 cargarAsignados();
             } else {
+                // No se toca la tabla: las cantidades cargadas siguen ahí, el operador solo corrige y reintenta.
                 toastr.error(r.mensaje);
             }
+        }).fail(function () {
+            // Error de red/sesión (no llegó a responder el servidor): tampoco se pierde nada,
+            // la tabla de conteo sigue intacta para reintentar.
+            toastr.error('No se pudo guardar el conteo (problema de conexión o sesión expirada). Sus cantidades siguen cargadas; revise su conexión e intente "Finalizar" de nuevo.');
         });
     });
 }

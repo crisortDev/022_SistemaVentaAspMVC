@@ -321,6 +321,9 @@
 </head>
 <body>
 
+    @* Token CSRF — usado por el interceptor AJAX de más abajo en cada POST/PUT/DELETE *@
+    @Html.AntiForgeryToken()
+
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="font-weight:bold">
         <a class="navbar-brand" href="@Url.Action("Index", "Home")">
@@ -377,6 +380,19 @@
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/bundles/jquery")
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/bundles/bootstrap")
     @Scripts.RenderFormat("<script src=\"{0}?v=" + cacheVersion + "\"></script>", "~/Content/PluginsJS")
+
+    <!-- Interceptor CSRF — agrega el token antiforgery a toda petición AJAX que modifique datos -->
+    <script>
+        (function () {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            $(document).ajaxSend(function (event, jqxhr, settings) {
+                var metodo = (settings.type || 'GET').toUpperCase();
+                if (metodo !== 'GET' && token) {
+                    jqxhr.setRequestHeader('RequestVerificationToken', token);
+                }
+            });
+        })();
+    </script>
     <!-- SweetAlert2 — disponible globalmente -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Shim de compatibilidad: redirige llamadas toastr → Swal -->

@@ -112,23 +112,23 @@ function cargar() {
         lista.forEach(function (i) {
             var acc = '';
             if (i.CantItems > 0)
-                acc += '<button class="btn btn-xs btn-info btn-sm mr-1" onclick="verDetalle(' + i.IdInventario + ',\'' + esc(i.Numero) + '\')" title="Reporte de diferencias"><i class="fas fa-chart-bar"></i></button>';
+                acc += '<button class="btn btn-xs btn-info btn-sm mr-1" onclick="verDetalle(' + i.IdInventario + ',\'' + escJs(i.Numero) + '\')" title="Reporte de diferencias"><i class="fas fa-chart-bar"></i></button>';
             if (i.Estado === 'Abierto' || i.Estado === 'Rechazado')
-                acc += '<button class="btn btn-xs btn-secondary btn-sm mr-1" onclick="abrirAsignar(' + i.IdInventario + ',\'' + esc(i.Numero) + '\',' + (i.IdTienda || 0) + ')" title="Asignar operador"><i class="fas fa-user-plus"></i></button>';
+                acc += '<button class="btn btn-xs btn-secondary btn-sm mr-1" onclick="abrirAsignar(' + i.IdInventario + ',\'' + escJs(i.Numero) + '\',' + (i.IdTienda || 0) + ')" title="Asignar operador"><i class="fas fa-user-plus"></i></button>';
             if (i.Estado === 'Pendiente de Aprobación') {
                 acc += '<button class="btn btn-xs btn-success btn-sm mr-1" onclick="aprobar(' + i.IdInventario + ')" title="Aprobar"><i class="fas fa-check"></i></button>';
                 acc += '<button class="btn btn-xs btn-danger btn-sm mr-1" onclick="rechazar(' + i.IdInventario + ')" title="Rechazar"><i class="fas fa-times"></i></button>';
             }
             if (i.Estado !== 'Aprobado' && i.Estado !== 'Anulado')
-                acc += '<button class="btn btn-xs btn-dark btn-sm mr-1" onclick="anular(' + i.IdInventario + ',\'' + esc(i.Numero) + '\')" title="Anular inventario"><i class="fas fa-ban"></i></button>';
+                acc += '<button class="btn btn-xs btn-dark btn-sm mr-1" onclick="anular(' + i.IdInventario + ',\'' + escJs(i.Numero) + '\')" title="Anular inventario"><i class="fas fa-ban"></i></button>';
             var motivo = i.MotivoRechazo
-                ? ' <i class="fas fa-info-circle text-danger" title="' + esc(i.MotivoRechazo) + '"></i>'
+                ? ' <i class="fas fa-info-circle text-danger" title="' + escHtml(i.MotivoRechazo) + '"></i>'
                 : '';
             t.append('<tr>' +
-                '<td><strong>' + (i.Numero || '') + '</strong></td>' +
-                '<td>' + (i.NombreTienda || '') + '</td>' +
-                '<td>' + (i.Supervisor || '—') + '</td>' +
-                '<td>' + (i.Operadores || '<span class="text-muted small">Sin asignar</span>') + '</td>' +
+                '<td><strong>' + escHtml(i.Numero) + '</strong></td>' +
+                '<td>' + escHtml(i.NombreTienda) + '</td>' +
+                '<td>' + (i.Supervisor ? escHtml(i.Supervisor) : '—') + '</td>' +
+                '<td>' + (i.Operadores ? escHtml(i.Operadores) : '<span class="text-muted small">Sin asignar</span>') + '</td>' +
                 '<td>' + fmtFecha(i.FechaRegistro) + '</td>' +
                 '<td>' + fmtFecha(i.FechaFinalizacion) + '</td>' +
                 '<td class="text-center">' + badge(i.Estado) + motivo + '</td>' +
@@ -175,8 +175,8 @@ function verDetalle(id, numero) {
             else if (dif < 0) faltante++;
             else sinDif++;
             t.append('<tr>' +
-                '<td>' + (d.Categoria || '—') + '</td>' +
-                '<td>' + (d.CodigoProducto || '') + ' — ' + (d.NombreProducto || '') + '</td>' +
+                '<td>' + (d.Categoria ? escHtml(d.Categoria) : '—') + '</td>' +
+                '<td>' + escHtml(d.CodigoProducto) + ' — ' + escHtml(d.NombreProducto) + '</td>' +
                 '<td class="text-center">' + d.StockSistema + '</td>' +
                 '<td class="text-center">' + d.StockContado + '</td>' +
                 '<td class="text-center ' + col + '"><strong>' + (dif > 0 ? '+' : '') + dif + '</strong></td>' +
@@ -287,7 +287,29 @@ function cargarOperadoresPorTienda(idTienda, selector) {
     });
 }
 
-function esc(s) { return (s || '').replace(/'/g, "\\'").replace(/\n/g, ' '); }
+// HTML-encoding real para insertar valores como contenido/atributo HTML (evita XSS almacenado).
+function escHtml(s) {
+    return (s == null ? '' : String(s))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Para insertar un valor dentro de onclick="fn('...')": escapa la comilla simple
+// que delimita el string de JS y además neutraliza caracteres especiales de HTML,
+// ya que el atributo onclick sigue siendo HTML.
+function escJs(s) {
+    return (s == null ? '' : String(s))
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\r?\n/g, ' ')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 
 function fmtFecha(dt) {
     if (!dt) return '—';

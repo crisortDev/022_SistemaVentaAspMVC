@@ -1,5 +1,54 @@
 ﻿$(document).ready(function () {
 
+    // ── Métodos personalizados ─────────────────────────
+    $.validator.addMethod("documentoValido", function (value, element) {
+        return this.optional(element) || /^\d{6,8}$/.test(value.trim());
+    }, "Ingresá un CI válido (6 a 8 dígitos).");
+
+    $.validator.addMethod("telefonoValido", function (value, element) {
+        return this.optional(element) || /^[\d\s\-\+\(\)]+$/.test(value);
+    }, "Solo se permiten números, espacios, guiones y paréntesis.");
+
+    $.validator.addMethod("soloLetras", function (value, element) {
+        return this.optional(element) || /^[a-zA-ZÁÉÍÓÚáéíóúÑñÜü\s]+$/.test(value.trim());
+    }, "Solo se permiten letras y espacios.");
+
+    $("#formEmpleado").validate({
+        rules: {
+            CI:           { required: true, documentoValido: true },
+            Nombres:      { required: true, soloLetras: true, minlength: 3, maxlength: 100 },
+            Apellidos:    { required: true, soloLetras: true, minlength: 3, maxlength: 100 },
+            Telefono:     { telefonoValido: true, maxlength: 20 },
+            Correo:       { email: true, maxlength: 100 },
+            IdTienda:     { required: true },
+            FechaIngreso: { required: true }
+        },
+        messages: {
+            CI: {
+                required: "El CI es obligatorio.",
+                documentoValido: "Ingresá un CI válido (6 a 8 dígitos)."
+            },
+            Nombres: {
+                required: "El nombre es obligatorio.",
+                soloLetras: "Solo se permiten letras y espacios.",
+                minlength: "Debe tener al menos 3 caracteres."
+            },
+            Apellidos: {
+                required: "El apellido es obligatorio.",
+                soloLetras: "Solo se permiten letras y espacios.",
+                minlength: "Debe tener al menos 3 caracteres."
+            },
+            Telefono: { telefonoValido: "Formato inválido. Solo números, guiones o paréntesis." },
+            Correo:   { email: "Ingresá un correo electrónico válido." },
+            IdTienda: { required: "Seleccioná una tienda." },
+            FechaIngreso: { required: "La fecha de ingreso es obligatoria." }
+        },
+        errorElement: 'small',
+        errorClass: 'text-danger d-block',
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
+    });
+
     // Cargar Tiendas al abrir modal
     function cargarTiendas(idTiendaSeleccionada) {
         $.get($.MisUrls.url._ObtenerTiendasActivas, function (response) {
@@ -65,6 +114,8 @@
 
     // Guardar empleado
     function GuardarEmpleado() {
+        if (!$("#formEmpleado").valid()) return;
+
         var fechaIngreso = $("#txtFechaIngreso").val();
         if (fechaIngreso) {
             var partes = fechaIngreso.split('-');
@@ -221,6 +272,10 @@
     // Abrir modal para nuevo o editar empleado
     window.abrirPopUpFormEmpleado = function (idEmpleado, esEditar = false) {
         $("#formEmpleado")[0].reset();
+        if ($("#formEmpleado").data("validator")) {
+            $("#formEmpleado").validate().resetForm();
+        }
+        $("#formEmpleado .is-invalid").removeClass("is-invalid");
         $("#txtIdPersona").val(0);
         $("#txtIdEmpleado").val(idEmpleado || 0);
         $("#ddlEstadoEmpleado").val("1");

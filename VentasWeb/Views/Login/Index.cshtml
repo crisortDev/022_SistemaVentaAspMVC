@@ -401,6 +401,9 @@
     </style>
 </head>
 <body>
+    @* Token CSRF — usado por el interceptor AJAX de más abajo *@
+    @Html.AntiForgeryToken()
+
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
@@ -563,6 +566,20 @@
     @Scripts.Render("~/bundles/bootstrap")
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Interceptor CSRF — agrega el token antiforgery a toda petición AJAX que modifique datos -->
+    <script>
+        (function () {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            $(document).ajaxSend(function (event, jqxhr, settings) {
+                var metodo = (settings.type || 'GET').toUpperCase();
+                if (metodo !== 'GET' && token) {
+                    jqxhr.setRequestHeader('RequestVerificationToken', token);
+                }
+            });
+        })();
+    </script>
+
     <script src="@Url.Content("~/Scripts/Views/Index_login.js?v=" + DateTime.Now.Ticks)"></script>
 </body>
 </html>

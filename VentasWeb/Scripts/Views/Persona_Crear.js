@@ -1,5 +1,59 @@
 ﻿$(document).ready(function () {
 
+    // ── Métodos personalizados ─────────────────────────────
+    // Documento: formato según tipo seleccionado (CI o RUC)
+    $.validator.addMethod('documentoValido', function (value, element) {
+        var tipo = $('#cboTipoDocumento').val();
+        value = value.trim();
+        if (tipo === 'CI')  return /^\d{6,8}$/.test(value);
+        if (tipo === 'RUC') return /^\d{6,8}-\d$/.test(value);
+        return true;
+    }, function () {
+        var tipo = $('#cboTipoDocumento').val();
+        return tipo === 'RUC'
+            ? 'RUC debe tener formato XXXXXXXX-X (ej: 80012345-1).'
+            : 'CI debe tener entre 6 y 8 dígitos numéricos.';
+    });
+
+    // Teléfono paraguayo: internacional (+595...) o local (0...), opcional
+    $.validator.addMethod('telefonoParaguay', function (value, element) {
+        if (this.optional(element)) return true;
+        var limpio = value.replace(/\s|-/g, '');
+        return /^(\+595\d{6,10}|0\d{8,10})$/.test(limpio);
+    }, 'Formato inválido. Ej: +595991234567 o 021123456.');
+
+    $("#form").validate({
+        rules: {
+            Documento: {
+                required: { depends: function (el) { return !$(el).prop('readonly'); } },
+                documentoValido: { depends: function (el) { return !$(el).prop('readonly'); } }
+            },
+            Nombres:      { required: true, minlength: 2, maxlength: 100 },
+            Apellidos:    { required: true, minlength: 2, maxlength: 100 },
+            RazonSocial:  { required: true, minlength: 2, maxlength: 150 },
+            Correo:       { email: true, maxlength: 100 },
+            Telefono:     { telefonoParaguay: true, maxlength: 20 }
+        },
+        messages: {
+            Documento: { required: "El documento es obligatorio." },
+            Nombres:      { required: "El nombre es obligatorio.", minlength: "Debe tener al menos 2 caracteres." },
+            Apellidos:    { required: "El apellido es obligatorio.", minlength: "Debe tener al menos 2 caracteres." },
+            RazonSocial:  { required: "La razón social es obligatoria.", minlength: "Debe tener al menos 2 caracteres." },
+            Correo:       { email: "Ingresá un correo electrónico válido." },
+            Telefono:     { maxlength: "No puede superar los 20 caracteres." }
+        },
+        // Los campos deshabilitados (según tipo de persona / modo edición) se ignoran automáticamente.
+        errorElement: 'div',
+        errorClass: 'invalid-feedback d-block',
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
+    });
+
+    // Revalidar documento al cambiar el tipo (CI ⇄ RUC)
+    $('#cboTipoDocumento').on('change', function () {
+        if ($('#txtDocumento').val().trim() !== '') $('#txtDocumento').valid();
+    });
+
     // ── DataTable ─────────────────────────────────────────
     var tabla = $('#tbdata').DataTable({
         responsive: true,
@@ -238,71 +292,12 @@ function ajustarCamposPorTipoPersona() {
 
 // ── Validar y guardar ─────────────────────────────────────
 function GuardarPersona() {
-    limpiarErrores();
-    var esValido = true;
-    var esEdicion = parseInt($("#txtid").val()) > 0;  // true si es edición
-    var tipo = $("input[name='tipoPersona']:checked").val();
+    if (!$("#form").valid()) return;
+
     var tipoDoc = $("#cboTipoDocumento").val();
     var doc = $("#txtDocumento").val().trim();
     var correo = $("#txtCorreo").val().trim();
     var tel = $("#txtTelefono").val().trim();
-
-    // Documento: en edición es readonly → no se valida el formato (ya fue validado al crear)
-    if (!esEdicion) {
-        if (!doc) {
-            marcarError("txtDocumento", "El documento es obligatorio.");
-            esValido = false;
-        } else {
-            // Validar formato CI: solo números, 6-8 dígitos
-            if (tipoDoc === "CI" && !/^\d{6,8}$/.test(doc)) {
-                marcarError("txtDocumento", "CI debe tener entre 6 y 8 dígitos numéricos.");
-                esValido = false;
-            }
-            // Validar formato RUC: números-dígito (ej: 80012345-1)
-            if (tipoDoc === "RUC" && !/^\d{6,8}-\d$/.test(doc)) {
-                marcarError("txtDocumento", "RUC debe tener formato XXXXXXXX-X (ej: 80012345-1).");
-                esValido = false;
-            }
-        }
-    }
-
-    // Validar según tipo persona
-    if (tipo === "F") {
-        if (!$("#txtNombres").val().trim()) {
-            marcarError("txtNombres", "El nombre es obligatorio.");
-            esValido = false;
-        }
-        if (!$("#txtApellidos").val().trim()) {
-            marcarError("txtApellidos", "El apellido es obligatorio.");
-            esValido = false;
-        }
-    } else {
-        if (!$("#txtRazonSocial").val().trim()) {
-            marcarError("txtRazonSocial", "La razón social es obligatoria.");
-            esValido = false;
-        }
-    }
-
-    // Correo — si se ingresó, validar formato
-    if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-        marcarError("txtCorreo", "Ingrese un correo válido.");
-        esValido = false;
-    }
-
-    // Teléfono — campo opcional, pero si se ingresa debe tener formato válido
-    if (tel) {
-        var telLimpio = tel.replace(/\s|-/g, ''); // Remover espacios y guiones
-        // Acepta:
-        // - Internacional: +595XXXXXXXXX (10-13 dígitos con +)
-        // - Local: 021XXXXXX o 0XXXXXXXXX (9-10 dígitos sin +)
-        var formatoValido = /^(\+595\d{6,10}|0\d{8,10})$/.test(telLimpio);
-        if (!formatoValido) {
-            marcarError("txtTelefono", "Formato inválido. Ej: +595991234567 o 021123456");
-            esValido = false;
-        }
-    }
-
-    if (!esValido) return;
 
     var persona = {
         IdPersona: $("#txtid").val(),
@@ -310,7 +305,7 @@ function GuardarPersona() {
         Nombres: $("#txtNombres").val().trim(),
         Apellidos: $("#txtApellidos").val().trim(),
         Correo: correo,
-        Telefono: tel.trim(), // Guardar tal como está, validación ya pasó
+        Telefono: tel, // Guardar tal como está, validación ya pasó
         Calle1: $("#txtCallePrincipal").val().trim(),
         Calle2: $("#txtCalleSecundaria").val().trim(),
         Ciudad: $("#txtCiudad").val().trim(),
@@ -339,14 +334,10 @@ function GuardarPersona() {
     });
 }
 
-// ── Helpers de validación visual ──────────────────────────
-function marcarError(idCampo, mensaje) {
-    var $campo = $("#" + idCampo);
-    $campo.addClass("is-invalid");
-    $campo.closest(".form-group").find(".invalid-feedback").text(mensaje).show();
-}
-
+// ── Helper: limpiar estado de validación del formulario ───
 function limpiarErrores() {
-    $("#form .form-control, #form select").removeClass("is-invalid");
-    $("#form .invalid-feedback").text("").hide();
+    if ($("#form").data("validator")) {
+        $("#form").validate().resetForm();
+    }
+    $("#form .is-invalid").removeClass("is-invalid");
 }

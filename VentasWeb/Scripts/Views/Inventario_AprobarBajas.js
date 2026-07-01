@@ -7,6 +7,16 @@ $(function () {
     $('#btnBuscar').on('click', cargar);
 });
 
+// HTML-encoding real para insertar valores como contenido HTML (evita XSS almacenado).
+function escHtml(s) {
+    return (s == null ? '' : String(s))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function fmtFecha(dt) {
     if (!dt) return '—';
     var ms = /\/Date\((\d+)/.exec(dt);
@@ -43,11 +53,11 @@ function cargar() {
             }
             t.append('<tr>' +
                 '<td>' + fmtFecha(b.FechaMovimiento) + '</td>' +
-                '<td>' + (b.NombreTienda || '') + '</td>' +
-                '<td>' + (b.CodigoProducto || '') + ' — ' + (b.NombreProducto || '') + '</td>' +
+                '<td>' + escHtml(b.NombreTienda) + '</td>' +
+                '<td>' + escHtml(b.CodigoProducto) + ' — ' + escHtml(b.NombreProducto) + '</td>' +
                 '<td class="text-center">' + b.Cantidad + '</td>' +
-                '<td>' + (b.MotivoBaja || '') + (b.Observaciones ? ' <small class="text-muted">(' + b.Observaciones + ')</small>' : '') + '</td>' +
-                '<td>' + (b.UsuarioRegistro || '') + '</td>' +
+                '<td>' + escHtml(b.MotivoBaja) + (b.Observaciones ? ' <small class="text-muted">(' + escHtml(b.Observaciones) + ')</small>' : '') + '</td>' +
+                '<td>' + escHtml(b.UsuarioRegistro) + '</td>' +
                 '<td class="text-center">' + badge(b.EstadoAprobacion) + '</td>' +
                 '<td class="text-center">' + acciones + '</td>' +
                 '</tr>');

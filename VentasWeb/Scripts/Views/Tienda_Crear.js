@@ -2,23 +2,52 @@
 $(document).ready(function () {
     activarMenu("Ventas");
 
+    // Método personalizado: RUC (números y guion, ej. 80012345-6)
+    $.validator.addMethod("rucValido", function (value, element) {
+        return this.optional(element) || /^[\d\-]+$/.test(value);
+    }, "El RUC solo puede contener números y guiones.");
+
+    // Método personalizado: teléfono (números, espacios, guiones, paréntesis, +)
+    $.validator.addMethod("telefonoValido", function (value, element) {
+        return this.optional(element) || /^[\d\s\-\+\(\)]+$/.test(value);
+    }, "Solo se permiten números, espacios, guiones y paréntesis.");
 
     ////validamos el formulario
     $("#form").validate({
         rules: {
-            RUC: "required",
-            RazonSocial: "required",
-            Telefono: "required",
-            Direccion: "required"
+            RazonSocial: { required: true, minlength: 3, maxlength: 150 },
+            RUC:         { required: true, rucValido: true, minlength: 5, maxlength: 20 },
+            Direccion:   { required: true, minlength: 5, maxlength: 200 },
+            Telefono:    { required: true, telefonoValido: true, minlength: 6, maxlength: 20 }
         },
         messages: {
-            RUC: "(*)",
-            RazonSocial: "(*)",
-            Telefono: "(*)",
-            Direccion: "(*)"
-
+            RazonSocial: {
+                required: "El nombre de la tienda es obligatorio.",
+                minlength: "Debe tener al menos 3 caracteres.",
+                maxlength: "No puede superar los 150 caracteres."
+            },
+            RUC: {
+                required: "El RUC es obligatorio.",
+                rucValido: "Solo se permiten números y guiones (Ej: 80012345-6).",
+                minlength: "El RUC debe tener al menos 5 caracteres.",
+                maxlength: "No puede superar los 20 caracteres."
+            },
+            Direccion: {
+                required: "La dirección es obligatoria.",
+                minlength: "Debe tener al menos 5 caracteres.",
+                maxlength: "No puede superar los 200 caracteres."
+            },
+            Telefono: {
+                required: "El teléfono es obligatorio.",
+                telefonoValido: "Formato inválido. Solo números, guiones o paréntesis.",
+                minlength: "Debe tener al menos 6 dígitos.",
+                maxlength: "No puede superar los 20 caracteres."
+            }
         },
-        errorElement: 'span'
+        errorElement: 'span',
+        errorClass: 'text-danger small',
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
     });
 
 
@@ -84,6 +113,8 @@ function verTienda(json) {
 function abrirPopUpForm(json) {
 
     $("#txtid").val(0);
+    $("#form").validate().resetForm();
+    $("#form .is-invalid").removeClass("is-invalid");
 
     if (json != null) {
 

@@ -7,6 +7,28 @@
     cargarTiendas();
     iniciarDataTable();
 
+    // Método personalizado: documento (CI o RUC) solo números y guion
+    $.validator.addMethod("documentoBusqueda", function (value, element) {
+        return this.optional(element) || /^\d{4,8}(-\d)?$/.test(value.trim());
+    }, "Ingresá un CI o RUC válido (solo números, ej: 1234567 o 80012345-6).");
+
+    $("#formUsuario").validate({
+        rules: {
+            documento: { required: true, documentoBusqueda: true },
+            idTienda:  { required: true },
+            idRol:     { required: true }
+        },
+        messages: {
+            documento: { required: "Ingresá un CI o RUC para buscar." },
+            idTienda:  { required: "Seleccioná una tienda." },
+            idRol:     { required: "Seleccioná un rol." }
+        },
+        errorElement: 'small',
+        errorClass: 'text-danger d-block',
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
+    });
+
     // ══════════════════════════════════════════════════
     //  CARGA DE SELECTS
     //  _ObtenerRoles  → Rol/Obtener  (ya definido en layout)
@@ -110,6 +132,10 @@
         $("#ddlEstadoUsuario").val("1");
         cargarTiendas();
         desbloquearCamposProtegidos();
+        if ($("#formUsuario").data("validator")) {
+            $("#formUsuario").validate().resetForm();
+        }
+        $("#formUsuario .is-invalid").removeClass("is-invalid");
     }
 
     // ══════════════════════════════════════════════════
@@ -161,16 +187,18 @@
     //  GUARDAR — _CrearUsuarioPendiente → Usuario/CrearUsuarioPendiente
     // ══════════════════════════════════════════════════
     $("#btnGuardarUsuario").click(function () {
+        if (!$("#formUsuario").valid()) return;
+
         var idEmpleado = parseInt($("#txtIdEmpleadoUsuario").val()) || 0;
         var correo = $("#txtCorreoUsuario").val().trim();
         var idRol = $("#cboRolUsuario").val();
         var idTienda = $("#cboTiendaUsuario").val();
         var activo = $("#ddlEstadoUsuario").val() === "1";
 
+        // El empleado y el correo se cargan automáticamente al buscar (no son campos libres),
+        // por eso se validan acá con un mensaje más específico que el de jQuery Validate.
         if (idEmpleado <= 0) { Swal.fire("Atención", "Busque y seleccione un empleado primero.", "warning"); return; }
         if (!correo) { Swal.fire("Atención", "El correo es obligatorio.", "warning"); return; }
-        if (!idRol) { Swal.fire("Atención", "Seleccione un rol.", "warning"); return; }
-        if (!idTienda) { Swal.fire("Atención", "Seleccione una tienda.", "warning"); return; }
 
         $.ajax({
             url: $.MisUrls.url._CrearUsuarioPendiente,

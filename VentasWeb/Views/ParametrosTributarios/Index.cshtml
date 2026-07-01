@@ -122,13 +122,14 @@ else
             <small class="float-right">SET Paraguay — Timbrado y Numeración</small>
         </div>
         <div class="card-body">
+            <form id="formParamTrib" novalidate>
             <div class="row">
                 <div class="col-sm-6">
                     <div class="form-group">
                         <label class="col-form-label col-form-label-sm font-weight-bold">
                             Razón Social <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="txtRazonSocial" class="form-control form-control-sm"
+                        <input type="text" id="txtRazonSocial" name="RazonSocial" class="form-control form-control-sm"
                                value="@Model.RazonSocial" maxlength="200"
                                placeholder="Nombre o razón social del emisor" />
                     </div>
@@ -138,7 +139,7 @@ else
                         <label class="col-form-label col-form-label-sm font-weight-bold">
                             Número de Timbrado <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="txtNumeroTimbrado" class="form-control form-control-sm"
+                        <input type="text" id="txtNumeroTimbrado" name="NumeroTimbrado" class="form-control form-control-sm"
                                value="@Model.NumeroTimbrado" maxlength="20"
                                placeholder="Ej: 12958745" />
                         <small class="text-muted">
@@ -153,7 +154,7 @@ else
                         <label class="col-form-label col-form-label-sm font-weight-bold">
                             Fecha de Vencimiento <span class="text-danger">*</span>
                         </label>
-                        <input type="date" id="txtVencimiento" class="form-control form-control-sm"
+                        <input type="date" id="txtVencimiento" name="Vencimiento" class="form-control form-control-sm"
                                value="@vencIso" />
                     </div>
                 </div>
@@ -162,7 +163,7 @@ else
                         <label class="col-form-label col-form-label-sm font-weight-bold">
                             Establecimiento <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="txtEstablecimiento" class="form-control form-control-sm"
+                        <input type="text" id="txtEstablecimiento" name="Establecimiento" class="form-control form-control-sm"
                                value="@Model.Establecimiento" maxlength="3"
                                placeholder="001" />
                         <small class="text-muted">3 dígitos</small>
@@ -173,13 +174,14 @@ else
                         <label class="col-form-label col-form-label-sm font-weight-bold">
                             Punto de Expedición <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="txtPuntoExpedicion" class="form-control form-control-sm"
+                        <input type="text" id="txtPuntoExpedicion" name="PuntoExpedicion" class="form-control form-control-sm"
                                value="@Model.PuntoExpedicion" maxlength="3"
                                placeholder="001" />
                         <small class="text-muted">3 dígitos</small>
                     </div>
                 </div>
             </div>
+            </form>
 
             <!-- Vista previa de factura -->
             <div class="alert alert-light border mt-1 mb-3 py-2">

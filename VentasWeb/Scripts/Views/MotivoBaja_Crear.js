@@ -3,6 +3,24 @@
 $(document).ready(function () {
     activarMenu("Mantenedor");
 
+    // ── Validación del formulario ──────────────────────────
+    $("#form").validate({
+        rules: {
+            Descripcion: { required: true, minlength: 2, maxlength: 100 }
+        },
+        messages: {
+            Descripcion: {
+                required: "La descripción es obligatoria.",
+                minlength: "Mínimo 2 caracteres.",
+                maxlength: "Máximo 100 caracteres."
+            }
+        },
+        errorElement: 'div',
+        errorClass: 'invalid-feedback d-block',
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
+    });
+
     // ── DataTable ─────────────────────────────────────────
     // CAMBIO: la URL ahora trae todos los registros (activos e inactivos)
     // para poder ver el estado y reactivar si se quiere
@@ -101,18 +119,9 @@ function abrirPopUpForm(json) {
 
 // ── Guardar ───────────────────────────────────────────────
 function Guardar() {
-    limpiarErrores();
+    if (!$("#form").valid()) return;
 
     var desc = $("#txtDescripcion").val().trim();
-
-    if (!desc) {
-        marcarError("txtDescripcion", "La descripción es obligatoria.");
-        return;
-    }
-    if (desc.length < 2) {
-        marcarError("txtDescripcion", "Mínimo 2 caracteres.");
-        return;
-    }
 
     var objeto = {
         IdMotivoBaja: parseInt($("#txtid").val()),
@@ -178,15 +187,12 @@ function cambiarEstado(id, activar) {
     });
 }
 
-// ── Helpers validación visual ─────────────────────────────
-function marcarError(idCampo, mensaje) {
-    $('#' + idCampo).addClass('is-invalid')
-        .closest('.form-group').find('.invalid-feedback').text(mensaje).show();
-}
-
+// ── Helper: limpiar estado de validación del formulario ───
 function limpiarErrores() {
-    $('#form .form-control').removeClass('is-invalid');
-    $('#form .invalid-feedback').text('').hide();
+    if ($('#form').data('validator')) {
+        $('#form').validate().resetForm();
+    }
+    $('#form .is-invalid').removeClass('is-invalid');
 }
 
 // ── Activar menú ──────────────────────────────────────────

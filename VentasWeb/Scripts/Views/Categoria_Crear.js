@@ -3,6 +3,34 @@
 $(document).ready(function () {
     activarMenu("Mantenedor");
 
+    // ── Validación del formulario ──────────────────────────
+    $("#form").validate({
+        rules: {
+            Descripcion:           { required: true, minlength: 2, maxlength: 50 },
+            PorcentajeGanancia:    { min: 0, max: 999.99 },
+            DescuentoMaxPermitido: { min: 0, max: 100 }
+        },
+        messages: {
+            Descripcion: {
+                required: "La descripción es obligatoria.",
+                minlength: "Mínimo 2 caracteres.",
+                maxlength: "Máximo 50 caracteres."
+            },
+            PorcentajeGanancia: {
+                min: "No puede ser negativo.",
+                max: "No puede superar 999.99."
+            },
+            DescuentoMaxPermitido: {
+                min: "No puede ser negativo.",
+                max: "No puede superar 100."
+            }
+        },
+        errorElement: 'div',
+        errorClass: 'invalid-feedback d-block',
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
+    });
+
     // ── DataTable ─────────────────────────────────────────
     tabladata = $('#tbdata').DataTable({
         responsive: true,
@@ -214,30 +242,13 @@ function toggleEstadoDesdeModal() {
 
 // ── Guardar ───────────────────────────────────────────────
 function Guardar() {
-    limpiarErrores();
+    if (!$("#form").valid()) return;
 
     var desc     = $("#txtDescripcion").val().trim();
     var pct      = $("#txtPorcentaje").val();
     var pctVal   = pct === '' ? 0 : parseFloat(pct);
     var descMax  = parseFloat($("#txtDescuentoMax").val()) || 0;
     var um       = $("#cboUnidadMedida").val() || 'Unidad';
-
-    if (!desc) {
-        marcarError("txtDescripcion", "La descripción es obligatoria.");
-        return;
-    }
-    if (desc.length < 2) {
-        marcarError("txtDescripcion", "Mínimo 2 caracteres.");
-        return;
-    }
-    if (isNaN(pctVal) || pctVal < 0 || pctVal > 999.99) {
-        marcarError("txtPorcentaje", "Ingrese un valor entre 0 y 999.99.");
-        return;
-    }
-    if (isNaN(descMax) || descMax < 0 || descMax > 100) {
-        marcarError("txtDescuentoMax", "Ingrese un valor entre 0 y 100.");
-        return;
-    }
 
     var objeto = {
         IdCategoria:           parseInt($("#txtid").val()),
@@ -319,15 +330,12 @@ function cambiarEstadoCategoria(id, activo, callback) {
     });
 }
 
-// ── Helpers validación visual ─────────────────────────────
-function marcarError(idCampo, mensaje) {
-    $('#' + idCampo).addClass('is-invalid')
-        .closest('.form-group').find('.invalid-feedback').text(mensaje).show();
-}
-
+// ── Helper: limpiar estado de validación del formulario ───
 function limpiarErrores() {
-    $('#form .form-control').removeClass('is-invalid');
-    $('#form .invalid-feedback').text('').hide();
+    if ($('#form').data('validator')) {
+        $('#form').validate().resetForm();
+    }
+    $('#form .is-invalid').removeClass('is-invalid');
 }
 
 // ── Activar menú ──────────────────────────────────────────

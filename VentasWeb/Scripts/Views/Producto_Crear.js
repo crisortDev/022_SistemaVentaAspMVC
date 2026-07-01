@@ -5,12 +5,16 @@ $(document).ready(function () {
 
     $("#form").validate({
         rules: {
-            Nombre: "required",
-            Descripcion: "required"
+            Nombre:       { required: true, minlength: 2, maxlength: 150 },
+            Descripcion:  { required: true, minlength: 2, maxlength: 250 },
+            Categoria:    { required: true },
+            StockMaximo:  { min: 0 }
         },
         messages: {
-            Nombre: "Este campo es obligatorio",
-            Descripcion: "Este campo es obligatorio"
+            Nombre:       { required: "El nombre es obligatorio.", minlength: "Mínimo 2 caracteres.", maxlength: "Máximo 150 caracteres." },
+            Descripcion:  { required: "La descripción es obligatoria.", minlength: "Mínimo 2 caracteres.", maxlength: "Máximo 250 caracteres." },
+            Categoria:    { required: "Seleccioná una categoría." },
+            StockMaximo:  { min: "No puede ser negativo." }
         },
         errorElement: 'span',
         errorClass: 'text-danger',
@@ -189,12 +193,7 @@ function abrirPopUpForm(jsonString) {
 function Guardar() {
     if ($("#form").valid()) {
 
-        // Validar que se haya seleccionado una categoría
         var idCategoria = parseInt($("#cboCategoria").val()) || 0;
-        if (idCategoria === 0) {
-            Swal.fire('Atención', 'Debe seleccionar una categoría para el producto.', 'warning');
-            return;
-        }
 
         showLoading();
 

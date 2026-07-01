@@ -4,6 +4,29 @@
     cargarPermisosDisponibles();
     cargarRoles();
 
+    // Método personalizado: nombre de rol (letras y espacios, admite acentos)
+    $.validator.addMethod("soloLetras", function (value, element) {
+        return this.optional(element) || /^[a-zA-ZÁÉÍÓÚáéíóúÑñÜü\s]+$/.test(value.trim());
+    }, "El nombre del rol solo puede contener letras y espacios.");
+
+    $("#formRol").validate({
+        rules: {
+            descripcionRol: { required: true, soloLetras: true, minlength: 3, maxlength: 50 }
+        },
+        messages: {
+            descripcionRol: {
+                required: "Ingresá el nombre del rol.",
+                soloLetras: "El nombre del rol solo puede contener letras y espacios.",
+                minlength: "Debe tener al menos 3 caracteres.",
+                maxlength: "No puede superar los 50 caracteres."
+            }
+        },
+        errorElement: 'small',
+        errorClass: 'text-danger d-block',
+        highlight: function (element) { $(element).addClass('is-invalid'); },
+        unhighlight: function (element) { $(element).removeClass('is-invalid'); }
+    });
+
     // 25002500 Forzar may00fasculas al escribir el nombre del rol 2500
     $("#txtDescripcionRol").on("input", function () {
         var pos = this.selectionStart; // conservar posici00f3n del cursor
@@ -46,12 +69,9 @@
 
     // ── Guardar Rol con Permisos ───────────────────────
     $("#btnGuardarRol").click(function () {
-        var descripcion = $("#txtDescripcionRol").val().trim();
+        if (!$("#formRol").valid()) return;
 
-        if (!descripcion) {
-            swal("Atención", "Ingrese el nombre del rol.", "warning");
-            return;
-        }
+        var descripcion = $("#txtDescripcionRol").val().trim();
 
         var permisosSeleccionados = [];
         $(".permisoCheck:checked").each(function () {
@@ -89,6 +109,8 @@
                         }).then(function () {
                             // Limpiar formulario
                             $("#txtDescripcionRol").val("");
+                            $("#formRol").validate().resetForm();
+                            $("#formRol .is-invalid").removeClass("is-invalid");
                             $(".permisoCheck").prop("checked", false);
                             $("#chkTodos").prop("checked", false);
                             actualizarContador();
