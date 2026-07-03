@@ -404,7 +404,7 @@ namespace VentasWeb.Controllers
         }
 
         /// <summary>
-        /// Devuelve repositores activos (IdRol=7), opcionalmente filtrados por sucursal.
+        /// Devuelve repositores activos (IdRol=7), opcionalmente filtrados por sucursal..
         /// Accesible a Supervisor/Encargado desde la vista de Inventarios.
         /// </summary>
         [HttpGet]
