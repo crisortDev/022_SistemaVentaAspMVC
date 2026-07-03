@@ -174,6 +174,99 @@ namespace CapaDatos
             }
             return existe;
         }
+        /// <summary>
+        /// Verifica si la persona tiene registros activos/pendientes en módulos críticos.
+        /// Devuelve lista de mensajes de advertencia. Lista vacía = sin alertas.
+        /// Módulos verificados: Caja, Pre-ventas (OV), Órdenes de Compra, Bajas, Traslados, Inventario.
+        /// </summary>
+        public List<string> ObtenerAlertasDesactivacion(int idPersona)
+        {
+            var alertas = new List<string>();
+
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                oConexion.Open();
+
+                // 1. Caja de ventas abierta
+                int cajas = ContarConQuery(oConexion, @"
+                    SELECT COUNT(*) FROM dbo.CAJA C
+                    INNER JOIN dbo.USUARIO  U ON C.IdUsuario  = U.IdUsuario
+                    INNER JOIN dbo.EMPLEADO E ON U.IdEmpleado = E.IdEmpleado
+                    WHERE E.IdPersona = @p AND C.Estado = 'Abierta'", idPersona);
+                if (cajas > 0)
+                    alertas.Add($"Caja de ventas: {cajas} sesión(es) abierta(s) sin cerrar.");
+
+                // 2. Pre-ventas (Orden de Venta) pendientes de facturar
+                int prevtas = ContarConQuery(oConexion, @"
+                    SELECT COUNT(*) FROM dbo.ORDEN_VENTA OV
+                    INNER JOIN dbo.USUARIO  U ON OV.IdUsuarioRegistro = U.IdUsuario
+                    INNER JOIN dbo.EMPLEADO E ON U.IdEmpleado         = E.IdEmpleado
+                    WHERE E.IdPersona = @p AND OV.Estado = 'Pendiente'", idPersona);
+                if (prevtas > 0)
+                    alertas.Add($"Pre-ventas: {prevtas} pedido(s) pendiente(s) de facturar.");
+
+                // 3. Órdenes de compra pendientes de aprobación
+                int ocs = ContarConQuery(oConexion, @"
+                    SELECT COUNT(*) FROM dbo.OrdenCompra OC
+                    INNER JOIN dbo.USUARIO  U ON OC.IdUsuarioRegistro = U.IdUsuario
+                    INNER JOIN dbo.EMPLEADO E ON U.IdEmpleado         = E.IdEmpleado
+                    WHERE E.IdPersona = @p AND OC.Estado = 'Pendiente'", idPersona);
+                if (ocs > 0)
+                    alertas.Add($"Órdenes de compra: {ocs} orden(es) pendiente(s) de aprobación.");
+
+                // 4. Solicitudes de baja de stock pendientes
+                int bajas = ContarConQuery(oConexion, @"
+                    SELECT COUNT(*) FROM dbo.HISTORIAL_MOVIMIENTO HM
+                    INNER JOIN dbo.USUARIO  U ON HM.IdUsuarioRegistro = U.IdUsuario
+                    INNER JOIN dbo.EMPLEADO E ON U.IdEmpleado         = E.IdEmpleado
+                    WHERE E.IdPersona = @p
+                      AND HM.Estado = 'Baja' AND HM.EstadoAprobacion = 'Pendiente'", idPersona);
+                if (bajas > 0)
+                    alertas.Add($"Bajas de stock: {bajas} solicitud(es) pendiente(s) de aprobación.");
+
+                // 5. Traslados de stock pendientes
+                int traslados = ContarConQuery(oConexion, @"
+                    SELECT COUNT(*) FROM dbo.TRASLADO T
+                    INNER JOIN dbo.USUARIO  U ON T.IdUsuario  = U.IdUsuario
+                    INNER JOIN dbo.EMPLEADO E ON U.IdEmpleado = E.IdEmpleado
+                    WHERE E.IdPersona = @p AND T.EstadoAprobacion = 'Pendiente'", idPersona);
+                if (traslados > 0)
+                    alertas.Add($"Traslados: {traslados} traslado(s) pendiente(s) de aprobación.");
+
+                // 6a. Inventarios activos donde la persona es el supervisor (creador)
+                int invSupervisor = ContarConQuery(oConexion, @"
+                    SELECT COUNT(*) FROM dbo.INVENTARIO I
+                    INNER JOIN dbo.USUARIO  U ON I.IdUsuarioRegistro = U.IdUsuario
+                    INNER JOIN dbo.EMPLEADO E ON U.IdEmpleado        = E.IdEmpleado
+                    WHERE E.IdPersona = @p
+                      AND I.Estado IN ('Abierto', 'En Progreso', 'Pendiente de Aprobación')", idPersona);
+                if (invSupervisor > 0)
+                    alertas.Add($"Inventarios (supervisor): {invSupervisor} inventario(s) activo(s) creado(s) por esta persona.");
+
+                // 6b. Inventarios activos donde la persona es operador asignado
+                int invOperador = ContarConQuery(oConexion, @"
+                    SELECT COUNT(*) FROM dbo.INVENTARIO_ASIGNACION IA
+                    INNER JOIN dbo.INVENTARIO I ON IA.IdInventario = I.IdInventario
+                    INNER JOIN dbo.USUARIO    U ON IA.IdOperador   = U.IdUsuario
+                    INNER JOIN dbo.EMPLEADO   E ON U.IdEmpleado    = E.IdEmpleado
+                    WHERE E.IdPersona = @p
+                      AND I.Estado IN ('Abierto', 'En Progreso', 'En Corrección')", idPersona);
+                if (invOperador > 0)
+                    alertas.Add($"Inventarios (operador): {invOperador} inventario(s) con conteo pendiente asignado(s) a esta persona.");
+            }
+
+            return alertas;
+        }
+
+        private int ContarConQuery(SqlConnection conn, string sql, int idPersona)
+        {
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@p", idPersona);
+                return Convert.ToInt32(cmd.ExecuteScalar());
+            }
+        }
+
         public bool CambiarEstadoPersona(int idPersona, bool activo, bool afectarHijos)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
@@ -226,17 +319,8 @@ namespace CapaDatos
                             cmdUsuario.Parameters.AddWithValue("@Activo", activo);
                             cmdUsuario.ExecuteNonQuery();
 
-                            // Cliente
-                            string queryCliente = @"UPDATE C
-                                            SET C.Activo=@Activo,
-                                                FechaBaja = CASE WHEN @Activo=1 THEN NULL ELSE GETDATE() END
-                                            FROM Cliente C
-                                            INNER JOIN Persona P ON C.IdPersona = P.IdPersona
-                                            WHERE P.IdPersona=@IdPersona";
-                            SqlCommand cmdCliente = new SqlCommand(queryCliente, oConexion, tran);
-                            cmdCliente.Parameters.AddWithValue("@IdPersona", idPersona);
-                            cmdCliente.Parameters.AddWithValue("@Activo", activo);
-                            cmdCliente.ExecuteNonQuery();
+                            // Nota: CLIENTE ya no tiene columna IdPersona (eliminada en script 66).
+                            // La desactivación de clientes se gestiona directamente desde el módulo de Clientes.
                         }
 
                         tran.Commit();

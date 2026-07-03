@@ -243,11 +243,15 @@ namespace VentasWeb.Controllers
             }
         }
 
+        private static readonly string _pepper =
+            System.Configuration.ConfigurationManager.AppSettings["PasswordPepper"] ?? string.Empty;
+
         private string GetSHA256(string input)
         {
             using (SHA256 sha = SHA256.Create())
             {
-                byte[] bytes = Encoding.UTF8.GetBytes(input);
+                // Debe coincidir con LoginController.GetSHA256 — pepper obligatorio
+                byte[] bytes = Encoding.UTF8.GetBytes(input + _pepper);
                 byte[] hash = sha.ComputeHash(bytes);
                 var sb = new StringBuilder();
                 foreach (byte b in hash)

@@ -122,12 +122,13 @@ function guardarClave() {
 $(document).ready(function () {
 
     // Ocultar alertas al inicio
-    $('#loginError, #cambioError, #cambioOk, #olvideError, #olvideOk').hide();
+    $('#loginError, #loginOk, #cambioError, #cambioOk, #olvideError, #olvideOk').hide();
 
     // ── LOGIN ─────────────────────────────────────────────
     $('#formLogin').submit(function (e) {
         e.preventDefault();
         ocultarError('loginError');
+        $('#loginOk').hide();
         setLoading('btnLogin', true);
 
         var correo = $('#correo').val();
@@ -188,8 +189,19 @@ $(document).ready(function () {
         $.post('/Login/RecuperarPassword', { correo: correo }, function (resp) {
             setLoading('btnEnviarReset', false);
             if (resp.success) {
-                $('#olvideOk').text('✓ ' + resp.mensaje).show();
+                // Volver al login con correo precargado y mensaje de confirmación
                 $('#correoReset').val('');
+                $('#correo').val(correo);
+                $('#panelTitle').text('Iniciar sesión');
+                $('#panelSubtitle').text('Ingresa tus credenciales para continuar');
+                mostrarPanel('panelLogin');
+                // Mostrar aviso de éxito en el panel de login
+                $('#loginError').hide();
+                $('#loginOk')
+                    .text('✓ Contraseña temporal enviada a ' + correo + '. Revisá tu correo e ingresá.')
+                    .show();
+                // Enfocar campo de contraseña para agilizar el ingreso
+                setTimeout(function () { $('#clave').focus(); }, 300);
             } else {
                 mostrarError('olvideError', resp.mensaje);
             }

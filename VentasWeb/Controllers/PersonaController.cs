@@ -70,7 +70,20 @@ namespace VentasWeb.Controllers
                 bool exito = CD_Persona.Instancia.CambiarEstadoPersona(id, activo, afectarHijos);
 
                 if (exito)
-                    return Json(new { resultado = true, mensaje = activo ? "Persona activada correctamente." : "Persona desactivada correctamente." });
+                {
+                    string mensaje = activo ? "Persona activada correctamente." : "Persona desactivada correctamente.";
+                    object advertencias = null;
+
+                    // Si se desactivó, verificar registros pendientes en todos los módulos
+                    if (!activo)
+                    {
+                        var alertas = CD_Persona.Instancia.ObtenerAlertasDesactivacion(id);
+                        if (alertas.Count > 0)
+                            advertencias = alertas; // lista de strings al JS
+                    }
+
+                    return Json(new { resultado = true, mensaje, advertencias });
+                }
                 else
                     return Json(new { resultado = false, mensaje = "No se pudo cambiar el estado. Verifique que la persona exista." });
             }

@@ -22,6 +22,13 @@
         return /^(\+595\d{6,10}|0\d{8,10})$/.test(limpio);
     }, 'Formato inválido. Ej: +595991234567 o 021123456.');
 
+    // Correo con soporte Unicode (acepta ñ, acentos, etc.)
+    $.validator.addMethod('correoUnicode', function (value, element) {
+        if (this.optional(element)) return true;
+        // Acepta cualquier carácter Unicode antes del @, dominio estándar después
+        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+    }, 'Ingresá un correo electrónico válido.');
+
     $("#form").validate({
         rules: {
             Documento: {
@@ -31,7 +38,7 @@
             Nombres:      { required: true, minlength: 2, maxlength: 100 },
             Apellidos:    { required: true, minlength: 2, maxlength: 100 },
             RazonSocial:  { required: true, minlength: 2, maxlength: 150 },
-            Correo:       { email: true, maxlength: 100 },
+            Correo:       { correoUnicode: true, maxlength: 100 },
             Telefono:     { telefonoParaguay: true, maxlength: 20 }
         },
         messages: {
@@ -39,7 +46,7 @@
             Nombres:      { required: "El nombre es obligatorio.", minlength: "Debe tener al menos 2 caracteres." },
             Apellidos:    { required: "El apellido es obligatorio.", minlength: "Debe tener al menos 2 caracteres." },
             RazonSocial:  { required: "La razón social es obligatoria.", minlength: "Debe tener al menos 2 caracteres." },
-            Correo:       { email: "Ingresá un correo electrónico válido." },
+            Correo:       { correoUnicode: "Ingresá un correo electrónico válido." },
             Telefono:     { maxlength: "No puede superar los 20 caracteres." }
         },
         // Los campos deshabilitados (según tipo de persona / modo edición) se ignoran automáticamente.
@@ -190,11 +197,26 @@ function CambiarEstado(id, activar) {
             $.ajax({
                 url: $.MisUrls.url._Persona_CambiarEstado,
                 type: 'POST',
-                data: { id: id, activo: activar, afectarHijos: !activar },
+                data: { id: id, activo: activar, afectarHijos: true },
                 success: function (resp) {
                     if (resp.resultado) {
-                        Swal.fire("Éxito", resp.mensaje, "success");
                         $('#tbdata').DataTable().ajax.reload();
+                        if (resp.advertencias && resp.advertencias.length > 0) {
+                            // Mostrar éxito y luego lista de alertas por módulo
+                            Swal.fire("Desactivado", resp.mensaje, "success").then(function () {
+                                var lista = resp.advertencias
+                                    .map(function (a) { return '<li style="text-align:left">' + a + '</li>'; })
+                                    .join('');
+                                Swal.fire({
+                                    title: "⚠️ Registros pendientes",
+                                    html: '<p style="text-align:left;margin-bottom:8px">Esta persona tenía registros activos en los siguientes módulos. Revisá y reasigná según corresponda:</p><ul style="padding-left:20px">' + lista + '</ul>',
+                                    icon: "warning",
+                                    confirmButtonText: "Entendido"
+                                });
+                            });
+                        } else {
+                            Swal.fire("Éxito", resp.mensaje, "success");
+                        }
                     } else {
                         Swal.fire("Error", resp.mensaje || "No se pudo actualizar", "error");
                     }

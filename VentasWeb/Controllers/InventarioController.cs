@@ -2,6 +2,7 @@
 using CapaModelo;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Web.Mvc;
 using VentasWeb.Filters;
 
@@ -380,13 +381,51 @@ namespace VentasWeb.Controllers
         }
 
         // =============================================
-        // ENDPOINT COMPARTIDO: Obtener tiendas (reutiliza Tienda controller)
         // =============================================
+        // ENDPOINTS COMPARTIDOS (accesibles a todos los roles con permiso Inventario)
+        // =============================================
+
         [HttpGet]
         public JsonResult ObtenerTiendas()
         {
             var lista = CD_Tienda.Instancia.ObtenerTiendas();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        /// <summary>
+        /// Devuelve motivos de baja activos.
+        /// Accesible a Cajero/Repositor desde la vista de Baja (no tienen permiso en MotivoBajaController).
+        /// </summary>
+        [HttpGet]
+        public JsonResult ObtenerMotivosBaja()
+        {
+            var lista = CD_MotivoBaja.Instancia.ObtenerMotivosBaja();
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        /// <summary>
+        /// Devuelve repositores activos (IdRol=7), opcionalmente filtrados por sucursal.
+        /// Accesible a Supervisor/Encargado desde la vista de Inventarios.
+        /// </summary>
+        [HttpGet]
+        [AuthorizeRol("Inventario", "Inventarios")]
+        public JsonResult ObtenerUsuariosActivos(int idTienda = 0)
+        {
+            const int ID_ROL_REPOSITOR = 7;
+            var lista = CapaDatos.CD_Usuario.Instancia.ObtenerUsuarios();
+            var query = lista.Where(u => u.Activo && u.IdRol == ID_ROL_REPOSITOR);
+            if (idTienda > 0)
+                query = query.Where(u => u.IdTienda.HasValue && u.IdTienda == idTienda);
+            var resultado = query
+                .Select(u => new {
+                    u.IdUsuario,
+                    NombreCompleto = u.Nombres + " " + u.Apellidos,
+                    DescripcionRol = u.oRol != null ? u.oRol.Descripcion : "",
+                    u.IdTienda
+                })
+                .OrderBy(u => u.NombreCompleto)
+                .ToList();
+            return Json(new { data = resultado }, JsonRequestBehavior.AllowGet);
         }
 
     }

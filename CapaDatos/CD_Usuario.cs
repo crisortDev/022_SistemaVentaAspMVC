@@ -479,17 +479,53 @@ namespace CapaDatos
             bool respuesta = false;
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
-                string query = @"UPDATE Usuario 
-                 SET Activo = @Activo,
-                     IntentosFallidos = CASE WHEN @Activo = 1 THEN 0 ELSE IntentosFallidos END
-                 WHERE IdUsuario = @IdUsuario";
-                using (SqlCommand cmd = new SqlCommand(query, oConexion))
+                oConexion.Open();
+                using (SqlTransaction tran = oConexion.BeginTransaction())
                 {
-                    cmd.Parameters.AddWithValue("@Activo", nuevoEstado);
-                    cmd.Parameters.AddWithValue("@IdUsuario", IdUsuario);
+                    try
+                    {
+                        // Actualizar Usuario
+                        string sqlUsuario = @"UPDATE Usuario
+                            SET Activo = @Activo,
+                                IntentosFallidos = CASE WHEN @Activo = 1 THEN 0 ELSE IntentosFallidos END
+                            WHERE IdUsuario = @IdUsuario";
+                        using (SqlCommand cmd = new SqlCommand(sqlUsuario, oConexion, tran))
+                        {
+                            cmd.Parameters.AddWithValue("@Activo", nuevoEstado);
+                            cmd.Parameters.AddWithValue("@IdUsuario", IdUsuario);
+                            respuesta = cmd.ExecuteNonQuery() > 0;
+                        }
 
-                    oConexion.Open();
-                    respuesta = cmd.ExecuteNonQuery() > 0;
+                        // Al ACTIVAR: cascadear hacia arriba para garantizar consistencia
+                        // Empleado y Persona deben estar activos si el Usuario lo está
+                        if (nuevoEstado && respuesta)
+                        {
+                            string sqlCascada = @"
+                                UPDATE E SET E.Activo = 1, E.FechaBaja = NULL
+                                FROM Empleado E
+                                INNER JOIN Usuario U ON U.IdEmpleado = E.IdEmpleado
+                                WHERE U.IdUsuario = @IdUsuario AND E.Activo = 0;
+
+                                UPDATE P SET P.Activo = 1, P.FechaBaja = NULL
+                                FROM Persona P
+                                INNER JOIN Empleado E ON E.IdPersona = P.IdPersona
+                                INNER JOIN Usuario  U ON U.IdEmpleado = E.IdEmpleado
+                                WHERE U.IdUsuario = @IdUsuario AND P.Activo = 0;";
+
+                            using (SqlCommand cmd = new SqlCommand(sqlCascada, oConexion, tran))
+                            {
+                                cmd.Parameters.AddWithValue("@IdUsuario", IdUsuario);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        tran.Commit();
+                    }
+                    catch
+                    {
+                        tran.Rollback();
+                        throw;
+                    }
                 }
             }
             return respuesta;

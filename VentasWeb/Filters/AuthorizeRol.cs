@@ -96,7 +96,7 @@ namespace VentasWeb.Filters
             { "Inventario|ObtenerDetalleInventario",       "Inventarios"                },
             { "Inventario|AprobarInventario",              "Inventarios"                },
             { "Inventario|RechazarInventario",             "Inventarios"                },
-            { "Inventario|AnularInventario",               "Inventarios"                }
+            { "Inventario|AnularInventario",               "Inventarios"                },
         };
 
         public AuthorizeRolAttribute(string controlador, string vista)

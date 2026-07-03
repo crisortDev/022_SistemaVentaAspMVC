@@ -179,8 +179,8 @@ function finalizar() {
     }
 
     var observacion = $('#txtObservacion').val().trim();
-    if (observacion.length < 3) {
-        toastr.warning('La observación es obligatoria antes de finalizar el conteo.');
+    if (observacion.length < 2) {
+        toastr.warning('La observación es obligatoria antes de finalizar el conteo (mínimo 2 caracteres).');
         $('#txtObservacion').focus();
         return;
     }
