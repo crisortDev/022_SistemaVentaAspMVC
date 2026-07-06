@@ -213,6 +213,12 @@ function inicializarTablaHistorial() {
             dataSrc: "data"
         },
         columns: [
+            {
+                data: "Numero",
+                render: function (d) {
+                    return '<span class="badge badge-light border">' + (d || '') + '</span>';
+                }
+            },
             { data: "FechaTraslado" },
             { data: "NombreProducto" },
             { data: "CodigoProducto" },

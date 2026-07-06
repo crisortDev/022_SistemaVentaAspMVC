@@ -39,7 +39,7 @@ function cargar() {
         var t = $('#tbodyBajas').empty();
         var lista = (r && r.data) ? r.data : [];
         if (lista.length === 0) {
-            t.append('<tr><td colspan="8" class="text-center text-muted">Sin registros.</td></tr>');
+            t.append('<tr><td colspan="9" class="text-center text-muted">Sin registros.</td></tr>');
             return;
         }
         lista.forEach(function (b) {
@@ -52,6 +52,7 @@ function cargar() {
                 acciones = '<small class="text-muted">' + (b.UsuarioAprueba || '') + '</small>';
             }
             t.append('<tr>' +
+                '<td><span class="badge badge-light border">' + escHtml(b.Numero || '') + '</span></td>' +
                 '<td>' + fmtFecha(b.FechaMovimiento) + '</td>' +
                 '<td>' + escHtml(b.NombreTienda) + '</td>' +
                 '<td>' + escHtml(b.CodigoProducto) + ' — ' + escHtml(b.NombreProducto) + '</td>' +

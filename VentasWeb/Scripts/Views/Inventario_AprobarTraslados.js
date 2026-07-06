@@ -40,7 +40,7 @@ function cargar() {
         var t = $('#tbodyTraslados').empty();
         var lista = (r && r.data) ? r.data : [];
         if (lista.length === 0) {
-            t.append('<tr><td colspan="8" class="text-center text-muted">Sin registros.</td></tr>');
+            t.append('<tr><td colspan="9" class="text-center text-muted">Sin registros.</td></tr>');
             return;
         }
         lista.forEach(function (tr) {
@@ -56,6 +56,7 @@ function cargar() {
             var extra = tr.EstadoAprobacion === 'Rechazado' && tr.MotivoRechazo
                 ? '<br><small class="text-danger">' + tr.MotivoRechazo + '</small>' : '';
             t.append('<tr>' +
+                '<td><span class="badge badge-light border">' + (tr.Numero || '') + '</span></td>' +
                 '<td>' + fmtFecha(tr.FechaTraslado) + '</td>' +
                 '<td>' + (tr.CodigoProducto || '') + ' — ' + (tr.NombreProducto || '') + '</td>' +
                 '<td class="text-center">' + tr.Cantidad + '</td>' +

@@ -154,6 +154,7 @@ namespace CapaDatos
                         lista.Add(new Traslado
                         {
                             IdTraslado       = Convert.ToInt32(dr["IdTraslado"]),
+                            Numero           = dr["Numero"]?.ToString(),
                             NombreProducto   = dr["NombreProducto"].ToString(),
                             CodigoProducto   = dr["CodigoProducto"].ToString(),
                             TiendaOrigen     = dr["TiendaOrigen"].ToString(),
@@ -298,6 +299,7 @@ namespace CapaDatos
                             while (dr.Read())
                                 lista.Add(new {
                                     IdHistorial      = Convert.ToInt32(dr["IdHistorial"]),
+                                    Numero           = dr["Numero"]?.ToString(),
                                     IdProducto       = dr["IdProducto"] == DBNull.Value ? 0 : Convert.ToInt32(dr["IdProducto"]),
                                     CodigoProducto   = dr["CodigoProducto"]?.ToString(),
                                     NombreProducto   = dr["NombreProducto"]?.ToString(),

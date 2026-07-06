@@ -9,6 +9,7 @@ namespace CapaModelo
     public class Traslado
     {
         public int IdTraslado { get; set; }
+        public string Numero { get; set; }
         public int IdProducto { get; set; }
         public int IdTiendaOrigen { get; set; }
         public int IdTiendaDestino { get; set; }
