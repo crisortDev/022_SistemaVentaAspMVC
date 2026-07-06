@@ -1,99 +1,148 @@
-﻿$(document).ready(function () {
+$(document).ready(function () {
     activarMenu("Baja de Productos");
+
+    var dtProductos = null;
 
     cargarTiendas();
     cargarMotivosBaja();
 
-    // Al cambiar tienda, cargar productos con stock
+    // ── Cambio de tienda: recargar DataTable ──────────────────
     $("#cboTienda").on("change", function () {
         var idTienda = $(this).val();
-        $("#cboProducto").html('<option value="">-- Seleccione producto --</option>').prop("disabled", true);
-        $("#lblStockActual").text("-");
-        if (!idTienda) return;
-
-        $.get($.MisUrls.url._ObtenerProductosPorTiendaBaja, { idTienda: idTienda }, function (resp) {
-            var opts = '<option value="">-- Seleccione producto --</option>';
-            (resp.data || []).forEach(function (p) {
-                opts += '<option value="' + p.IdProductoTienda + '"'
-                    + ' data-idproducto="' + p.IdProducto + '"'
-                    + ' data-stock="' + p.Stock + '">'
-                    + p.Codigo + ' - ' + p.Nombre + ' (Stock: ' + p.Stock + ')'
-                    + '</option>';
-            });
-            $("#cboProducto").html(opts).prop("disabled", false);
-        });
+        if (!idTienda) {
+            if (dtProductos) { dtProductos.clear().draw(); }
+            $("#divTabla").hide();
+            $("#divSinTienda").show();
+            $("#lblTotalProductos").text("");
+            return;
+        }
+        cargarProductos(idTienda);
     });
 
-    // Al cambiar producto, mostrar stock actual
-    $("#cboProducto").on("change", function () {
-        var stock = parseInt($(this).find(":selected").attr("data-stock")) || 0;
-        $("#lblStockActual").text(stock);
-        $("#txtCantidad").attr("max", stock);
-    });
-
-    // Confirmar baja
-    $("#btnBajarStock").on("click", function () {
-        var $productoSeleccionado = $("#cboProducto option:selected");
-        var idProductoTienda = $("#cboProducto").val();
-        var idProducto = $productoSeleccionado.attr("data-idproducto");
-        var stockActual = parseInt($productoSeleccionado.attr("data-stock")) || 0;
-        var cantidad = parseInt($("#txtCantidad").val()) || 0;
-        var motivoDescripcion = $("#cboMotivoBaja option:selected").text();
-        var idMotivo = $("#cboMotivoBaja").val();
-        var observaciones = $("#txtObservaciones").val().trim();
-        var nombreProducto = $productoSeleccionado.text();
-        // Solo se envía el texto libre de observaciones; la descripción del motivo
-        // ya queda registrada por IdMotivoBaja y se recupera via JOIN en los reportes.
+    // ── Confirmar baja desde el modal ─────────────────────────
+    $("#btnConfirmarBaja").on("click", function () {
+        var idProductoTienda = $("#hIdProductoTienda").val();
+        var idProducto       = $("#hIdProducto").val();
+        var stockActual      = parseInt($("#hStockActual").val()) || 0;
+        var cantidad         = parseInt($("#txtCantidad").val()) || 0;
+        var idMotivo         = $("#cboMotivoBaja").val();
+        var observaciones    = $("#txtObservaciones").val().trim();
+        var nombreProducto   = $("#lblProductoBaja").text();
+        var motivoDesc       = $("#cboMotivoBaja option:selected").text();
 
         // Validaciones
-        if (!$("#cboTienda").val()) { swal("Atencion", "Seleccione una tienda.", "warning"); return; }
-        if (!idProductoTienda) { swal("Atencion", "Seleccione un producto.", "warning"); return; }
-        if (cantidad <= 0) { swal("Atencion", "La cantidad debe ser mayor a cero.", "warning"); return; }
-        if (cantidad > stockActual) { swal("Atencion", "La cantidad supera el stock disponible (" + stockActual + ").", "warning"); return; }
-        if (!idMotivo) { toastr.warning("Seleccione el motivo de la baja."); return; }
-        if (observaciones.length < 3) { toastr.warning("La observación es obligatoria."); $("#txtObservaciones").focus(); return; }
+        if (cantidad <= 0)
+            { toastr.warning("La cantidad debe ser mayor a cero."); $("#txtCantidad").focus(); return; }
+        if (cantidad > stockActual)
+            { toastr.warning("La cantidad (" + cantidad + ") supera el stock disponible (" + stockActual + ")."); return; }
+        if (!idMotivo)
+            { toastr.warning("Seleccioná el motivo de la baja."); return; }
+        if (observaciones.length < 3)
+            { toastr.warning("La observación es obligatoria (mínimo 3 caracteres)."); $("#txtObservaciones").focus(); return; }
 
-        swal({
-            title: "Confirmar baja",
-            text: "Se daran de baja " + cantidad + " unidad(es) de: " + nombreProducto + " | Motivo: " + motivoDescripcion + (observaciones ? " — " + observaciones : ""),
-            type: "warning",
+        Swal.fire({
+            title: "¿Confirmar baja?",
+            text: cantidad + " unidad(es) de «" + nombreProducto + "» — " + motivoDesc,
+            icon: "warning",
             showCancelButton: true,
-            confirmButtonText: "Si, dar de baja",
-            cancelButtonText: "Cancelar"
-        }, function (confirmado) {
-            if (confirmado) {
-                $.post($.MisUrls.url._BajarStock, {
-                    idProductoTienda: idProductoTienda,
-                    idProducto: idProducto,
-                    cantidad: cantidad,
-                    motivo: observaciones,
-                    idMotivoBaja: idMotivo
-                }, function (resp) {
-                    if (resp.resultado) {
-                        $("#cboTienda").trigger("change");
-                        $("#txtCantidad").val(1);
-                        $("#cboMotivoBaja").val("");
-                        $("#txtObservaciones").val("");
-                        $("#lblStockActual").text("-");
-                        setTimeout(function () {
-                            swal({
-                                title: "Baja registrada",
-                                text: "Se dio de baja " + cantidad + " unidad(es) de " + nombreProducto + " correctamente.",
-                                type: "success",
-                                confirmButtonText: "Aceptar"
-                            });
-                        }, 300);
-                    } else {
-                        setTimeout(function () {
-                            swal("Error", resp.mensaje, "error");
-                        }, 300);
-                    }
-                });
-            }
+            confirmButtonText: "Sí, dar de baja",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#dc3545"
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+
+            $.post($.MisUrls.url._BajarStock, {
+                idProductoTienda : idProductoTienda,
+                idProducto       : idProducto,
+                cantidad         : cantidad,
+                motivo           : observaciones,
+                idMotivoBaja     : idMotivo
+            }, function (resp) {
+                if (resp.resultado) {
+                    $("#modalBaja").modal("hide");
+                    toastr.success("Baja registrada correctamente.");
+                    cargarProductos($("#cboTienda").val());
+                } else {
+                    Swal.fire({ icon: "error", title: "Error", text: resp.mensaje });
+                }
+            }).fail(function () {
+                Swal.fire({ icon: "error", title: "Error", text: "Error de conexión al registrar la baja." });
+            });
         });
+    });
+
+    // Limpiar modal al cerrarlo
+    $("#modalBaja").on("hidden.bs.modal", function () {
+        $("#txtCantidad").val(1);
+        $("#cboMotivoBaja").val("");
+        $("#txtObservaciones").val("");
     });
 });
 
+// ── Abrir modal de baja (llamado desde botón de la tabla) ─────
+window.abrirModalBaja = function (idProductoTienda, idProducto, nombre, stock) {
+    $("#hIdProductoTienda").val(idProductoTienda);
+    $("#hIdProducto").val(idProducto);
+    $("#hStockActual").val(stock);
+    $("#lblProductoBaja").text(nombre);
+    $("#txtCantidad").val(1).attr("max", stock);
+    $("#cboMotivoBaja").val("");
+    $("#txtObservaciones").val("");
+    $("#modalBaja").modal("show");
+};
+
+// ── Cargar productos en DataTable ─────────────────────────────
+function cargarProductos(idTienda) {
+    $.get($.MisUrls.url._ObtenerProductosPorTiendaBaja, { idTienda: idTienda }, function (resp) {
+        var productos = resp.data || [];
+
+        $("#divSinTienda").hide();
+        $("#divTabla").show();
+
+        if ($.fn.DataTable.isDataTable("#tblProductos")) {
+            $("#tblProductos").DataTable().destroy();
+        }
+
+        var filas = productos.map(function (p) {
+            var btnBaja = '<button class="btn btn-sm btn-danger" '
+                + 'onclick="abrirModalBaja('
+                + p.IdProductoTienda + ','
+                + p.IdProducto + ',\''
+                + (p.Nombre || '').replace(/'/g, "\\'") + '\','
+                + (p.Stock || 0) + ')">'
+                + '<i class="fas fa-arrow-down mr-1"></i>Dar de baja'
+                + '</button>';
+            return [
+                p.Codigo || '',
+                p.Nombre || '',
+                p.Categoria || '',
+                btnBaja
+            ];
+        });
+
+        $("#tblProductos").DataTable({
+            data      : filas,
+            columns   : [
+                { title: 'Código',    width: '120px' },
+                { title: 'Producto'  },
+                { title: 'Categoría' },
+                { title: 'Acciones', orderable: false, className: 'text-center', width: '130px' }
+            ],
+            language  : {
+                url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
+            },
+            pageLength : 15,
+            order      : [[1, 'asc']],
+            responsive : true
+        });
+
+        $("#lblTotalProductos").text(productos.length + " producto(s) en esta sucursal");
+    }).fail(function () {
+        toastr.error("No se pudieron cargar los productos.");
+    });
+}
+
+// ── Cargar sucursales ─────────────────────────────────────────
 function cargarTiendas() {
     $.get($.MisUrls.url._ObtenerTiendas, function (data) {
         var tiendas  = (data.data || []).filter(function (t) { return t.Activo; });
@@ -101,24 +150,23 @@ function cargarTiendas() {
         var miTienda = AppSession.tiendaOperativa;
 
         if (esSA) {
-            // SuperAdmin: elige cualquier sucursal
-            var opts = '<option value="">-- Seleccione tienda --</option>';
+            var opts = '<option value="">-- Seleccione sucursal --</option>';
             tiendas.forEach(function (t) {
                 opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
             });
             $("#cboTienda").html(opts).prop("disabled", false);
         } else {
-            // No-SuperAdmin: tienda fija a la propia, se carga automáticamente
             var miNombre = (tiendas.find(function (t) { return t.IdTienda == miTienda; }) || {}).Nombre || 'Mi sucursal';
             $("#cboTienda")
                 .html('<option value="' + miTienda + '">' + miNombre + '</option>')
                 .val(miTienda)
                 .prop("disabled", true)
-                .trigger("change"); // disparar carga de productos
+                .trigger("change");
         }
     });
 }
 
+// ── Cargar motivos de baja ────────────────────────────────────
 function cargarMotivosBaja() {
     $.get($.MisUrls.url._ObtenerMotivosBaja, function (data) {
         var opts = '<option value="">-- Seleccione motivo --</option>';

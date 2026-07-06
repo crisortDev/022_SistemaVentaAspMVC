@@ -103,10 +103,10 @@ namespace VentasWeb.Controllers
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            // Validar que el aprobador sea de la sucursal DESTINO del traslado
-            int idTiendaDestino = CD_Inventario.Instancia.ObtenerTiendaDestinoDeTraslado(idTraslado);
-            if (!TienePermiso(idTiendaDestino))
-                return Json(new { resultado = false, mensaje = "Solo puede aprobar traslados destinados a su propia sucursal." });
+            // El supervisor de la sucursal ORIGEN es quien aprueba el traslado
+            int idTiendaOrigen = CD_Inventario.Instancia.ObtenerTiendaOrigenDeTraslado(idTraslado);
+            if (!TienePermiso(idTiendaOrigen))
+                return Json(new { resultado = false, mensaje = "Solo puede aprobar traslados originados en su propia sucursal." });
 
             var r = CD_Inventario.Instancia.AprobarTraslado(idTraslado, UsuarioActual.IdUsuario, EsSuperAdmin);
             return Json(new { resultado = r.resultado, mensaje = r.mensaje });
@@ -119,9 +119,10 @@ namespace VentasWeb.Controllers
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            int idTiendaDestino = CD_Inventario.Instancia.ObtenerTiendaDestinoDeTraslado(idTraslado);
-            if (!TienePermiso(idTiendaDestino))
-                return Json(new { resultado = false, mensaje = "Solo puede rechazar traslados destinados a su propia sucursal." });
+            // El supervisor de la sucursal ORIGEN es quien rechaza el traslado
+            int idTiendaOrigen = CD_Inventario.Instancia.ObtenerTiendaOrigenDeTraslado(idTraslado);
+            if (!TienePermiso(idTiendaOrigen))
+                return Json(new { resultado = false, mensaje = "Solo puede rechazar traslados originados en su propia sucursal." });
 
             var r = CD_Inventario.Instancia.RechazarTraslado(idTraslado, UsuarioActual.IdUsuario, motivoRechazo);
             return Json(new { resultado = r.resultado, mensaje = r.mensaje });

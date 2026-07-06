@@ -1,8 +1,12 @@
-var tablaTraslados;
+// ── Variables globales ────────────────────────────────────────
+var dtProductos    = null;
+var tablaTraslados = null;
+var _tiendas       = [];   // lista completa de tiendas activas (para poblar destino)
 
 $(document).ready(function () {
     activarMenu("Traslado entre Tiendas");
 
+    // Datepickers
     $.datepicker.setDefaults($.datepicker.regional['es'] || {});
     $("#txtFechaInicio").datepicker({ dateFormat: 'dd/mm/yy' }).val(obtenerFechaHoy());
     $("#txtFechaFin").datepicker({ dateFormat: 'dd/mm/yy' }).val(obtenerFechaHoy());
@@ -10,108 +14,182 @@ $(document).ready(function () {
     cargarTiendas();
     inicializarTablaHistorial();
 
-    // Al cambiar tienda origen, cargar productos
+    // ── Cambio de tienda origen: recargar DataTable ───────────
     $("#cboTiendaOrigen").on("change", function () {
         var idTienda = $(this).val();
-        $("#cboProducto").html('<option value="">-- Seleccione producto --</option>').prop("disabled", true);
-        $("#lblStockDisponible").text("-");
+        if (dtProductos) { dtProductos.clear().draw(); }
+        $("#divTabla").hide();
+        $("#divSinTienda").show();
+        $("#lblTotalProductos").text("");
         if (!idTienda) return;
-        cargarProductosPorTienda(idTienda);
-        $("#cboProducto").prop("disabled", false);
+        cargarProductos(idTienda);
     });
 
-    // Al cambiar producto, mostrar stock disponible
-    $("#cboProducto").on("change", function () {
-        var stock = $(this).find(":selected").attr("data-stock") || 0;
-        $("#lblStockDisponible").text(parseInt(stock) || 0);
-    });
+    // ── Confirmar traslado desde el modal ─────────────────────
+    $("#btnConfirmarTraslado").on("click", function () {
+        var idProducto       = $("#hIdProducto").val();
+        var idTiendaOrigen   = $("#hIdTiendaOrigen").val();
+        var stockActual      = parseInt($("#hStockActual").val()) || 0;
+        var idTiendaDestino  = $("#cboTiendaDestino").val();
+        var cantidad         = parseInt($("#txtCantidad").val()) || 0;
+        var observaciones    = $("#txtObservaciones").val().trim();
+        var nombreProducto   = $("#lblProductoTraslado").text();
+        var nombreDestino    = $("#cboTiendaDestino option:selected").text();
 
-    // Registrar traslado
-    $("#btnRegistrarTraslado").on("click", function () {
-        var $opcionProducto = $("#cboProducto option:selected");
-        var idProducto = $("#cboProducto").val();
-        var idTiendaOrigen = $("#cboTiendaOrigen").val();
-        var idTiendaDestino = $("#cboTiendaDestino").val();
-        var cantidad = parseInt($("#txtCantidad").val()) || 0;
-        var observaciones = $("#txtObservaciones").val().trim();
-        var stockDisponible = parseInt($opcionProducto.attr("data-stock")) || 0;
-
-        if (!idTiendaOrigen) { toastr.warning("Seleccione la tienda origen."); return; }
-        if (!idProducto) { toastr.warning("Seleccione un producto."); return; }
-        if (!idTiendaDestino) { toastr.warning("Seleccione la tienda destino."); return; }
-        if (String(idTiendaOrigen) === String(idTiendaDestino)) { toastr.warning("La tienda origen y destino no pueden ser la misma."); return; }
-        if (cantidad <= 0) { toastr.warning("La cantidad debe ser mayor a cero."); return; }
-        if (cantidad > stockDisponible) { toastr.warning("Stock insuficiente. Disponible: " + stockDisponible); return; }
-        if (observaciones.length < 3) { toastr.warning("La observación es obligatoria."); $("#txtObservaciones").focus(); return; }
+        // Validaciones cliente
+        if (!idTiendaDestino)
+            { toastr.warning("Seleccioná la sucursal destino."); return; }
+        if (String(idTiendaOrigen) === String(idTiendaDestino))
+            { toastr.warning("La sucursal destino no puede ser la misma que el origen."); return; }
+        if (cantidad <= 0)
+            { toastr.warning("La cantidad debe ser mayor a cero."); $("#txtCantidad").focus(); return; }
+        if (cantidad > stockActual)
+            { toastr.warning("La cantidad (" + cantidad + ") supera el stock disponible (" + stockActual + ")."); return; }
+        if (observaciones.length < 3)
+            { toastr.warning("La observación es obligatoria (mínimo 3 caracteres)."); $("#txtObservaciones").focus(); return; }
 
         Swal.fire({
-            title: "Confirmar traslado",
-            html: "<b>" + cantidad + "</b> unidad(es) de <b>" + $opcionProducto.text() + "</b><br>" +
-                  "De: <b>" + $("#cboTiendaOrigen option:selected").text() + "</b><br>" +
-                  "A: <b>" + $("#cboTiendaDestino option:selected").text() + "</b>",
+            title: "¿Confirmar traslado?",
+            html: "<b>" + cantidad + "</b> unidad(es) de <b>" + nombreProducto + "</b><br>"
+                + "A: <b>" + nombreDestino + "</b>",
             icon: "warning",
             showCancelButton: true,
             confirmButtonText: "Sí, trasladar",
             cancelButtonText: "Cancelar",
-            confirmButtonColor: "#28a745"
+            confirmButtonColor: "#ffc107"
         }).then(function (result) {
             if (!result.isConfirmed) return;
+
             $.post($.MisUrls.url._RegistrarTraslado, {
-                idProducto: idProducto,
-                idTiendaOrigen: idTiendaOrigen,
-                idTiendaDestino: idTiendaDestino,
-                cantidad: cantidad,
-                observaciones: observaciones
+                idProducto      : idProducto,
+                idTiendaOrigen  : idTiendaOrigen,
+                idTiendaDestino : idTiendaDestino,
+                cantidad        : cantidad,
+                observaciones   : observaciones
             }, function (resp) {
                 if (resp.resultado) {
-                    toastr.success(resp.mensaje);
-                    limpiarFormulario();
-                    buscarHistorial();
+                    $("#modalTraslado").modal("hide");
+                    toastr.success(resp.mensaje || "Traslado registrado correctamente.");
+                    cargarProductos(idTiendaOrigen);
+                    tablaTraslados.ajax.reload(null, false);
                 } else {
-                    toastr.error(resp.mensaje);
+                    Swal.fire({ icon: "error", title: "Error", text: resp.mensaje });
                 }
+            }).fail(function () {
+                Swal.fire({ icon: "error", title: "Error", text: "Error de conexión al registrar el traslado." });
             });
         });
     });
+
+    // Limpiar modal al cerrarlo
+    $("#modalTraslado").on("hidden.bs.modal", function () {
+        $("#cboTiendaDestino").val("");
+        $("#txtCantidad").val(1);
+        $("#txtObservaciones").val("");
+    });
 });
 
+// ── Abrir modal de traslado (llamado desde botón de la tabla) ─
+window.abrirModalTraslado = function (idProducto, idProductoTienda, nombre, stock) {
+    var idOrigen = $("#cboTiendaOrigen").val();
+
+    // Poblar destinos: todas las tiendas activas excepto el origen
+    var opts = '<option value="">-- Seleccione --</option>';
+    _tiendas.forEach(function (t) {
+        if (String(t.IdTienda) !== String(idOrigen)) {
+            opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
+        }
+    });
+    $("#cboTiendaDestino").html(opts);
+
+    $("#hIdProducto").val(idProducto);
+    $("#hIdProductoTienda").val(idProductoTienda);
+    $("#hStockActual").val(stock);
+    $("#hIdTiendaOrigen").val(idOrigen);
+    $("#lblProductoTraslado").text(nombre);
+    $("#txtCantidad").val(1).attr("max", stock);
+    $("#txtObservaciones").val("");
+    $("#modalTraslado").modal("show");
+};
+
+// ── Cargar productos en DataTable ─────────────────────────────
+function cargarProductos(idTienda) {
+    $.get($.MisUrls.url._ObtenerProductosPorTiendaTraslado, { idTienda: idTienda }, function (resp) {
+        var productos = resp.data || [];
+
+        $("#divSinTienda").hide();
+        $("#divTabla").show();
+
+        if ($.fn.DataTable.isDataTable("#tblProductos")) {
+            $("#tblProductos").DataTable().destroy();
+        }
+
+        var filas = productos.map(function (p) {
+            var btnTraslado = '<button class="btn btn-sm btn-warning" '
+                + 'onclick="abrirModalTraslado('
+                + p.IdProducto + ','
+                + p.IdProductoTienda + ',\''
+                + (p.Nombre || '').replace(/'/g, "\\'") + '\','
+                + (p.Stock || 0) + ')">'
+                + '<i class="fas fa-exchange-alt mr-1"></i>Trasladar'
+                + '</button>';
+            return [
+                p.Codigo    || '',
+                p.Nombre    || '',
+                p.Categoria || '',
+                btnTraslado
+            ];
+        });
+
+        dtProductos = $("#tblProductos").DataTable({
+            data      : filas,
+            columns   : [
+                { title: 'Código',    width: '110px' },
+                { title: 'Producto'  },
+                { title: 'Categoría' },
+                { title: 'Acciones', orderable: false, className: 'text-center', width: '130px' }
+            ],
+            language  : {
+                url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
+            },
+            pageLength : 15,
+            order      : [[1, 'asc']],
+            responsive : true
+        });
+
+        $("#lblTotalProductos").text(productos.length + " producto(s) disponible(s)");
+    }).fail(function () {
+        toastr.error("No se pudieron cargar los productos.");
+    });
+}
+
+// ── Cargar tiendas ────────────────────────────────────────────
 function cargarTiendas() {
     $.get($.MisUrls.url._ObtenerTiendas, function (data) {
-        var tiendas  = (data.data || []).filter(function (t) { return t.Activo; });
+        _tiendas = (data.data || []).filter(function (t) { return t.Activo; });
         var esSA     = AppSession.esSuperAdmin;
         var miTienda = AppSession.tiendaOperativa;
 
-        // ── Combo origen ─────────────────────────────────────────────────────
+        // ── Combo origen ─────────────────────────────────────
         if (esSA) {
-            var optsOrigen = '<option value="">-- Seleccione --</option>';
-            tiendas.forEach(function (t) {
+            var optsOrigen = '<option value="">-- Seleccione sucursal --</option>';
+            _tiendas.forEach(function (t) {
                 optsOrigen += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
             });
             $("#cboTiendaOrigen").html(optsOrigen).prop("disabled", false);
         } else {
-            // No-SuperAdmin: origen fijo a su sucursal
-            var miNombre = (tiendas.find(function (t) { return t.IdTienda == miTienda; }) || {}).Nombre || 'Mi sucursal';
+            var miNombre = (_tiendas.find(function (t) { return t.IdTienda == miTienda; }) || {}).Nombre || 'Mi sucursal';
             $("#cboTiendaOrigen")
                 .html('<option value="' + miTienda + '">' + miNombre + '</option>')
                 .val(miTienda)
-                .prop("disabled", true);
-            // Cargar productos de su sucursal automáticamente
-            cargarProductosPorTienda(miTienda);
-            $("#cboProducto").prop("disabled", false);
+                .prop("disabled", true)
+                .trigger("change");   // carga productos automáticamente
         }
 
-        // ── Combo destino: todas las sucursales excepto la propia ────────────
-        var optsDest = '<option value="">-- Seleccione --</option>';
-        tiendas.forEach(function (t) {
-            if (t.IdTienda == miTienda && !esSA) return; // excluir origen = destino para no-SA
-            optsDest += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
-        });
-        $("#cboTiendaDestino").html(optsDest);
-
-        // ── Filtro historial ─────────────────────────────────────────────────
+        // ── Filtro historial ─────────────────────────────────
         var optsFiltro = esSA ? '<option value="0">-- Todas --</option>' : '';
-        tiendas.forEach(function (t) {
-            if (!esSA && t.IdTienda != miTienda) return; // no-SA solo ve su sucursal
+        _tiendas.forEach(function (t) {
+            if (!esSA && t.IdTienda != miTienda) return;
             optsFiltro += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
         });
         $("#cboFiltroTienda").html(optsFiltro);
@@ -119,26 +197,17 @@ function cargarTiendas() {
     });
 }
 
-function cargarProductosPorTienda(idTienda) {
-    $.get($.MisUrls.url._ObtenerProductosPorTiendaTraslado, { idTienda: idTienda }, function (resp) {
-        var opts = '<option value="">-- Seleccione producto --</option>';
-        (resp.data || []).forEach(function (p) {
-            opts += '<option value="' + p.IdProducto + '" data-idproductotienda="' + p.IdProductoTienda + '" data-stock="' + p.Stock + '">' + p.Codigo + ' - ' + p.Nombre + ' (Stock: ' + p.Stock + ')</option>';
-        });
-        $("#cboProducto").html(opts);
-    });
-}
-
+// ── Historial ─────────────────────────────────────────────────
 function inicializarTablaHistorial() {
-    tablaTraslados = $('#tbTraslados').DataTable({
+    tablaTraslados = $("#tbTraslados").DataTable({
         ajax: {
-            url: $.MisUrls.url._ObtenerHistorialTraslados,
-            type: "GET",
-            data: function () {
+            url  : $.MisUrls.url._ObtenerHistorialTraslados,
+            type : "GET",
+            data : function () {
                 return {
-                    fechainicio: $("#txtFechaInicio").val() || obtenerFechaHoy(),
-                    fechafin: $("#txtFechaFin").val() || obtenerFechaHoy(),
-                    idtienda: $("#cboFiltroTienda").val() || 0
+                    fechainicio : $("#txtFechaInicio").val() || obtenerFechaHoy(),
+                    fechafin    : $("#txtFechaFin").val()    || obtenerFechaHoy(),
+                    idtienda    : $("#cboFiltroTienda").val() || 0
                 };
             },
             dataSrc: "data"
@@ -163,35 +232,24 @@ function inicializarTablaHistorial() {
                 }
             }
         ],
-        language: { url: $.MisUrls.url.Url_datatable_spanish },
+        language : { url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json" },
         responsive: true,
-        order: [[0, "desc"]]
+        order    : [[0, "desc"]],
+        pageLength: 10
     });
 }
 
 function buscarHistorial() {
     if (!$("#txtFechaInicio").val() || !$("#txtFechaFin").val()) {
-        toastr.warning("Debe ingresar fechas para buscar.");
+        toastr.warning("Ingresá las fechas para buscar.");
         return;
     }
     tablaTraslados.ajax.reload();
 }
 
-function limpiarFormulario() {
-    // Solo resetear origen si es SuperAdmin (no-SA tiene el campo bloqueado)
-    if (AppSession.esSuperAdmin) $("#cboTiendaOrigen").val("");
-    $("#cboTiendaDestino").val("");
-    $("#cboProducto").html('<option value="">-- Seleccione producto --</option>').prop("disabled", AppSession.esSuperAdmin);
-    $("#txtCantidad").val(1);
-    $("#txtObservaciones").val("");
-    $("#lblStockDisponible").text("-");
-    // Para no-SA recargar productos de su sucursal
-    if (!AppSession.esSuperAdmin) cargarProductosPorTienda(AppSession.tiendaOperativa);
-}
-
 function obtenerFechaHoy() {
     var d = new Date();
-    var day = ("0" + d.getDate()).slice(-2);
-    var month = ("0" + (d.getMonth() + 1)).slice(-2);
-    return day + "/" + month + "/" + d.getFullYear();
+    return ("0" + d.getDate()).slice(-2) + "/"
+         + ("0" + (d.getMonth() + 1)).slice(-2) + "/"
+         + d.getFullYear();
 }

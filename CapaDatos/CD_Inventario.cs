@@ -95,12 +95,31 @@ namespace CapaDatos
 
         /// <summary>
         /// Retorna el IdTiendaDestino de un traslado. 0 si no existe.
-        /// Se usa para validar que el aprobador pertenece a la sucursal destino.
         /// </summary>
         public int ObtenerTiendaDestinoDeTraslado(int idTraslado)
         {
             using (var oConexion = new SqlConnection(Conexion.CN))
             using (var cmd = new SqlCommand("SELECT IdTiendaDestino FROM dbo.TRASLADO WHERE IdTraslado = @Id", oConexion))
+            {
+                cmd.Parameters.AddWithValue("@Id", idTraslado);
+                try
+                {
+                    oConexion.Open();
+                    var val = cmd.ExecuteScalar();
+                    return val != null && val != DBNull.Value ? Convert.ToInt32(val) : 0;
+                }
+                catch { return 0; }
+            }
+        }
+
+        /// <summary>
+        /// Retorna el IdTiendaOrigen de un traslado. 0 si no existe.
+        /// Se usa para validar que el aprobador pertenece a la sucursal origen.
+        /// </summary>
+        public int ObtenerTiendaOrigenDeTraslado(int idTraslado)
+        {
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("SELECT IdTiendaOrigen FROM dbo.TRASLADO WHERE IdTraslado = @Id", oConexion))
             {
                 cmd.Parameters.AddWithValue("@Id", idTraslado);
                 try
@@ -647,6 +666,7 @@ namespace CapaDatos
                             IdProducto = Convert.ToInt32(dr["IdProducto"]),
                             Codigo = dr["Codigo"].ToString(),
                             Nombre = dr["Nombre"].ToString(),
+                            Categoria = dr["Categoria"].ToString(),
                             Stock = Convert.ToInt32(dr["Stock"])
                         });
                     }

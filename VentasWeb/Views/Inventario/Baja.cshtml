@@ -1,66 +1,117 @@
-﻿@{
+@{
     ViewBag.Title = "Baja de Productos";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
 }
 
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">Inventario</a></li>
+        <li class="breadcrumb-item"><a href="#">Existencia</a></li>
         <li class="breadcrumb-item active">Baja de Productos</li>
     </ol>
 </nav>
 
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card border-danger">
-            <div class="card-header bg-danger text-white">
-                <i class="fas fa-arrow-down"></i> Registrar Baja de Stock
-            </div>
-            <div class="card-body">
-
-                <!-- Tienda -->
-                <div class="form-group">
-                    <label>Tienda <span class="text-danger">*</span></label>
+<!-- Filtro de sucursal -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row align-items-end">
+            <div class="col-sm-4">
+                <label class="col-form-label-sm font-weight-bold">Sucursal:</label>
+                @if (esSuperAdmin)
+                {
                     <select id="cboTienda" class="form-control form-control-sm">
-                        <option value="">-- Seleccione tienda --</option>
+                        <option value="">-- Seleccione sucursal --</option>
                     </select>
-                </div>
-
-                <!-- Producto -->
-                <div class="form-group">
-                    <label>Producto <span class="text-danger">*</span></label>
-                    <select id="cboProducto" class="form-control form-control-sm" disabled>
-                        <option value="">-- Seleccione producto --</option>
+                }
+                else
+                {
+                    <select id="cboTienda" class="form-control form-control-sm" disabled>
+                        <option value="">Cargando...</option>
                     </select>
-                    <small class="text-muted">Stock actual: <strong id="lblStockActual">-</strong></small>
+                }
+            </div>
+            <div class="col-sm-4 mt-2 mt-sm-0">
+                <span class="text-muted small" id="lblTotalProductos"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de productos -->
+<div class="card border-danger shadow-sm">
+    <div class="card-header bg-danger text-white d-flex align-items-center">
+        <i class="fas fa-arrow-down mr-2"></i>
+        <span>Productos — seleccioná uno para registrar la baja</span>
+    </div>
+    <div class="card-body p-2">
+        <div id="divSinTienda" class="text-center text-muted py-4">
+            <i class="fas fa-store fa-2x mb-2 d-block"></i>
+            Seleccioná una sucursal para ver los productos.
+        </div>
+        <div id="divTabla" style="display:none">
+            <table id="tblProductos" class="table table-sm table-bordered table-hover w-100">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Registrar Baja -->
+<div class="modal fade" id="modalBaja" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white py-2">
+                <h6 class="modal-title">
+                    <i class="fas fa-arrow-down mr-1"></i>
+                    Dar de baja — <span id="lblProductoBaja" class="font-weight-bold"></span>
+                </h6>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hIdProductoTienda" />
+                <input type="hidden" id="hIdProducto" />
+                <input type="hidden" id="hStockActual" />
+
+                <div class="form-group">
+                    <label class="col-form-label-sm font-weight-bold">
+                        Cantidad a dar de baja <span class="text-danger">*</span>
+                    </label>
+                    <input type="number" id="txtCantidad" class="form-control form-control-sm"
+                           min="1" value="1" />
                 </div>
 
-                <!-- Cantidad -->
                 <div class="form-group">
-                    <label>Cantidad a dar de baja <span class="text-danger">*</span></label>
-                    <input type="number" id="txtCantidad" class="form-control form-control-sm" min="1" value="1" />
-                </div>
-
-                <!-- Motivo -->
-                <div class="form-group">
-                    <label>Motivo de Baja <span class="text-danger">*</span></label>
+                    <label class="col-form-label-sm font-weight-bold">
+                        Motivo <span class="text-danger">*</span>
+                    </label>
                     <select id="cboMotivoBaja" class="form-control form-control-sm">
                         <option value="">-- Seleccione motivo --</option>
                     </select>
                 </div>
 
-                <!-- Observaciones -->
-                <div class="form-group">
-                    <label>Observaciones: <span class="text-danger">*</span></label>
+                <div class="form-group mb-0">
+                    <label class="col-form-label-sm font-weight-bold">
+                        Observación <span class="text-danger">*</span>
+                    </label>
                     <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2"
-                              maxlength="255" placeholder="Ej: Producto dañado por humedad en depósito"></textarea>
+                              maxlength="255"
+                              placeholder="Ej: Producto dañado por humedad en depósito"></textarea>
                 </div>
-
-                <button id="btnBajarStock" class="btn btn-danger btn-block">
-                    <i class="fas fa-arrow-down"></i> Confirmar Baja
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-danger" id="btnConfirmarBaja">
+                    <i class="fas fa-check mr-1"></i> Confirmar baja
                 </button>
             </div>
         </div>
@@ -68,5 +119,7 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/Views/Inventario_Baja.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap4.min.js"></script>
+    <script src="@Url.Content("~/Scripts/Views/Inventario_Baja.js?v=" + DateTime.Now.Ticks)"></script>
 }

@@ -1,10 +1,10 @@
-﻿@{
+@{
     ViewBag.Title = "Traslado entre Tiendas";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
 }
 
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -13,111 +13,161 @@
     </ol>
 </nav>
 
-<div class="row">
-    <!-- PANEL FORMULARIO -->
-    <div class="col-md-4">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-white">
-                <i class="fas fa-exchange-alt"></i> Nuevo Traslado
-            </div>
-            <div class="card-body">
-
-                <!-- Tienda Origen -->
-                <div class="form-group">
-                    <label>Tienda Origen <span class="text-danger">*</span></label>
+<!-- Filtro de sucursal origen -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row align-items-end">
+            <div class="col-sm-4">
+                <label class="col-form-label-sm font-weight-bold">Sucursal Origen:</label>
+                @if (esSuperAdmin)
+                {
                     <select id="cboTiendaOrigen" class="form-control form-control-sm">
-                        <option value="">-- Seleccione tienda origen --</option>
+                        <option value="">-- Seleccione sucursal --</option>
                     </select>
-                </div>
-
-                <!-- Producto -->
-                <div class="form-group">
-                    <label>Producto <span class="text-danger">*</span></label>
-                    <select id="cboProducto" class="form-control form-control-sm" disabled>
-                        <option value="">-- Seleccione producto --</option>
+                }
+                else
+                {
+                    <select id="cboTiendaOrigen" class="form-control form-control-sm" disabled>
+                        <option value="">Cargando...</option>
                     </select>
-                    <small class="text-muted">Stock disponible: <strong id="lblStockDisponible">-</strong></small>
-                </div>
-
-                <!-- Tienda Destino -->
-                <div class="form-group">
-                    <label>Tienda Destino <span class="text-danger">*</span></label>
-                    <select id="cboTiendaDestino" class="form-control form-control-sm">
-                        <option value="">-- Seleccione tienda destino --</option>
-                    </select>
-                </div>
-
-                <!-- Cantidad -->
-                <div class="form-group">
-                    <label>Cantidad <span class="text-danger">*</span></label>
-                    <input type="number" id="txtCantidad" class="form-control form-control-sm" min="1" value="1" />
-                </div>
-
-                <!-- Observaciones -->
-                <div class="form-group">
-                    <label>Observaciones: <span class="text-danger">*</span></label>
-                    <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2" maxlength="500" placeholder="Ej: Reposición solicitada por encargado de sucursal"></textarea>
-                </div>
-
-                <button id="btnRegistrarTraslado" class="btn btn-warning btn-block">
-                    <i class="fas fa-exchange-alt"></i> Registrar Traslado
-                </button>
+                }
+            </div>
+            <div class="col-sm-4 mt-2 mt-sm-0">
+                <span class="text-muted small" id="lblTotalProductos"></span>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- PANEL HISTORIAL -->
-    <div class="col-md-8">
-        <div class="card border-info">
-            <div class="card-header bg-info text-white">
-                <i class="far fa-list-alt"></i> Historial de Traslados
+<!-- Tabla de productos -->
+<div class="card border-warning shadow-sm mb-3">
+    <div class="card-header bg-warning text-dark d-flex align-items-center">
+        <i class="fas fa-exchange-alt mr-2"></i>
+        <span>Productos — seleccioná uno para registrar el traslado</span>
+    </div>
+    <div class="card-body p-2">
+        <div id="divSinTienda" class="text-center text-muted py-4">
+            <i class="fas fa-store fa-2x mb-2 d-block"></i>
+            Seleccioná una sucursal para ver los productos disponibles.
+        </div>
+        <div id="divTabla" style="display:none">
+            <table id="tblProductos" class="table table-sm table-bordered table-hover w-100">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Historial de traslados -->
+<div class="card border-info shadow-sm">
+    <div class="card-header bg-info text-white d-flex align-items-center">
+        <i class="far fa-list-alt mr-2"></i>
+        <span>Historial de Traslados</span>
+    </div>
+    <div class="card-body p-2">
+        <div class="row mb-2 align-items-end">
+            <div class="col-sm-3">
+                <label class="col-form-label-sm">Fecha Desde</label>
+                <input type="text" id="txtFechaInicio" class="form-control form-control-sm" />
             </div>
-            <div class="card-body">
-                <div class="row mb-2">
-                    <div class="col-sm-3">
-                        <label>Fecha Desde</label>
-                        <input type="text" id="txtFechaInicio" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-sm-3">
-                        <label>Fecha Hasta</label>
-                        <input type="text" id="txtFechaFin" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-sm-3">
-                        <label>Tienda</label>
-                        <select id="cboFiltroTienda" class="form-control form-control-sm">
-                            <option value="0">-- Todas --</option>
-                        </select>
-                    </div>
-                    <div class="col-sm-3 d-flex align-items-end">
-                        <button onclick="buscarHistorial()" class="btn btn-info btn-sm btn-block">
-                            <i class="fas fa-search"></i> Buscar
-                        </button>
-                    </div>
+            <div class="col-sm-3">
+                <label class="col-form-label-sm">Fecha Hasta</label>
+                <input type="text" id="txtFechaFin" class="form-control form-control-sm" />
+            </div>
+            <div class="col-sm-3">
+                <label class="col-form-label-sm">Sucursal</label>
+                <select id="cboFiltroTienda" class="form-control form-control-sm">
+                    <option value="0">-- Todas --</option>
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <button onclick="buscarHistorial()" class="btn btn-info btn-sm btn-block mt-sm-0 mt-2">
+                    <i class="fas fa-search mr-1"></i> Buscar
+                </button>
+            </div>
+        </div>
+        <table id="tbTraslados" class="table table-sm table-bordered table-hover w-100">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Fecha</th>
+                    <th>Producto</th>
+                    <th>Código</th>
+                    <th>Origen</th>
+                    <th>Destino</th>
+                    <th class="text-center">Cantidad</th>
+                    <th>Usuario</th>
+                    <th>Observaciones</th>
+                    <th class="text-center">Estado</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Registrar Traslado -->
+<div class="modal fade" id="modalTraslado" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h6 class="modal-title">
+                    <i class="fas fa-exchange-alt mr-1"></i>
+                    Trasladar — <span id="lblProductoTraslado" class="font-weight-bold"></span>
+                </h6>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hIdProducto" />
+                <input type="hidden" id="hIdProductoTienda" />
+                <input type="hidden" id="hStockActual" />
+                <input type="hidden" id="hIdTiendaOrigen" />
+
+                <div class="form-group">
+                    <label class="col-form-label-sm font-weight-bold">
+                        Sucursal Destino <span class="text-danger">*</span>
+                    </label>
+                    <select id="cboTiendaDestino" class="form-control form-control-sm">
+                        <option value="">-- Seleccione --</option>
+                    </select>
                 </div>
-                <hr />
-                <div class="table-responsive">
-                    <table id="tbTraslados" class="table table-striped table-bordered table-sm">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Producto</th>
-                                <th>Código</th>
-                                <th>Origen</th>
-                                <th>Destino</th>
-                                <th>Cantidad</th>
-                                <th>Usuario</th>
-                                <th>Observaciones</th>
-                                <th class="text-center">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+
+                <div class="form-group">
+                    <label class="col-form-label-sm font-weight-bold">
+                        Cantidad <span class="text-danger">*</span>
+                    </label>
+                    <input type="number" id="txtCantidad" class="form-control form-control-sm"
+                           min="1" value="1" />
                 </div>
+
+                <div class="form-group mb-0">
+                    <label class="col-form-label-sm font-weight-bold">
+                        Observaciones <span class="text-danger">*</span>
+                    </label>
+                    <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2"
+                              maxlength="500"
+                              placeholder="Ej: Reposición solicitada por encargado de sucursal"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-warning" id="btnConfirmarTraslado">
+                    <i class="fas fa-check mr-1"></i> Confirmar traslado
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/Views/Inventario_Traslado.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap4.min.js"></script>
+    <script src="@Url.Content("~/Scripts/Views/Inventario_Traslado.js?v=" + DateTime.Now.Ticks)"></script>
 }
