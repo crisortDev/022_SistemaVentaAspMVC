@@ -1,5 +1,5 @@
 @{
-    ViewBag.Title = "Reporte de Bajas";
+    ViewBag.Title = "Reporte de Traslados";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -13,7 +13,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Reportes</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Bajas de Productos</li>
+        <li class="breadcrumb-item active" aria-current="page">Traslados de Productos</li>
     </ol>
 </nav>
 
@@ -36,7 +36,7 @@
                     @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
                     {
                         <div class="col-sm-2">
-                            <label class="col-form-label col-form-label-sm">Sucursal</label>
+                            <label class="col-form-label col-form-label-sm">Sucursal (Origen o Destino)</label>
                             <select id="cboTienda" class="form-control form-control-sm">
                                 <option value="0">-- Todas las sucursales --</option>
                             </select>
@@ -75,7 +75,7 @@
         <!-- RESULTADO -->
         <div class="card border-info">
             <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-arrow-down"></i> Resultado</span>
+                <span><i class="fas fa-exchange-alt"></i> Resultado</span>
                 <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
                     <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
                 </button>
@@ -87,11 +87,11 @@
                             <tr>
                                 <th>Nro</th>
                                 <th>Fecha</th>
-                                <th>Tienda</th>
                                 <th>Código</th>
                                 <th>Producto</th>
                                 <th class="text-center">Cant.</th>
-                                <th>Motivo Baja</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
                                 <th>Estado</th>
                                 <th>Registró</th>
                                 <th>Aprobador</th>
@@ -113,15 +113,15 @@
 </div>
 
 @* Formulario oculto para POST del PDF *@
-@using (Html.BeginForm("DescargarPDFBajas", "Reporte", FormMethod.Post, new { id = "frmPDFBajas" }))
+@using (Html.BeginForm("DescargarPDFTraslados", "Reporte", FormMethod.Post, new { id = "frmPDFTraslados" }))
 {
     @Html.AntiForgeryToken()
-    <input type="hidden" id="hBajasFechaInicio" name="fechainicio" />
-    <input type="hidden" id="hBajasFechaFin"    name="fechafin"    />
-    <input type="hidden" id="hBajasIdTienda"    name="idtienda"    />
-    <input type="hidden" id="hBajasEstado"      name="estadobaja"  />
+    <input type="hidden" id="hTrasladoFechaInicio" name="fechainicio"      />
+    <input type="hidden" id="hTrasladoFechaFin"    name="fechafin"         />
+    <input type="hidden" id="hTrasladoIdTienda"    name="idtienda"         />
+    <input type="hidden" id="hTrasladoEstado"      name="estadotraslado"   />
 }
 
 @section scripts{
-    <script src="@Url.Content("~/Scripts/Views/Reporte_Bajas.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/Views/Reporte_Traslados.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

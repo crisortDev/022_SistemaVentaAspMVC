@@ -111,15 +111,18 @@ namespace CapaDatos
                         {
                             lista.Add(new ReporteVenta()
                             {
-                                FechaVenta = dr["Fecha Venta"].ToString(),
-                                NumeroDocumento = dr["Numero Documento"].ToString(),
-                                TipoDocumento = dr["Tipo Documento"].ToString(),
-                                NombreTienda = dr["Nombre Tienda"].ToString(),
-                                RucTienda = dr["Ruc Tienda"].ToString(),
-                                NombreEmpleado = dr["Nombre Empleado"].ToString(),
+                                FechaVenta               = dr["Fecha Venta"].ToString(),
+                                NumeroDocumento          = dr["Numero Documento"].ToString(),
+                                TipoDocumento            = dr["Tipo Documento"].ToString(),
+                                Estado                   = dr["Estado"].ToString(),
+                                Cliente                  = dr["Cliente"].ToString(),
+                                FormaCobro               = dr["Forma Cobro"].ToString(),
+                                NombreTienda             = dr["Nombre Tienda"].ToString(),
+                                RucTienda                = dr["Ruc Tienda"].ToString(),
+                                NombreEmpleado           = dr["Nombre Empleado"].ToString(),
                                 CantidadUnidadesVendidas = dr["Cantidad Unidades Vendidas"].ToString(),
-                                CantidadProductos = dr["Cantidad Productos"].ToString(),
-                                TotalVenta = FormatearDecimal(dr["Total Venta"])
+                                CantidadProductos        = dr["Cantidad Productos"].ToString(),
+                                TotalVenta               = FormatearDecimal(dr["Total Venta"])
                             });
                         }
                     }
@@ -134,33 +137,45 @@ namespace CapaDatos
             return lista;
         }
 
-        public List<ReporteBaja> ReporteBajas(DateTime fechaInicio, DateTime fechaFin, int idTienda)
+        public List<ReporteBaja> ReporteBajas(
+            DateTime? fechaInicio, DateTime? fechaFin,
+            int idTienda, string estadoAprobacion = "")
         {
-            List<ReporteBaja> lista = new List<ReporteBaja>();
-            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            var lista = new List<ReporteBaja>();
+            using (var cn = new SqlConnection(Conexion.CN))
             {
-                SqlCommand cmd = new SqlCommand("usp_rptBajasProducto", oConexion);
+                var cmd = new SqlCommand("usp_rptBajasProducto", cn);
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio.Date);
-                cmd.Parameters.AddWithValue("@FechaFin", fechaFin.Date);
-                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
+                cmd.Parameters.Add("@FechaInicio", SqlDbType.Date).Value =
+                    fechaInicio.HasValue ? (object)fechaInicio.Value.Date : DBNull.Value;
+                cmd.Parameters.Add("@FechaFin", SqlDbType.Date).Value =
+                    fechaFin.HasValue    ? (object)fechaFin.Value.Date    : DBNull.Value;
+                cmd.Parameters.AddWithValue("@IdTienda",         idTienda);
+                cmd.Parameters.AddWithValue("@EstadoAprobacion", estadoAprobacion ?? "");
                 try
                 {
-                    oConexion.Open();
-                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    cn.Open();
+                    using (var dr = cmd.ExecuteReader())
                     {
                         while (dr.Read())
                         {
                             lista.Add(new ReporteBaja
                             {
-                                IdHistorial = Convert.ToInt32(dr["IdHistorial"]),
-                                FechaMovimiento = dr["FechaMovimiento"].ToString(),
-                                CodigoProducto = dr["CodigoProducto"].ToString(),
-                                NombreProducto = dr["NombreProducto"].ToString(),
-                                NombreTienda = dr["NombreTienda"].ToString(),
-                                RucTienda = dr["RucTienda"].ToString(),
-                                Observaciones = dr["Observaciones"].ToString(),
-                                Cantidad = Convert.ToInt32(dr["Cantidad"])
+                                IdHistorial      = LeerInt(dr,  "IdHistorial"),
+                                Numero           = LeerStr(dr,  "Numero"),
+                                FechaMovimiento  = LeerStr(dr,  "FechaMovimiento"),
+                                CodigoProducto   = LeerStr(dr,  "CodigoProducto"),
+                                NombreProducto   = LeerStr(dr,  "NombreProducto"),
+                                NombreTienda     = LeerStr(dr,  "NombreTienda"),
+                                RucTienda        = LeerStr(dr,  "RucTienda"),
+                                MotivoBaja       = LeerStr(dr,  "MotivoBaja"),
+                                Observaciones    = LeerStr(dr,  "Observaciones"),
+                                Cantidad         = LeerInt(dr,  "Cantidad"),
+                                EstadoAprobacion = LeerStr(dr,  "EstadoAprobacion"),
+                                UsuarioRegistro  = LeerStr(dr,  "UsuarioRegistro"),
+                                UsuarioAprueba   = LeerStr(dr,  "UsuarioAprueba"),
+                                FechaAprobacion  = LeerStr(dr,  "FechaAprobacion"),
+                                MotivoRechazo    = LeerStr(dr,  "MotivoRechazo")
                             });
                         }
                     }
@@ -335,6 +350,60 @@ namespace CapaDatos
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine("Error ObtenerRentabilidad: " + ex.Message);
+                }
+            }
+            return lista;
+        }
+
+        // ════════════════════════════════════════════════════════
+        //  REPORTE TRASLADOS
+        // ════════════════════════════════════════════════════════
+
+        public List<Traslado> ReporteTraslados(
+            DateTime? fechaInicio, DateTime? fechaFin,
+            int idTienda, string estadoAprobacion = "")
+        {
+            var lista = new List<Traslado>();
+            using (var cn = new SqlConnection(Conexion.CN))
+            {
+                var cmd = new SqlCommand("usp_rptTraslados", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@FechaInicio", SqlDbType.Date).Value =
+                    fechaInicio.HasValue ? (object)fechaInicio.Value.Date : DBNull.Value;
+                cmd.Parameters.Add("@FechaFin", SqlDbType.Date).Value =
+                    fechaFin.HasValue    ? (object)fechaFin.Value.Date    : DBNull.Value;
+                cmd.Parameters.AddWithValue("@IdTienda",         idTienda);
+                cmd.Parameters.AddWithValue("@EstadoAprobacion", estadoAprobacion ?? "");
+                try
+                {
+                    cn.Open();
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new Traslado
+                            {
+                                IdTraslado       = LeerInt(dr, "IdTraslado"),
+                                Numero           = LeerStr(dr, "Numero"),
+                                FechaTraslado    = LeerStr(dr, "FechaTraslado"),
+                                CodigoProducto   = LeerStr(dr, "CodigoProducto"),
+                                NombreProducto   = LeerStr(dr, "NombreProducto"),
+                                Cantidad         = LeerInt(dr, "Cantidad"),
+                                TiendaOrigen     = LeerStr(dr, "TiendaOrigen"),
+                                TiendaDestino    = LeerStr(dr, "TiendaDestino"),
+                                Observaciones    = LeerStr(dr, "Observaciones"),
+                                EstadoAprobacion = LeerStr(dr, "EstadoAprobacion"),
+                                Usuario          = LeerStr(dr, "Usuario"),
+                                UsuarioAprueba   = LeerStr(dr, "UsuarioAprueba"),
+                                FechaAprobacion  = LeerStr(dr, "FechaAprobacion"),
+                                MotivoRechazo    = LeerStr(dr, "MotivoRechazo")
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error ReporteTraslados: " + ex.Message);
                 }
             }
             return lista;

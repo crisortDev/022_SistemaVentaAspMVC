@@ -114,13 +114,16 @@ function cargar() {
             if (i.CantItems > 0)
                 acc += '<button class="btn btn-xs btn-info btn-sm mr-1" onclick="verDetalle(' + i.IdInventario + ',\'' + escJs(i.Numero) + '\')" title="Reporte de diferencias"><i class="fas fa-chart-bar"></i></button>';
             if (i.Estado === 'Abierto' || i.Estado === 'Rechazado')
-                acc += '<button class="btn btn-xs btn-secondary btn-sm mr-1" onclick="abrirAsignar(' + i.IdInventario + ',\'' + escJs(i.Numero) + '\',' + (i.IdTienda || 0) + ')" title="Asignar operador"><i class="fas fa-user-plus"></i></button>';
+                acc += '<button class="btn btn-xs btn-secondary btn-sm mr-1" onclick="abrirAsignar(' + i.IdInventario + ',\'' + escJs(i.Numero) + '\',' + (i.IdTienda || 0) + ')" title="Asignar/cambiar repositor"><i class="fas fa-user-plus"></i></button>';
             if (i.Estado === 'Pendiente de Aprobación') {
                 acc += '<button class="btn btn-xs btn-success btn-sm mr-1" onclick="aprobar(' + i.IdInventario + ')" title="Aprobar"><i class="fas fa-check"></i></button>';
                 acc += '<button class="btn btn-xs btn-danger btn-sm mr-1" onclick="rechazar(' + i.IdInventario + ')" title="Rechazar"><i class="fas fa-times"></i></button>';
             }
             if (i.Estado !== 'Aprobado' && i.Estado !== 'Anulado')
                 acc += '<button class="btn btn-xs btn-dark btn-sm mr-1" onclick="anular(' + i.IdInventario + ',\'' + escJs(i.Numero) + '\')" title="Anular inventario"><i class="fas fa-ban"></i></button>';
+            // Botón imprimir: solo mientras el inventario no esté cerrado (Aprobado o Anulado)
+            if (i.Estado !== 'Aprobado' && i.Estado !== 'Anulado')
+                acc += '<a href="' + $.MisUrls.url._Inv_ImprimirInventario + '?idInventario=' + i.IdInventario + '" target="_blank" class="btn btn-xs btn-outline-primary btn-sm mr-1" title="Imprimir hoja de conteo"><i class="fas fa-print"></i></a>';
             var motivo = i.MotivoRechazo
                 ? ' <i class="fas fa-info-circle text-danger" title="' + escHtml(i.MotivoRechazo) + '"></i>'
                 : '';
@@ -155,7 +158,7 @@ function abrirAsignar(idInventario, numero, idTienda) {
             });
         }
     }).fail(function () {
-        $('#cboOperador').empty().append('<option value="">-- Sin usuarios disponibles --</option>');
+        $('#cboOperador').empty().append('<option value="">-- Sin repositores disponibles --</option>');
         toastr.warning('No se pudo cargar la lista de repositores.');
     });
     $('#modalAsignar').modal('show');

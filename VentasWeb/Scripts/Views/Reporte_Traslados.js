@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-//  REPORTE — BAJAS DE PRODUCTOS
+//  REPORTE — TRASLADOS DE PRODUCTOS
 // ═══════════════════════════════════════════════════════════
 
 $(document).ready(function () {
@@ -46,13 +46,13 @@ $('#btnBuscar').on('click', function () {
     }
 
     $.ajax({
-        url: $.MisUrls.url._ObtenerReporteBajas,
+        url: $.MisUrls.url._ObtenerReporteTraslados,
         type: "GET",
         data: {
-            fechainicio: fechaInicio,
-            fechafin:    fechaFin,
-            idtienda:    $("#cboTienda").val(),
-            estadobaja:  $("#cboEstado").val()
+            fechainicio:    fechaInicio,
+            fechafin:       fechaFin,
+            idtienda:       $("#cboTienda").val(),
+            estadotraslado: $("#cboEstado").val()
         },
         dataType: "json",
         beforeSend: function () {
@@ -70,37 +70,36 @@ $('#btnBuscar').on('click', function () {
             if (!data || data.length === 0) {
                 $tbody.html(
                     '<tr><td colspan="10" class="text-center text-muted py-3">' +
-                    'No se encontraron bajas en el período seleccionado.</td></tr>'
+                    'No se encontraron traslados en el período seleccionado.</td></tr>'
                 );
                 return;
             }
 
             $.each(data, function (i, row) {
-                var estado    = row.EstadoAprobacion || 'Pendiente';
-                var badgeCls  = estado === 'Aprobada'  ? 'success'
-                              : estado === 'Rechazada' ? 'danger'
-                              : 'warning';
-                var $badge    = $('<span class="badge badge-' + badgeCls + ' badge-estado">')
-                                  .text(estado);
-
-                var rowClass  = estado === 'Pendiente'  ? 'table-warning'
-                              : estado === 'Rechazada'  ? 'table-danger'
-                              : '';
+                var estado   = row.EstadoAprobacion || 'Pendiente';
+                var badgeCls = estado === 'Aprobada'  ? 'success'
+                             : estado === 'Rechazada' ? 'danger'
+                             : 'warning';
+                var $badge   = $('<span class="badge badge-' + badgeCls + ' badge-estado">')
+                                 .text(estado);
+                var rowClass = estado === 'Pendiente'  ? 'table-warning'
+                             : estado === 'Rechazada'  ? 'table-danger'
+                             : '';
 
                 var $tr = $('<tr>').addClass(rowClass).append(
-                    $('<td>').text(row.Numero           || ''),
-                    $('<td>').text(row.FechaMovimiento  || ''),
-                    $('<td>').text(row.NombreTienda     || ''),
-                    $('<td>').text(row.CodigoProducto   || ''),
-                    $('<td>').text(row.NombreProducto   || ''),
+                    $('<td>').text(row.Numero          || ''),
+                    $('<td>').text(row.FechaTraslado   || ''),
+                    $('<td>').text(row.CodigoProducto  || ''),
+                    $('<td>').text(row.NombreProducto  || ''),
                     $('<td class="text-center">').text(row.Cantidad || 0),
-                    $('<td>').text(row.MotivoBaja        || ''),
+                    $('<td>').text(row.TiendaOrigen    || ''),
+                    $('<td>').text(row.TiendaDestino   || ''),
                     $('<td class="text-center">').append($badge),
-                    $('<td>').text(row.UsuarioRegistro  || ''),
-                    $('<td>').text(row.UsuarioAprueba   || '')
+                    $('<td>').text(row.Usuario         || ''),
+                    $('<td>').text(row.UsuarioAprueba  || '')
                 );
 
-                // Si está rechazada y tiene motivo, agregar fila adicional
+                // Fila extra para motivo de rechazo
                 if (estado === 'Rechazada' && row.MotivoRechazo) {
                     var $trDetalle = $('<tr class="table-danger">').append(
                         $('<td colspan="10" class="py-1 pl-4 text-muted" style="font-size:0.82em;">')
@@ -136,9 +135,9 @@ function exportarPDF() {
         Swal.fire('Atención', 'No hay datos para exportar.', 'warning');
         return;
     }
-    $('#hBajasFechaInicio').val($('#txtFechaInicio').val());
-    $('#hBajasFechaFin').val($('#txtFechaFin').val());
-    $('#hBajasIdTienda').val($('#cboTienda').val() || 0);
-    $('#hBajasEstado').val($('#cboEstado').val() || '');
-    $('#frmPDFBajas').submit();
+    $('#hTrasladoFechaInicio').val($('#txtFechaInicio').val());
+    $('#hTrasladoFechaFin').val($('#txtFechaFin').val());
+    $('#hTrasladoIdTienda').val($('#cboTienda').val() || 0);
+    $('#hTrasladoEstado').val($('#cboEstado').val() || '');
+    $('#frmPDFTraslados').submit();
 }

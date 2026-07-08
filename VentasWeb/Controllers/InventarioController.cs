@@ -2,6 +2,8 @@
 using CapaModelo;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Web.Mvc;
 using VentasWeb.Filters;
@@ -347,6 +349,89 @@ namespace VentasWeb.Controllers
 
             var r = CD_Inventario.Instancia.AnularInventario(idInventario, UsuarioActual.IdUsuario);
             return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        // =============================================
+        // PDF HOJA DE INVENTARIO
+        // =============================================
+
+        /// <summary>
+        /// Genera y descarga la hoja PDF de inventario para que el repositor
+        /// anote el conteo físico manualmente.
+        /// </summary>
+        [HttpGet]
+        // Sin AuthorizeRol específico: el atributo de clase [AuthorizeRol("Inventario","*")]
+        // ya garantiza acceso. Repositores con permiso "Toma de Inventario" también pueden imprimir
+        // su hoja; la validación de pertenencia (TienePermiso) se hace dentro del método.
+        public ActionResult ImprimirInventario(int idInventario)
+        {
+            try
+            {
+                // Validar permiso sobre la tienda del inventario
+                int idTiendaInv = CD_Inventario.Instancia.ObtenerTiendaDeInventario(idInventario);
+                if (!TienePermiso(idTiendaInv))
+                    return Content("No tiene permiso para imprimir este inventario.");
+
+                var datos = CD_Inventario.Instancia.ObtenerInventarioPDF(idInventario);
+
+                // Obtener número para el nombre del archivo
+                string numero = "INV-" + idInventario;
+                using (var cn = new System.Data.SqlClient.SqlConnection(CapaDatos.Conexion.CN))
+                using (var cmd = new System.Data.SqlClient.SqlCommand(
+                       "SELECT ISNULL(Numero,'') FROM dbo.INVENTARIO WHERE IdInventario = @Id", cn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", idInventario);
+                    cn.Open();
+                    var val = cmd.ExecuteScalar();
+                    if (val != null && val != System.DBNull.Value && val.ToString() != "")
+                        numero = val.ToString();
+                }
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                                  "inv_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                                  "inv_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    Newtonsoft.Json.JsonConvert.SerializeObject(datos, Newtonsoft.Json.Formatting.None),
+                    new System.Text.UTF8Encoding(false));  // sin BOM
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_inventario_pdf.py");
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                    {
+                        string err = proc.StandardError.ReadToEnd();
+                        throw new Exception("Error en script PDF: " + err);
+                    }
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el archivo PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string nombreArchivo = "HojaInventario_" + numero.Replace("-", "") + ".pdf";
+                return this.File(pdfBytes, "application/pdf", nombreArchivo);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
         }
 
         [HttpGet]

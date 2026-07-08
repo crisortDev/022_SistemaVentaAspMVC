@@ -1,13 +1,13 @@
-﻿@{
-    ViewBag.Title = "Producto";
+@{
+    ViewBag.Title = "Productos por Tienda";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 @section estilos{
     <style>
         #inner-right {
-            max-height: 300px;
-            overflow-y: scroll;
+            max-height: 400px;
+            overflow-y: auto;
         }
     </style>
 }
@@ -22,17 +22,20 @@
 <div class="row">
     <div class="col-sm-12">
         <div class="card border-info">
-            <div class="card-header bg-info text-white">
-                Reportes de productos por tienda
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-boxes"></i> Reporte de productos por tienda</span>
+                <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
+                    <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
+                </button>
             </div>
             <div class="card-body">
-                <div class="row align-items-end">
+                <div class="row align-items-end mb-3">
                     @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
                     {
                         <div class="col-sm-2">
                             <div class="form-group mb-0">
                                 <label for="cboTienda" class="col-form-label col-form-label-sm">Sucursal:</label>
-                                <select class="form-control form-control-sm model" id="cboTienda" name="Tienda"></select>
+                                <select class="form-control form-control-sm" id="cboTienda" name="Tienda"></select>
                             </div>
                         </div>
                     }
@@ -51,50 +54,53 @@
                     }
                     <div class="col-sm-2">
                         <div class="form-group mb-0">
-                            <label for="txtCodigoProducto" class="col-form-label col-form-label-sm">Codigo Producto:</label>
-                            <input type="text" class="form-control form-control-sm model" id="txtCodigoProducto" name="codigoproducto" autocomplete="off">
+                            <label for="txtCodigoProducto" class="col-form-label col-form-label-sm">Código Producto:</label>
+                            <input type="text" class="form-control form-control-sm" id="txtCodigoProducto"
+                                   name="codigoproducto" autocomplete="off" placeholder="Opcional">
                         </div>
                     </div>
                     <div class="col-sm-2">
                         <div class="form-group mb-0">
-                            <button id="btnBuscar" type="button" class="btn btn-sm btn-primary btn-block"><i class="fas fa-search"></i> Buscar</button>
+                            <button id="btnBuscar" type="button" class="btn btn-sm btn-primary btn-block">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
                         </div>
                     </div>
                 </div>
                 <hr />
-                <div class="row mb-2">
-                    <div class="col-sm-12">
-                        <button class="btn btn-info float-left" onclick="printData()">
-                            <i class="fas fa-print"></i> Imprimir
-                        </button>
-                    </div>
-                </div>
-                <div class="row" id="inner-right">
-                    <div class="col-sm-12">
-                        <table id="tbReporte" class="table table-striped table-bordered table-sm table-responsive-sm" style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>Ruc Tienda</th>
-                                    <th>Nombre Tienda</th>
-                                    <th>Direccion Tienda</th>
-                                    <th>Codigo Producto</th>
-                                    <th>Nombre Producto</th>
-                                    <th>Descripcion Producto</th>
-                                    <th>Stock en tienda</th>
-                                    <th>Precio Compra</th>
-                                    <th>Precio Venta</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+                <div id="inner-right">
+                    <table id="tbReporte" class="table table-striped table-bordered table-sm table-responsive-sm" style="width:100%">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Nombre Tienda</th>
+                                <th>RUC Tienda</th>
+                                <th>Dirección</th>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Descripción</th>
+                                <th class="text-center">Stock</th>
+                                <th class="text-right">P. Compra</th>
+                                <th class="text-right">P. Venta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="9" class="text-muted text-center py-3">Seleccioná una sucursal y presioná <strong>Buscar</strong>.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@section scripts{
+@* Formulario oculto para POST del PDF *@
+@using (Html.BeginForm("DescargarPDFProductos", "Reporte", FormMethod.Post, new { id = "frmPDFProd" }))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="hProdIdTienda"  name="idtienda"        />
+    <input type="hidden" id="hProdCodigo"    name="codigoproducto"  />
+}
 
-    <script src="@Url.Content("~/Scripts/Views/Reporte_Producto.js?v=" + DateTime.Now.Ticks) type="text/javascript"></script>
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/Reporte_Producto.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

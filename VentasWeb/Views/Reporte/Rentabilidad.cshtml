@@ -104,6 +104,16 @@
     </div>
 </div>
 
+@* Formulario oculto para POST del PDF *@
+@using (Html.BeginForm("DescargarPDFRentabilidad", "Reporte", FormMethod.Post, new { id = "frmPDFRent" }))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="hRentFechaInicio" name="fechainicio" />
+    <input type="hidden" id="hRentFechaFin"    name="fechafin"    />
+    <input type="hidden" id="hRentIdTienda"    name="idtienda"    />
+    <input type="hidden" id="hRentIdCategoria" name="idcategoria" />
+}
+
 @section scripts{
     <script src="@Url.Content("~/Scripts/Views/Reporte_Rentabilidad.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

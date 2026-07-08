@@ -41,15 +41,19 @@ function cargarAsignados() {
             var fnClick   = yaCorriendo
                 ? 'continuar(' + i.IdInventario + ',' + i.IdTienda + ',\'' + esc(i.Numero) + '\',\'' + esc(i.MotivoRechazo) + '\')'
                 : 'iniciar('   + i.IdInventario + ',' + i.IdTienda + ',\'' + esc(i.Numero) + '\',\'' + esc(i.MotivoRechazo) + '\')';
+            var urlImprimir = $.MisUrls.url._Inv_ImprimirInventario + '?idInventario=' + i.IdInventario;
             t.append('<tr>' +
                 '<td><strong>' + (i.Numero || '') + '</strong></td>' +
                 '<td>' + (i.NombreTienda || '') + '</td>' +
                 '<td>' + fmtFecha(i.FechaRegistro) + '</td>' +
                 '<td class="text-center"><span class="badge badge-' + badgeColor + '">' + i.Estado + '</span></td>' +
                 '<td class="text-center">' +
-                    '<button class="btn btn-sm btn-primary" onclick="' + fnClick + '">' +
+                    '<button class="btn btn-sm btn-primary mr-1" onclick="' + fnClick + '">' +
                         '<i class="fas ' + btnIcon + ' mr-1"></i>' + btnLabel +
                     '</button>' +
+                    '<a href="' + urlImprimir + '" target="_blank" class="btn btn-sm btn-outline-secondary" title="Imprimir hoja de conteo">' +
+                        '<i class="fas fa-print"></i>' +
+                    '</a>' +
                 '</td>' +
                 '</tr>');
         });

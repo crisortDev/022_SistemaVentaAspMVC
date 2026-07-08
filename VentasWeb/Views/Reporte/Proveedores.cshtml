@@ -95,8 +95,16 @@
     </div>
 </div>
 
+@* Formulario oculto para POST del PDF *@
+@using (Html.BeginForm("DescargarPDFProveedores", "Reporte", FormMethod.Post, new { id = "frmPDFProv" }))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="hProvFechaInicio" name="fechainicio" />
+    <input type="hidden" id="hProvFechaFin"    name="fechafin"    />
+    <input type="hidden" id="hProvIdTienda"    name="idtienda"    />
+    <input type="hidden" id="hProvSoloDeuda"   name="solodeuda"   />
+}
+
 @section scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="@Url.Content("~/Scripts/Views/Reporte_Proveedores.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

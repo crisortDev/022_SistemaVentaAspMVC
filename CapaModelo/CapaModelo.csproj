@@ -51,6 +51,7 @@
     <Compile Include="ProductoTiendaBaja.cs" />
     <Compile Include="ReporteBaja.cs" />
     <Compile Include="ReporteProveedor.cs" />
+    <Compile Include="ReporteVentasGerencia.cs" />
     <Compile Include="ResultadoSP.cs" />
     <Compile Include="Categoria.cs" />
     <Compile Include="Cliente.cs" />

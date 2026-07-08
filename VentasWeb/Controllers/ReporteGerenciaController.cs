@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Web.Mvc;
 using VentasWeb.Filters;
+using System.Text;
 
 namespace VentasWeb.Controllers
 {
@@ -150,6 +151,142 @@ namespace VentasWeb.Controllers
 
                 string nombreArchivo = $"Reporte_Compras_{fi:yyyyMM}_{ff:yyyyMM}.pdf";
                 return this.File(pdfBytes, "application/pdf", nombreArchivo);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
+        }
+
+        // ============================================================
+        //  VENTAS GERENCIA — VISTA
+        // ============================================================
+
+        [AuthorizeRol("ReporteGerencia", "Index")]
+        public ActionResult Ventas()
+        {
+            var tiendas = CD_Tienda.Instancia.ObtenerTiendas();
+            ViewBag.Tiendas = tiendas;
+
+            if (!EsSuperAdmin && TiendaActiva > 0)
+            {
+                var t = tiendas?.Find(x => x.IdTienda == TiendaActiva);
+                ViewBag.NombreTiendaActual = t?.Nombre ?? "Sucursal " + TiendaActiva;
+            }
+
+            return View();
+        }
+
+        // ============================================================
+        //  VENTAS GERENCIA — JSON
+        // ============================================================
+
+        [HttpGet]
+        [AuthorizeRol("ReporteGerencia", "Index")]
+        public JsonResult ObtenerDatosVentas(string fechainicio, string fechafin, int idtienda = 0)
+        {
+            try
+            {
+                if (!EsSuperAdmin)
+                    idtienda = TiendaActiva;
+
+                DateTime fi = ParseFecha(fechainicio, new DateTime(DateTime.Today.Year, 1, 1));
+                DateTime ff = ParseFecha(fechafin,    DateTime.Today);
+
+                if (fi > ff)
+                    return Json(new { resultado = false, mensaje = "La fecha inicio no puede ser mayor a la fecha fin." },
+                                JsonRequestBehavior.AllowGet);
+
+                var reporte = CD_ReporteVentasGerencia.Instancia.ObtenerReporte(fi, ff, idtienda);
+
+                if (idtienda > 0)
+                {
+                    var tienda = CD_Tienda.Instancia.ObtenerTiendas()
+                                        ?.Find(t => t.IdTienda == idtienda);
+                    reporte.NombreTienda = tienda?.Nombre ?? "Tienda " + idtienda;
+                }
+                else
+                {
+                    reporte.NombreTienda = "Todas las sucursales";
+                }
+
+                return Json(new { resultado = true, data = reporte }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { resultado = false, mensaje = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ============================================================
+        //  VENTAS GERENCIA — PDF
+        // ============================================================
+
+        [HttpPost]
+        [AuthorizeRol("ReporteGerencia", "Index")]
+        public ActionResult DescargarPDFVentas(string fechainicio, string fechafin, int idtienda = 0)
+        {
+            try
+            {
+                if (!EsSuperAdmin)
+                    idtienda = TiendaActiva;
+
+                DateTime fi = ParseFecha(fechainicio, new DateTime(DateTime.Today.Year, 1, 1));
+                DateTime ff = ParseFecha(fechafin,    DateTime.Today);
+
+                var reporte = CD_ReporteVentasGerencia.Instancia.ObtenerReporte(fi, ff, idtienda);
+
+                if (idtienda > 0)
+                {
+                    var tienda = CD_Tienda.Instancia.ObtenerTiendas()
+                                        ?.Find(t => t.IdTienda == idtienda);
+                    reporte.NombreTienda = tienda?.Nombre ?? "Tienda " + idtienda;
+                }
+                else
+                {
+                    reporte.NombreTienda = "Todas las sucursales";
+                }
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                                              "rptventas_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                                              "rptventas_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    JsonConvert.SerializeObject(reporte, Formatting.None),
+                    new UTF8Encoding(false));   // sin BOM
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_ventas_gerencia.py");
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(60000);
+                    if (proc.ExitCode != 0)
+                    {
+                        string err = proc.StandardError.ReadToEnd();
+                        throw new Exception("Error en script PDF: " + err);
+                    }
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el archivo PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string nombre = $"ReporteVentas_{fi:yyyyMM}_{ff:yyyyMM}.pdf";
+                return this.File(pdfBytes, "application/pdf", nombre);
             }
             catch (Exception ex)
             {

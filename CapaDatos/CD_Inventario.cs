@@ -680,6 +680,70 @@ namespace CapaDatos
         }
 
         // =============================================
+        // PDF HOJA DE INVENTARIO
+        // =============================================
+
+        /// <summary>
+        /// Devuelve los datos necesarios para generar la hoja PDF de inventario:
+        /// un objeto con Header (info del inventario) y Productos (lista de la tienda).
+        /// </summary>
+        public object ObtenerInventarioPDF(int idInventario)
+        {
+            object header = null;
+            var productos = new List<object>();
+
+            using (var oConexion = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerInventarioParaPDF", oConexion)
+                   { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@IdInventario", idInventario);
+                try
+                {
+                    oConexion.Open();
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        // Result set 1: cabecera
+                        if (dr.Read())
+                        {
+                            header = new {
+                                IdInventario      = Convert.ToInt32(dr["IdInventario"]),
+                                Numero            = dr["Numero"]?.ToString() ?? "",
+                                NombreTienda      = dr["NombreTienda"]?.ToString() ?? "",
+                                Estado            = dr["Estado"]?.ToString() ?? "",
+                                Observacion       = dr["Observacion"]?.ToString() ?? "",
+                                FechaRegistro     = dr["FechaRegistro"]?.ToString() ?? "",
+                                FechaInicio       = dr["FechaInicio"]?.ToString() ?? "",
+                                FechaFinalizacion = dr["FechaFinalizacion"]?.ToString() ?? "",
+                                Supervisor        = dr["Supervisor"]?.ToString() ?? "",
+                                Operadores        = dr["Operadores"]?.ToString() ?? ""
+                            };
+                        }
+                        // Result set 2: productos
+                        if (dr.NextResult())
+                        {
+                            while (dr.Read())
+                            {
+                                productos.Add(new {
+                                    NumFila   = Convert.ToInt32(dr["NumFila"]),
+                                    Codigo    = dr["Codigo"]?.ToString() ?? "",
+                                    Nombre    = dr["Nombre"]?.ToString() ?? "",
+                                    Categoria = dr["Categoria"]?.ToString() ?? "",
+                                    Stock     = Convert.ToInt32(dr["Stock"])
+                                });
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("ObtenerInventarioPDF ERROR: " + ex.Message);
+                }
+            }
+
+            return new { Header = header, Productos = productos };
+        }
+
+        // =============================================
         // STOCK POR TIENDA
         // =============================================
         public List<StockTienda> ObtenerStockPorTienda(int idTienda, int idProducto)

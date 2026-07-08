@@ -562,10 +562,16 @@
             _NC_Rechazar:          '@Url.Action("Rechazar",          "NotaCredito")'
         });
 
-        // ---- REPORTE GERENCIA ----
+        // ---- REPORTE GERENCIA COMPRAS ----
         $.MisUrls.urls({
             _RG_ObtenerDatos:  '@Url.Action("ObtenerDatos",  "ReporteGerencia")',
             _RG_DescargarPDF:  '@Url.Action("DescargarPDF",  "ReporteGerencia")'
+        });
+
+        // ---- REPORTE GERENCIA VENTAS ----
+        $.MisUrls.urls({
+            _RptVtaGer_ObtenerDatos:  '@Url.Action("ObtenerDatosVentas",  "ReporteGerencia")',
+            _RptVtaGer_DescargarPDF:  '@Url.Action("DescargarPDFVentas",  "ReporteGerencia")'
         });
 
         // ---- VENTA DIRECTA ----
@@ -649,9 +655,12 @@
         $.MisUrls.urls({
             _ObtenerReporteProducto:      '@Url.Action("ObtenerProducto",   "Reporte")',
             _ObtenerReporteVenta:         '@Url.Action("ObtenerVenta",      "Reporte")',
+            _Rpt_DescargarPDFVenta:       '@Url.Action("DescargarPDFVenta", "Reporte")',
             _ObtenerReporteBajas:         '@Url.Action("ObtenerBajas",      "Reporte")',
-            _Reporte_Rentabilidad:        '@Url.Action("Rentabilidad",       "Reporte")',
-            _Reporte_ObtenerRentabilidad: '@Url.Action("ObtenerRentabilidad","Reporte")'
+            _ObtenerReporteTraslados:     '@Url.Action("ObtenerTraslados",  "Reporte")',
+            _Reporte_Rentabilidad:        '@Url.Action("Rentabilidad",          "Reporte")',
+            _Reporte_ObtenerRentabilidad: '@Url.Action("ObtenerRentabilidad",   "Reporte")',
+            _Reporte_PDFRentabilidad:     '@Url.Action("DescargarPDFRentabilidad","Reporte")'
         });
 
         // ---- CLIENTE ----
@@ -696,7 +705,8 @@
             _Inv_ObtenerHistorialTraslados:     '@Url.Action("ObtenerHistorialTraslados",     "Inventario")',
             _Inv_AprobarTraslado:               '@Url.Action("AprobarTraslado",               "Inventario")',
             _Inv_RechazarTraslado:              '@Url.Action("RechazarTraslado",              "Inventario")',
-            _Inv_AnularInventario:              '@Url.Action("AnularInventario",              "Inventario")'
+            _Inv_AnularInventario:              '@Url.Action("AnularInventario",              "Inventario")',
+            _Inv_ImprimirInventario:            '@Url.Action("ImprimirInventario",            "Inventario")'
         });
 
         // ---- INVENTARIO (complemento) ----

@@ -1,10 +1,14 @@
 ﻿using CapaDatos;
 using CapaModelo;
 using CapaModelo.CapaModelo;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Web;
 using System.Web.Mvc;
 using VentasWeb.Filters;
@@ -64,23 +68,173 @@ namespace VentasWeb.Controllers
             return Json(lista, JsonRequestBehavior.AllowGet);
         }
 
+        // ── PDF: Reporte de Ventas operativo ─────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult DescargarPDFVenta(string fechainicio, string fechafin, int idtienda = 0)
+        {
+            try
+            {
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+                DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
+                    ? DateTime.Today.AddMonths(-1) : Convert.ToDateTime(fechainicio);
+                DateTime ff = string.IsNullOrWhiteSpace(fechafin)
+                    ? DateTime.Today : Convert.ToDateTime(fechafin);
+
+                List<ReporteVenta> lista = CD_Reportes.Instancia.ReporteVenta(fi, ff, idtienda);
+
+                // Tienda para el header del PDF
+                string nomTienda = lista.Count > 0 ? lista[0].NombreTienda : "Todas las sucursales";
+                string rucTienda = lista.Count > 0 ? lista[0].RucTienda    : "";
+
+                var payload = new
+                {
+                    NombreTienda  = nomTienda,
+                    RucTienda     = rucTienda,
+                    FechaInicio   = fi.ToString("dd/MM/yyyy"),
+                    FechaFin      = ff.ToString("dd/MM/yyyy"),
+                    Ventas        = lista
+                };
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                    "reporte_venta_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                    "reporte_venta_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    JsonConvert.SerializeObject(payload, Formatting.None),
+                    new UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_venta.py");
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                        throw new Exception("Error en script PDF: " + proc.StandardError.ReadToEnd());
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string nombre = $"Reporte_Ventas_{fi:yyyyMMdd}_{ff:yyyyMMdd}.pdf";
+                return this.File(pdfBytes, "application/pdf", nombre);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
+        }
+
         public ActionResult Bajas()
         {
             SetNombreTienda();
             return View();
         }
 
-        public JsonResult ObtenerBajas(string fechainicio, string fechafin, int idtienda)
+        public JsonResult ObtenerBajas(
+            string fechainicio, string fechafin,
+            int idtienda, string estadobaja = "")
         {
-            // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
             if (!EsSuperAdmin) idtienda = TiendaActiva;
 
-            List<ReporteBaja> lista = CD_Reportes.Instancia.ReporteBajas(
-                Convert.ToDateTime(fechainicio),
-                Convert.ToDateTime(fechafin),
-                idtienda);
+            DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
+            DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
 
+            var lista = CD_Reportes.Instancia.ReporteBajas(fi, ff, idtienda, estadobaja ?? "");
             return Json(lista, JsonRequestBehavior.AllowGet);
+        }
+
+        // ── PDF: Reporte de Bajas ────────────────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult DescargarPDFBajas(
+            string fechainicio = "", string fechafin = "",
+            int idtienda = 0, string estadobaja = "")
+        {
+            try
+            {
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+                DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
+                    ? (DateTime?)null : Convert.ToDateTime(fechainicio);
+                DateTime? ff = string.IsNullOrWhiteSpace(fechafin)
+                    ? (DateTime?)null : Convert.ToDateTime(fechafin);
+
+                var lista = CD_Reportes.Instancia.ReporteBajas(fi, ff, idtienda, estadobaja ?? "");
+
+                string nomTienda = idtienda > 0
+                    ? (CD_Tienda.Instancia.ObtenerTiendas()?.Find(t => t.IdTienda == idtienda)?.Nombre
+                       ?? "Tienda " + idtienda)
+                    : "Todas las sucursales";
+
+                var payload = new
+                {
+                    NombreTienda  = nomTienda,
+                    FechaInicio   = fi.HasValue ? fi.Value.ToString("dd/MM/yyyy") : "—",
+                    FechaFin      = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
+                    EstadoFiltro  = estadobaja ?? "",
+                    IdTienda      = idtienda,
+                    Bajas         = lista
+                };
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                    "rpt_bajas_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                    "rpt_bajas_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    JsonConvert.SerializeObject(payload, Formatting.None),
+                    new UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_bajas.py");
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                        throw new Exception("Error en script PDF: " + proc.StandardError.ReadToEnd());
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string fi_str = fi.HasValue ? fi.Value.ToString("yyyyMMdd") : "todo";
+                string ff_str = ff.HasValue ? ff.Value.ToString("yyyyMMdd") : "todo";
+                string nombre = $"Reporte_Bajas_{fi_str}_{ff_str}.pdf";
+                return File(pdfBytes, "application/pdf", nombre);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
         }
 
         // =============================================
@@ -201,6 +355,333 @@ namespace VentasWeb.Controllers
             {
                 return Json(new { data = new List<ReporteRentabilidad>(), error = ex.Message },
                     JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult DescargarPDFRentabilidad(
+            string fechainicio = "", string fechafin = "",
+            int idtienda = 0, int idcategoria = 0)
+        {
+            try
+            {
+                int tienda = idtienda > 0 ? idtienda : (EsSuperAdmin ? 0 : TiendaActiva);
+                DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
+                    ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);
+                DateTime ff = string.IsNullOrWhiteSpace(fechafin)
+                    ? DateTime.Today : Convert.ToDateTime(fechafin);
+
+                var lista = CD_Reportes.Instancia.ObtenerRentabilidad(tienda, fi, ff, idcategoria);
+
+                string nomTienda = tienda > 0
+                    ? (CD_Tienda.Instancia.ObtenerTiendas()?.Find(t => t.IdTienda == tienda)?.Nombre ?? "Tienda " + tienda)
+                    : "Todas las sucursales";
+
+                var payload = new
+                {
+                    NombreTienda = nomTienda,
+                    FechaInicio  = fi.ToString("dd/MM/yyyy"),
+                    FechaFin     = ff.ToString("dd/MM/yyyy"),
+                    Datos        = lista
+                };
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                    "rpt_rent_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                    "rpt_rent_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    JsonConvert.SerializeObject(payload, Formatting.None),
+                    new UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_rentabilidad.py");
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                        throw new Exception("Error en script PDF: " + proc.StandardError.ReadToEnd());
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string nombre = $"Rentabilidad_CPP_{fi:yyyyMMdd}_{ff:yyyyMMdd}.pdf";
+                return File(pdfBytes, "application/pdf", nombre);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
+        }
+
+        // ── PDF: Reporte de Productos por Tienda ─────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult DescargarPDFProductos(int idtienda = 0, string codigoproducto = "")
+        {
+            try
+            {
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+                var lista = CD_Reportes.Instancia.ReporteProductoTienda(idtienda, codigoproducto ?? "");
+
+                string nomTienda = idtienda > 0 && lista.Count > 0
+                    ? lista[0].NombreTienda
+                    : "Todas las sucursales";
+                string rucTienda = idtienda > 0 && lista.Count > 0
+                    ? lista[0].RucTienda : "";
+
+                var payload = new
+                {
+                    NombreTienda = nomTienda,
+                    RucTienda    = rucTienda,
+                    CodigoFiltro = codigoproducto ?? "",
+                    IdTienda     = idtienda,
+                    Productos    = lista
+                };
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                    "rpt_prod_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                    "rpt_prod_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    JsonConvert.SerializeObject(payload, Formatting.None),
+                    new UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_productos_tienda.py");
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                        throw new Exception("Error en script PDF: " + proc.StandardError.ReadToEnd());
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string nombre = $"Reporte_Productos_{DateTime.Now:yyyyMMdd}.pdf";
+                return File(pdfBytes, "application/pdf", nombre);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
+        }
+
+        // ── PDF: Reporte de Proveedores ──────────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult DescargarPDFProveedores(
+            string fechainicio = "", string fechafin = "",
+            int idtienda = 0, bool solodeuda = false)
+        {
+            try
+            {
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+                DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
+                    ? (DateTime?)null : Convert.ToDateTime(fechainicio);
+                DateTime? ff = string.IsNullOrWhiteSpace(fechafin)
+                    ? (DateTime?)null : Convert.ToDateTime(fechafin);
+
+                var lista = CD_Reportes.Instancia.ReporteProveedores(fi, ff, idtienda, solodeuda);
+
+                string nomTienda = idtienda > 0
+                    ? (CD_Tienda.Instancia.ObtenerTiendas()?.Find(t => t.IdTienda == idtienda)?.Nombre
+                       ?? "Tienda " + idtienda)
+                    : "Todas las sucursales";
+
+                var payload = new
+                {
+                    NombreTienda = nomTienda,
+                    FechaInicio  = fi.HasValue ? fi.Value.ToString("dd/MM/yyyy") : "—",
+                    FechaFin     = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
+                    Proveedores  = lista
+                };
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                    "rpt_prov_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                    "rpt_prov_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    JsonConvert.SerializeObject(payload, Formatting.None),
+                    new UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_proveedores.py");
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                        throw new Exception("Error en script PDF: " + proc.StandardError.ReadToEnd());
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string fi_str = fi.HasValue ? fi.Value.ToString("yyyyMMdd") : "todo";
+                string ff_str = ff.HasValue ? ff.Value.ToString("yyyyMMdd") : "todo";
+                string nombre = $"Reporte_Proveedores_{fi_str}_{ff_str}.pdf";
+                return File(pdfBytes, "application/pdf", nombre);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
+        }
+
+        // =============================================
+        // REPORTE DE TRASLADOS
+        // =============================================
+
+        public ActionResult Traslados()
+        {
+            SetNombreTienda();
+            return View();
+        }
+
+        [HttpGet]
+        public JsonResult ObtenerTraslados(
+            string fechainicio, string fechafin,
+            int idtienda = 0, string estadotraslado = "")
+        {
+            try
+            {
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+                DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
+                    ? (DateTime?)null : Convert.ToDateTime(fechainicio);
+                DateTime? ff = string.IsNullOrWhiteSpace(fechafin)
+                    ? (DateTime?)null : Convert.ToDateTime(fechafin);
+
+                var lista = CD_Reportes.Instancia.ReporteTraslados(fi, ff, idtienda, estadotraslado ?? "");
+                return Json(lista, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new List<object>(), JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ── PDF: Reporte de Traslados ────────────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult DescargarPDFTraslados(
+            string fechainicio = "", string fechafin = "",
+            int idtienda = 0, string estadotraslado = "")
+        {
+            try
+            {
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+                DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
+                    ? (DateTime?)null : Convert.ToDateTime(fechainicio);
+                DateTime? ff = string.IsNullOrWhiteSpace(fechafin)
+                    ? (DateTime?)null : Convert.ToDateTime(fechafin);
+
+                var lista = CD_Reportes.Instancia.ReporteTraslados(fi, ff, idtienda, estadotraslado ?? "");
+
+                string nomTienda = idtienda > 0
+                    ? (CD_Tienda.Instancia.ObtenerTiendas()?.Find(t => t.IdTienda == idtienda)?.Nombre
+                       ?? "Tienda " + idtienda)
+                    : "Todas las sucursales";
+
+                var payload = new
+                {
+                    NombreTienda   = nomTienda,
+                    FechaInicio    = fi.HasValue ? fi.Value.ToString("dd/MM/yyyy") : "—",
+                    FechaFin       = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
+                    EstadoFiltro   = estadotraslado ?? "",
+                    IdTienda       = idtienda,
+                    Traslados      = lista
+                };
+
+                string tmpJson = Path.Combine(Path.GetTempPath(),
+                    "rpt_tras_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = Path.Combine(Path.GetTempPath(),
+                    "rpt_tras_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                System.IO.File.WriteAllText(tmpJson,
+                    JsonConvert.SerializeObject(payload, Formatting.None),
+                    new UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_traslados.py");
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "python",
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                        throw new Exception("Error en script PDF: " + proc.StandardError.ReadToEnd());
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string fi_str = fi.HasValue ? fi.Value.ToString("yyyyMMdd") : "todo";
+                string ff_str = ff.HasValue ? ff.Value.ToString("yyyyMMdd") : "todo";
+                string nombre = $"Reporte_Traslados_{fi_str}_{ff_str}.pdf";
+                return File(pdfBytes, "application/pdf", nombre);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
             }
         }
 

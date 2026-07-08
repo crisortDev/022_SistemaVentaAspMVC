@@ -16,16 +16,19 @@ namespace CapaDatos
         }
 
         /// <summary>
-        /// Llama a usp_ReporteGerenciaCompras y lee los 6 result sets en una sola conexión.
+        /// Llama a usp_ReporteGerenciaCompras y lee los 8 result sets.
         /// </summary>
         public ReporteGerenciaCompra ObtenerReporte(DateTime fechaInicio, DateTime fechaFin, int idTienda = 0)
         {
             var reporte = new ReporteGerenciaCompra
             {
                 KPIs             = new KPICompras(),
-                OrdenesPorEstado = new List<OCPorEstado>(),
                 ComprasMensuales = new List<ComprasPorMes>(),
                 TopProveedores   = new List<TopProveedorCompra>(),
+                TopProductos     = new List<ProductoComprado>(),
+                OrdenesPorEstado = new List<OCPorEstado>(),
+                ComprasPorTienda = new List<ComprasPorTienda>(),
+                RelacionCV       = new RelacionComprasVentas(),
                 NotasCredito     = new ResumenNC(),
                 OCsFueraDePlazo  = new List<OCFueraDePlazo>(),
                 FechaInicio      = fechaInicio.ToString("dd/MM/yyyy"),
@@ -36,8 +39,11 @@ namespace CapaDatos
             {
                 try
                 {
-                    var cmd = new SqlCommand("usp_ReporteGerenciaCompras", cn);
-                    cmd.CommandType = CommandType.StoredProcedure;
+                    var cmd = new SqlCommand("usp_ReporteGerenciaCompras", cn)
+                    {
+                        CommandType    = CommandType.StoredProcedure,
+                        CommandTimeout = 60
+                    };
                     cmd.Parameters.Add("@FechaInicio", SqlDbType.Date).Value = fechaInicio.Date;
                     cmd.Parameters.Add("@FechaFin",    SqlDbType.Date).Value = fechaFin.Date;
                     cmd.Parameters.AddWithValue("@IdTienda", idTienda);
@@ -45,66 +51,95 @@ namespace CapaDatos
                     cn.Open();
                     using (var dr = cmd.ExecuteReader())
                     {
-                        // ── RS1: KPIs ───────────────────────────────────────
+                        // ── RS1: KPIs ─────────────────────────────────────────
                         if (dr.Read())
                         {
                             reporte.KPIs = new KPICompras
                             {
-                                TotalCompras      = L<int>(dr,     "TotalCompras"),
-                                MontoTotalCompras = L<decimal>(dr, "MontoTotalCompras"),
-                                MontoTotalConIVA  = L<decimal>(dr, "MontoTotalConIVA"),
-                                Confirmadas       = L<int>(dr,     "Confirmadas"),
-                                EnProceso         = L<int>(dr,     "EnProceso"),
-                                Anuladas          = L<int>(dr,     "Anuladas"),
-                                MontoTotalNC      = L<decimal>(dr, "MontoTotalNC"),
-                                TotalOC           = L<int>(dr,     "TotalOC"),
-                                OCPendientes      = L<int>(dr,     "OCPendientes"),
-                                OCFueraPlazo      = L<int>(dr,     "OCFueraPlazo")
+                                TotalCompras       = L<int>(dr,     "TotalCompras"),
+                                MontoTotalCompras  = L<decimal>(dr, "MontoTotalCompras"),
+                                Confirmadas        = L<int>(dr,     "Confirmadas"),
+                                Recepcionadas      = L<int>(dr,     "Recepcionadas"),
+                                EnProceso          = L<int>(dr,     "EnProceso"),
+                                Anuladas           = L<int>(dr,     "Anuladas"),
+                                GastoPromedio      = L<decimal>(dr, "GastoPromedio"),
+                                MontoTotalNC       = L<decimal>(dr, "MontoTotalNC"),
+                                TotalOC            = L<int>(dr,     "TotalOC"),
+                                OCPendientes       = L<int>(dr,     "OCPendientes"),
+                                OCFueraPlazo       = L<int>(dr,     "OCFueraPlazo"),
+                                ProveedoresActivos = L<int>(dr,     "ProveedoresActivos"),
+                                ProductosComprados = L<int>(dr,     "ProductosComprados")
                             };
                         }
 
-                        // ── RS2: OC por estado ──────────────────────────────
-                        dr.NextResult();
-                        while (dr.Read())
-                        {
-                            reporte.OrdenesPorEstado.Add(new OCPorEstado
-                            {
-                                Estado     = dr["Estado"].ToString(),
-                                Cantidad   = L<int>(dr,     "Cantidad"),
-                                MontoTotal = L<decimal>(dr, "MontoTotal")
-                            });
-                        }
+                        // ── RS2: Compras por mes ──────────────────────────────
+                        if (dr.NextResult())
+                            while (dr.Read())
+                                reporte.ComprasMensuales.Add(new ComprasPorMes
+                                {
+                                    Anio      = L<int>(dr,     "Anio"),
+                                    Mes       = L<int>(dr,     "Mes"),
+                                    MesNombre = L<string>(dr,  "MesNombre"),
+                                    Cantidad  = L<int>(dr,     "Cantidad"),
+                                    Monto     = L<decimal>(dr, "Monto")
+                                });
 
-                        // ── RS3: Compras por mes ────────────────────────────
-                        dr.NextResult();
-                        while (dr.Read())
-                        {
-                            reporte.ComprasMensuales.Add(new ComprasPorMes
-                            {
-                                Anio      = L<int>(dr,     "Anio"),
-                                Mes       = L<int>(dr,     "Mes"),
-                                MesNombre = dr["MesNombre"].ToString(),
-                                Cantidad  = L<int>(dr,     "Cantidad"),
-                                Monto     = L<decimal>(dr, "Monto")
-                            });
-                        }
+                        // ── RS3: Top proveedores ──────────────────────────────
+                        if (dr.NextResult())
+                            while (dr.Read())
+                                reporte.TopProveedores.Add(new TopProveedorCompra
+                                {
+                                    Ranking      = L<int>(dr,     "Ranking"),
+                                    Proveedor    = L<string>(dr,  "Proveedor"),
+                                    TotalCompras = L<int>(dr,     "TotalCompras"),
+                                    MontoTotal   = L<decimal>(dr, "MontoTotal"),
+                                    CantidadNC   = L<int>(dr,     "CantidadNC")
+                                });
 
-                        // ── RS4: Top proveedores ────────────────────────────
-                        dr.NextResult();
-                        while (dr.Read())
-                        {
-                            reporte.TopProveedores.Add(new TopProveedorCompra
-                            {
-                                Proveedor    = dr["Proveedor"].ToString(),
-                                TotalCompras = L<int>(dr,     "TotalCompras"),
-                                MontoTotal   = L<decimal>(dr, "MontoTotal")
-                            });
-                        }
+                        // ── RS4: Top productos ────────────────────────────────
+                        if (dr.NextResult())
+                            while (dr.Read())
+                                reporte.TopProductos.Add(new ProductoComprado
+                                {
+                                    Ranking       = L<int>(dr,     "Ranking"),
+                                    Codigo        = L<string>(dr,  "Codigo"),
+                                    Producto      = L<string>(dr,  "Producto"),
+                                    Categoria     = L<string>(dr,  "Categoria"),
+                                    CantidadTotal = L<decimal>(dr, "CantidadTotal"),
+                                    MontoTotal    = L<decimal>(dr, "MontoTotal")
+                                });
 
-                        // ── RS5: Resumen NC ─────────────────────────────────
-                        dr.NextResult();
-                        if (dr.Read())
-                        {
+                        // ── RS5: Estado OC ────────────────────────────────────
+                        if (dr.NextResult())
+                            while (dr.Read())
+                                reporte.OrdenesPorEstado.Add(new OCPorEstado
+                                {
+                                    Estado     = L<string>(dr,  "Estado"),
+                                    Cantidad   = L<int>(dr,     "Cantidad"),
+                                    MontoTotal = L<decimal>(dr, "MontoTotal")
+                                });
+
+                        // ── RS6: Compras por tienda ───────────────────────────
+                        if (dr.NextResult())
+                            while (dr.Read())
+                                reporte.ComprasPorTienda.Add(new ComprasPorTienda
+                                {
+                                    Tienda          = L<string>(dr,  "Tienda"),
+                                    CantidadCompras = L<int>(dr,     "CantidadCompras"),
+                                    MontoTotal      = L<decimal>(dr, "MontoTotal"),
+                                    PorcentajePct   = L<double>(dr,  "PorcentajePct")
+                                });
+
+                        // ── RS7: Relación Compras vs Ventas ───────────────────
+                        if (dr.NextResult() && dr.Read())
+                            reporte.RelacionCV = new RelacionComprasVentas
+                            {
+                                TotalCompras = L<decimal>(dr, "TotalCompras"),
+                                TotalVentas  = L<decimal>(dr, "TotalVentas")
+                            };
+
+                        // ── RS8: Resumen NC ───────────────────────────────────
+                        if (dr.NextResult() && dr.Read())
                             reporte.NotasCredito = new ResumenNC
                             {
                                 TotalNC    = L<int>(dr,     "TotalNC"),
@@ -114,43 +149,27 @@ namespace CapaDatos
                                 Morosas    = L<int>(dr,     "Morosas"),
                                 MontoTotal = L<decimal>(dr, "MontoTotal")
                             };
-                        }
-
-                        // ── RS6: OCs fuera de plazo ─────────────────────────
-                        dr.NextResult();
-                        while (dr.Read())
-                        {
-                            reporte.OCsFueraDePlazo.Add(new OCFueraDePlazo
-                            {
-                                NumeroOrden      = dr["NumeroOrden"].ToString(),
-                                Proveedor        = dr["Proveedor"].ToString(),
-                                Tienda           = dr["Tienda"].ToString(),
-                                FechaTopeEntrega = dr["FechaTopeEntrega"].ToString(),
-                                MontoEstimado    = L<decimal>(dr, "MontoEstimado"),
-                                Estado           = dr["Estado"].ToString(),
-                                DiasVencida      = L<int>(dr, "DiasVencida")
-                            });
-                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    // En caso de error devolver reporte vacío (el controller loguea)
                     throw new Exception("Error al generar reporte de gerencia: " + ex.Message, ex);
                 }
             }
-
             return reporte;
         }
 
-        // ── Helper genérico defensivo ─────────────────────────────────────────
-        private static T L<T>(SqlDataReader dr, string col)
+        // ── Helper genérico defensivo ─────────────────────────────────────────────
+        private static T L<T>(IDataReader dr, string col)
         {
             try
             {
-                var v = dr[col];
-                if (v == DBNull.Value) return default(T);
-                return (T)Convert.ChangeType(v, typeof(T));
+                int ord = dr.GetOrdinal(col);
+                if (dr.IsDBNull(ord)) return default(T);
+                object v = dr.GetValue(ord);
+                if (typeof(T) == typeof(double) || typeof(T) == typeof(double?))
+                    return (T)(object)Convert.ToDouble(v);
+                return (T)Convert.ChangeType(v, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T));
             }
             catch { return default(T); }
         }

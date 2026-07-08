@@ -1,407 +1,187 @@
-// ============================================================
-//  Reporte de Gerencia — Módulo Compras
-//  Depende de: Chart.js 3.9.1, jQuery UI datepicker
-// ============================================================
+// ReporteGerencia_Index.js — Reporte de Compras Alta Gerencia
+'use strict';
 
-(function ($) {
-    'use strict';
+$(function () {
+    activarMenu('ReporteGerencia');
+    var hoy  = new Date();
+    var anio = hoy.getFullYear();
+    var dd   = ('0' + hoy.getDate()).slice(-2);
+    var mm   = ('0' + (hoy.getMonth() + 1)).slice(-2);
+    $('#txtFechaInicio').val('01/01/' + anio);
+    $('#txtFechaFin').val(dd + '/' + mm + '/' + anio);
 
-    // ── Chart instances ──────────────────────────────────────
-    var chartMensual    = null;
-    var chartOCEstado   = null;
-    var chartProveedores= null;
-
-    // ── Colors ───────────────────────────────────────────────
-    var COLORS = {
-        blue:    'rgba(37,  99, 235, 0.85)',
-        green:   'rgba(16, 185, 129, 0.85)',
-        cyan:    'rgba( 6, 182, 212, 0.85)',
-        amber:   'rgba(245,158, 11, 0.85)',
-        red:     'rgba(239, 68, 68, 0.85)',
-        purple:  'rgba(124, 58,237, 0.85)',
-        gray:    'rgba(107,114,128, 0.85)',
-        indigo:  'rgba( 99,102,241, 0.85)',
-        pink:    'rgba(236, 72,153, 0.85)',
-        teal:    'rgba(20, 184,166, 0.85)'
-    };
-    var PALETTE = Object.values(COLORS);
-
-    // ── Init ─────────────────────────────────────────────────
-    $(document).ready(function () {
-        initDatepickers();
-        // Defaults: año en curso
-        var hoy = new Date();
-        var ini = '01/01/' + hoy.getFullYear();
-        var fin = ('0' + (hoy.getDate())).slice(-2) + '/'
-                + ('0' + (hoy.getMonth() + 1)).slice(-2) + '/'
-                + hoy.getFullYear();
-        $('#txtFechaInicio').val(ini);
-        $('#txtFechaFin').val(fin);
-    });
-
-    function initDatepickers() {
-        $('.datepicker-rg').datepicker({
-            dateFormat:    'dd/mm/yy',
-            changeMonth:   true,
-            changeYear:    true,
-            yearRange:     '-5:+0',
-            maxDate:       0,
-            firstDay:      1
+    if ($.fn.datepicker) {
+        $('[id^="txtFecha"]').datepicker({
+            format: 'dd/mm/yyyy', autoclose: true, language: 'es', todayHighlight: true
         });
     }
+});
 
-    // ── Helpers ──────────────────────────────────────────────
-    function formatearGS(valor) {
-        if (valor === null || valor === undefined || isNaN(valor)) return '0';
-        return Math.round(valor).toLocaleString('es-PY');
-    }
+// ── Generar ───────────────────────────────────────────────────────────────────
+function generarReporte() {
+    var fi = $('#txtFechaInicio').val().trim();
+    var ff = $('#txtFechaFin').val().trim();
+    var id = $('#cboTienda').val() || 0;
 
-    function mostrarSpinner(visible) {
-        $('#spinner').css('display', visible ? 'inline-block' : 'none');
-    }
+    if (!fi || !ff) { toastr.warning('Ingrese el rango de fechas.'); return; }
 
-    // ════════════════════════════════════════════════════════
-    //  GENERAR REPORTE
-    // ════════════════════════════════════════════════════════
-    window.generarReporte = function () {
-        var fi = $('#txtFechaInicio').val();
-        var ff = $('#txtFechaFin').val();
+    $('#spinner').show();
+    $('#btnPDF').prop('disabled', true);
+    $('#divReporte').hide();
 
-        if (!fi || !ff) {
-            Swal.fire('Atención', 'Ingrese las fechas de inicio y fin.', 'warning');
-            return;
-        }
+    $.get($.MisUrls.url._RG_ObtenerDatos,
+        { fechainicio: fi, fechafin: ff, idtienda: id },
+        function (r) {
+            $('#spinner').hide();
+            if (!r.resultado) { toastr.error(r.mensaje || 'Error al obtener datos.'); return; }
 
-        mostrarSpinner(true);
-        $('#divReporte').hide();
-        $('#btnPDF').prop('disabled', true);
+            var d = r.data;
+            renderKPIs(d.KPIs);
+            renderMes(d.ComprasMensuales);
+            renderProveedores(d.TopProveedores);
+            renderProductos(d.TopProductos);
+            renderEstadoOC(d.OrdenesPorEstado);
+            renderTiendas(d.ComprasPorTienda);
+            renderRelacion(d.RelacionCV);
+            renderNC(d.NotasCredito);
 
-        $.ajax({
-            url:      $.MisUrls.url._RG_ObtenerDatos,
-            type:     'GET',
-            data: {
-                fechainicio: fi,
-                fechafin:    ff,
-                idtienda:    $('#cboTienda').val() || 0
-            },
-            success: function (resp) {
-                mostrarSpinner(false);
-                if (!resp.resultado) {
-                    Swal.fire('Error', resp.mensaje, 'error');
-                    return;
-                }
-                renderReporte(resp.data);
-                $('#divReporte').show();
-                $('#btnPDF').prop('disabled', false);
-            },
-            error: function () {
-                mostrarSpinner(false);
-                Swal.fire('Error', 'No se pudo obtener los datos del reporte.', 'error');
-            }
-        });
-    };
-
-    // ════════════════════════════════════════════════════════
-    //  RENDER COMPLETO
-    // ════════════════════════════════════════════════════════
-    function renderReporte(d) {
-        // Encabezado
-        $('#lblTituloReporte').text('Reporte de Gerencia — Compras · ' + d.NombreTienda);
-        $('#lblPeriodo').text('Período: ' + d.FechaInicio + ' al ' + d.FechaFin);
-
-        // KPIs
-        renderKPIs(d.KPIs);
-
-        // Gráficos
-        renderChartMensual(d.ComprasMensuales);
-        renderChartOCEstado(d.OrdenesPorEstado);
-        renderChartProveedores(d.TopProveedores);
-
-        // Resumen NC
-        renderResumenNC(d.NotasCredito);
-
-        // OCs fuera de plazo
-        renderOCFuera(d.OCsFueraDePlazo);
-    }
-
-    // ── KPIs ─────────────────────────────────────────────────
-    function renderKPIs(k) {
-        $('#kpiTotalCompras').text(k.TotalCompras);
-        $('#kpiMonto').text('Gs. ' + formatearGS(k.MontoTotalCompras));
-        $('#kpiOCPendientes').text(k.OCPendientes);
-        $('#kpiNCPendientes').text(k.MontoTotalNC > 0 ? formatearGS(k.MontoTotalNC) : '0');
-        $('#kpiOCFuera').text(k.OCFueraPlazo);
-        $('#kpiMontoNC').text('Gs. ' + formatearGS(k.MontoTotalNC));
-    }
-
-    // ── Gráfico 1: Compras por Mes (barras) ──────────────────
-    function renderChartMensual(data) {
-        var labels = [], montos = [], cantidades = [];
-        $.each(data, function (i, row) {
-            labels.push(row.MesNombre + ' ' + row.Anio);
-            montos.push(row.Monto);
-            cantidades.push(row.Cantidad);
-        });
-
-        if (chartMensual) { chartMensual.destroy(); }
-
-        chartMensual = new Chart(document.getElementById('chartMensual'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label:           'Monto (Gs.)',
-                        data:            montos,
-                        backgroundColor: COLORS.blue,
-                        borderColor:     COLORS.blue,
-                        borderWidth:     1,
-                        yAxisID:         'yMonto'
-                    },
-                    {
-                        label:           'Cantidad',
-                        data:            cantidades,
-                        backgroundColor: COLORS.green,
-                        borderColor:     COLORS.green,
-                        borderWidth:     1,
-                        type:            'line',
-                        yAxisID:         'yCant',
-                        tension:         0.3,
-                        fill:            false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function (ctx) {
-                                if (ctx.dataset.yAxisID === 'yMonto')
-                                    return ' Gs. ' + formatearGS(ctx.raw);
-                                return ' ' + ctx.raw + ' compras';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    yMonto: {
-                        type:     'linear',
-                        position: 'left',
-                        ticks: {
-                            callback: function (v) {
-                                return 'Gs. ' + formatearGS(v);
-                            }
-                        }
-                    },
-                    yCant: {
-                        type:     'linear',
-                        position: 'right',
-                        grid:     { drawOnChartArea: false },
-                        ticks:    { stepSize: 1 }
-                    }
-                }
-            }
-        });
-    }
-
-    // ── Gráfico 2: OC por Estado (dona) ──────────────────────
-    function renderChartOCEstado(data) {
-        var labels = [], counts = [], bgs = [];
-        var estadoColor = {
-            'Pendiente':  COLORS.amber,
-            'Aprobada':   COLORS.green,
-            'Rechazada':  COLORS.red,
-            'Anulada':    COLORS.gray,
-            'Facturada':  COLORS.blue,
-            'Cerrada':    COLORS.purple
-        };
-
-        $.each(data, function (i, row) {
-            labels.push(row.Estado);
-            counts.push(row.Cantidad);
-            bgs.push(estadoColor[row.Estado] || PALETTE[i % PALETTE.length]);
-        });
-
-        if (chartOCEstado) { chartOCEstado.destroy(); }
-
-        chartOCEstado = new Chart(document.getElementById('chartOCEstado'), {
-            type: 'doughnut',
-            data: {
-                labels:   labels,
-                datasets: [{
-                    data:            counts,
-                    backgroundColor: bgs,
-                    borderWidth:     2,
-                    borderColor:     '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function (ctx) {
-                                var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
-                                var pct   = total > 0 ? Math.round(ctx.raw / total * 100) : 0;
-                                return ' ' + ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // ── Gráfico 3: Top proveedores (barra horizontal) ────────
-    function renderChartProveedores(data) {
-        var labels = [], montos = [];
-        $.each(data, function (i, row) {
-            labels.push(row.Proveedor);
-            montos.push(row.MontoTotal);
-        });
-
-        if (chartProveedores) { chartProveedores.destroy(); }
-
-        chartProveedores = new Chart(document.getElementById('chartProveedores'), {
-            type: 'bar',
-            data: {
-                labels:   labels,
-                datasets: [{
-                    label:           'Monto Total (Gs.)',
-                    data:            montos,
-                    backgroundColor: PALETTE.slice(0, labels.length),
-                    borderWidth:     1
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function (ctx) {
-                                return ' Gs. ' + formatearGS(ctx.raw);
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            callback: function (v) {
-                                return 'Gs. ' + formatearGS(v);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // ── Resumen NC ────────────────────────────────────────────
-    function renderResumenNC(nc) {
-        var html = '';
-        var items = [
-            { lbl: 'Total NC',   val: nc.TotalNC,    cls: 'text-primary' },
-            { lbl: 'Pendientes', val: nc.Pendientes,  cls: 'text-warning' },
-            { lbl: 'Recibidas',  val: nc.Recibidas,   cls: 'text-success' },
-            { lbl: 'Rechazadas', val: nc.Rechazadas,  cls: 'text-secondary' },
-            { lbl: 'Morosas',    val: nc.Morosas,     cls: 'text-danger' },
-            { lbl: 'Monto Total',val: 'Gs. ' + formatearGS(nc.MontoTotal), cls: 'text-dark' }
-        ];
-        $.each(items, function (i, it) {
-            html += '<div class="col-sm-4 mb-3">'
-                  +   '<div class="' + it.cls + ' font-weight-bold" style="font-size:1.4rem;">' + it.val + '</div>'
-                  +   '<small class="text-muted">' + it.lbl + '</small>'
-                  + '</div>';
-        });
-        $('#divResumenNC').html(html);
-    }
-
-    // ── OCs fuera de plazo ────────────────────────────────────
-    function renderOCFuera(lista) {
-        var tbody = $('#tbodyOCFuera').empty();
-
-        if (!lista || lista.length === 0) {
-            $('#divOCFuera table').hide();
-            $('#sinOCFuera').show();
-            return;
-        }
-
-        $('#divOCFuera table').show();
-        $('#sinOCFuera').hide();
-
-        var estadoColor = {
-            'Pendiente':  'badge-Pendiente',
-            'Aprobada':   'badge-Aprobada',
-            'Rechazada':  'badge-Rechazada',
-            'Anulada':    'badge-Anulada',
-            'Facturada':  'badge-Facturada',
-            'Cerrada':    'badge-Cerrada'
-        };
-
-        $.each(lista, function (i, row) {
-            var bgClass = estadoColor[row.Estado] || '';
-            var diasClass = row.DiasVencida > 30 ? 'text-danger font-weight-bold' : 'text-warning font-weight-bold';
-            tbody.append(
-                '<tr>'
-              + '<td>' + (row.NumeroOrden  || '') + '</td>'
-              + '<td>' + (row.Proveedor    || '') + '</td>'
-              + '<td>' + (row.Tienda       || '') + '</td>'
-              + '<td>' + (row.FechaTopeEntrega || '') + '</td>'
-              + '<td class="text-right">Gs. ' + formatearGS(row.MontoEstimado) + '</td>'
-              + '<td><span class="badge ' + bgClass + '">' + (row.Estado || '') + '</span></td>'
-              + '<td class="text-center ' + diasClass + '">' + row.DiasVencida + ' días</td>'
-              + '</tr>'
-            );
-        });
-    }
-
-    // ════════════════════════════════════════════════════════
-    //  DESCARGAR PDF
-    // ════════════════════════════════════════════════════════
-    window.descargarPDF = function () {
-        var fi = $('#txtFechaInicio').val();
-        var ff = $('#txtFechaFin').val();
-
-        if (!fi || !ff) {
-            Swal.fire('Atención', 'Ingrese las fechas antes de descargar el PDF.', 'warning');
-            return;
-        }
-
-        mostrarSpinner(true);
-        $('#btnPDF').prop('disabled', true);
-
-        // Crear form temporal para POST (descarga de archivo)
-        var form = $('<form>', {
-            method: 'POST',
-            action: $.MisUrls.url._RG_DescargarPDF
-        });
-
-        form.append($('<input>', { type: 'hidden', name: 'fechainicio', value: fi }));
-        form.append($('<input>', { type: 'hidden', name: 'fechafin',    value: ff }));
-        form.append($('<input>', { type: 'hidden', name: 'idtienda',    value: $('#cboTienda').val() || 0 }));
-
-        // Token CSRF si aplica (MVC AntiForgeryToken)
-        var token = $('input[name="__RequestVerificationToken"]').val();
-        if (token) {
-            form.append($('<input>', { type: 'hidden', name: '__RequestVerificationToken', value: token }));
-        }
-
-        $('body').append(form);
-        form.submit();
-        form.remove();
-
-        // Re-habilitar botón luego de un momento
-        setTimeout(function () {
-            mostrarSpinner(false);
+            $('#divReporte').show();
             $('#btnPDF').prop('disabled', false);
-        }, 4000);
-    };
+        }
+    ).fail(function () {
+        $('#spinner').hide();
+        toastr.error('Error de comunicación con el servidor.');
+    });
+}
 
-})(jQuery);
+// ── Descargar PDF ─────────────────────────────────────────────────────────────
+function descargarPDF() {
+    var fi = $('#txtFechaInicio').val().trim();
+    var ff = $('#txtFechaFin').val().trim();
+    var id = $('#cboTienda').val() || 0;
+    if (!fi || !ff) { toastr.warning('Ingrese el rango de fechas.'); return; }
+    $('#hFechaInicio').val(fi);
+    $('#hFechaFin').val(ff);
+    $('#hIdTienda').val(id);
+    $('#frmPDF').submit();
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKPIs(k) {
+    if (!k) return;
+    $('#kpiMonto').text(gs(k.MontoTotalCompras));
+    $('#kpiTotalOC').text(fmt(k.TotalOC));
+    $('#kpiRecepcionadas').text(fmt(k.Recepcionadas));
+    $('#kpiPendientes').text(fmt(k.OCPendientes));
+    $('#kpiGastoPromedio').text(gs(k.GastoPromedio));
+    $('#kpiProveedores').text(fmt(k.ProveedoresActivos));
+    $('#kpiProductos').text(fmt(k.ProductosComprados));
+    $('#kpiAnuladas').text(fmt(k.Anuladas));
+}
+
+// ── Compras por mes ───────────────────────────────────────────────────────────
+function renderMes(data) {
+    var tb = $('#tbodyMes').empty();
+    if (!data || !data.length) { tb.append(sinDatos(4)); return; }
+    data.forEach(function (r) {
+        tb.append('<tr><td>' + r.Anio + '</td><td>' + esc(r.MesNombre) + '</td>' +
+            '<td class="text-right">' + fmt(r.Cantidad) + '</td>' +
+            '<td class="text-right">' + gs(r.Monto) + '</td></tr>');
+    });
+}
+
+// ── Top proveedores ───────────────────────────────────────────────────────────
+function renderProveedores(data) {
+    var tb = $('#tbodyProveedores').empty();
+    if (!data || !data.length) { tb.append(sinDatos(5)); return; }
+    data.forEach(function (r) {
+        tb.append('<tr>' +
+            '<td class="text-center font-weight-bold">' + r.Ranking + '</td>' +
+            '<td>' + esc(r.Proveedor) + '</td>' +
+            '<td class="text-right">' + fmt(r.TotalCompras) + '</td>' +
+            '<td class="text-right">' + gs(r.MontoTotal) + '</td>' +
+            '<td class="text-center">' + r.CantidadNC + '</td></tr>');
+    });
+}
+
+// ── Productos más comprados ───────────────────────────────────────────────────
+function renderProductos(data) {
+    var tb = $('#tbodyProductos').empty();
+    if (!data || !data.length) { tb.append(sinDatos(6)); return; }
+    data.forEach(function (r) {
+        tb.append('<tr>' +
+            '<td class="text-center font-weight-bold">' + r.Ranking + '</td>' +
+            '<td>' + esc(r.Codigo) + '</td>' +
+            '<td>' + esc(r.Producto) + '</td>' +
+            '<td><small class="text-muted">' + esc(r.Categoria) + '</small></td>' +
+            '<td class="text-right">' + fmt(r.CantidadTotal) + '</td>' +
+            '<td class="text-right">' + gs(r.MontoTotal) + '</td></tr>');
+    });
+}
+
+// ── Estado OC ─────────────────────────────────────────────────────────────────
+function renderEstadoOC(data) {
+    var tb = $('#tbodyEstadoOC').empty();
+    if (!data || !data.length) { tb.append(sinDatos(3)); return; }
+    data.forEach(function (r) {
+        tb.append('<tr><td>' + esc(r.Estado) + '</td>' +
+            '<td class="text-right">' + fmt(r.Cantidad) + '</td>' +
+            '<td class="text-right">' + gs(r.MontoTotal) + '</td></tr>');
+    });
+}
+
+// ── Compras por tienda ────────────────────────────────────────────────────────
+function renderTiendas(data) {
+    var tb = $('#tbodyTiendas').empty();
+    if (!data || !data.length) { tb.append(sinDatos(4)); return; }
+    data.forEach(function (r) {
+        tb.append('<tr><td>' + esc(r.Tienda) + '</td>' +
+            '<td class="text-right">' + fmt(r.CantidadCompras) + '</td>' +
+            '<td class="text-right">' + gs(r.MontoTotal) + '</td>' +
+            '<td class="text-center">' + (parseFloat(r.PorcentajePct)||0).toFixed(1) + '%</td></tr>');
+    });
+}
+
+// ── Relación Compras vs Ventas ────────────────────────────────────────────────
+function renderRelacion(r) {
+    var tb = $('#tbodyRelacion').empty();
+    if (!r) { tb.append(sinDatos(3)); return; }
+    var compras = parseFloat(r.TotalCompras) || 0;
+    var ventas  = parseFloat(r.TotalVentas)  || 0;
+    var relPct  = ventas > 0 ? (compras / ventas * 100).toFixed(1) + '%' : '—';
+    tb.append('<tr><td>Compras</td><td class="text-right">' + gs(compras) +
+        '</td><td class="text-right" rowspan="2" style="vertical-align:middle;">' +
+        '<span class="badge badge-info p-2" style="font-size:.9rem;">Compras / Ventas = ' + relPct + '</span>' +
+        '</td></tr>');
+    tb.append('<tr><td>Ventas</td><td class="text-right">' + gs(ventas) + '</td></tr>');
+}
+
+// ── NC resumen ────────────────────────────────────────────────────────────────
+function renderNC(nc) {
+    var tb = $('#tbodyNC').empty();
+    if (!nc) { tb.append(sinDatos(2)); return; }
+    [
+        ['Total NC',           fmt(nc.TotalNC)],
+        ['Pendientes',         fmt(nc.Pendientes)],
+        ['Recibidas',          fmt(nc.Recibidas)],
+        ['Rechazadas',         fmt(nc.Rechazadas)],
+        ['Morosas (+30 días)', fmt(nc.Morosas)],
+        ['Monto Total NC',     gs(nc.MontoTotal)]
+    ].forEach(function (row) {
+        tb.append('<tr><td>' + row[0] + '</td><td class="text-right">' + row[1] + '</td></tr>');
+    });
+}
+
+// ── Utilidades ────────────────────────────────────────────────────────────────
+function gs(v) {
+    return 'Gs. ' + (parseFloat(v)||0).toLocaleString('es-PY', { maximumFractionDigits: 0 });
+}
+function fmt(v) {
+    return (parseFloat(v)||0).toLocaleString('es-PY', { maximumFractionDigits: 0 });
+}
+function esc(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function sinDatos(cols) {
+    return '<tr><td colspan="' + cols + '" class="text-center text-muted">Sin datos en el período</td></tr>';
+}

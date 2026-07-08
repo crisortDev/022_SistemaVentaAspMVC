@@ -158,60 +158,20 @@ function renderizarTabla() {
     $('#panelResumen').removeClass('d-none');
 }
 
-// ── Exportar PDF ─────────────────────────────────────────────────────
+// ── Exportar PDF (via server — Python + membrete) ────────────────────
 function exportarPDF() {
-    if (_datosRent.length === 0) return;
+    if (_datosRent.length === 0) { toastr.warning('Sin datos para exportar.'); return; }
 
-    var doc = new jsPDF('l', 'mm', 'a4');  // landscape para más columnas
-    var fi  = $('#txtFechaInicio').val();
-    var ff  = $('#txtFechaFin').val();
+    var fi = $('#txtFechaInicio').val();
+    var ff = $('#txtFechaFin').val();
+    var id = parseInt($('#cboTienda').val())    || 0;
+    var ic = parseInt($('#cboCategoria').val()) || 0;
 
-    doc.setFontSize(14);
-    doc.text('Reporte de Rentabilidad por Producto (CPP)', 14, 15);
-    doc.setFontSize(9);
-    doc.text('Período: ' + fi + ' al ' + ff, 14, 21);
-    doc.text('Método: Costo Promedio Ponderado (Inventario Permanente Móvil)', 14, 26);
-
-    var columnas = [
-        'Código', 'Producto', 'Stock', 'CPP (Gs.)', 'P.Venta (Gs.)',
-        'Uds.Vend.', 'Ingresos', 'Costo CPP', 'Utilidad', 'Margen%', 'Val.Inv.'
-    ];
-
-    var filas = _datosRent.map(function (r) {
-        return [
-            r.Codigo,
-            r.Producto,
-            r.StockActual,
-            'Gs. ' + formatGS(r.CostoPromedio),
-            'Gs. ' + formatGS(r.PrecioVentaVigente),
-            r.UnidadesVendidas,
-            'Gs. ' + formatGS(r.IngresosTotales),
-            'Gs. ' + formatGS(r.CostoTotalVentas),
-            'Gs. ' + formatGS(r.UtilidadBruta),
-            r.MargenBrutoPct.toFixed(1) + '%',
-            'Gs. ' + formatGS(r.ValorInventarioCPP)
-        ];
-    });
-
-    doc.autoTable({
-        head:       [columnas],
-        body:       filas,
-        startY:     30,
-        styles:     { fontSize: 7, cellPadding: 1.5 },
-        headStyles: { fillColor: [40, 167, 69], textColor: 255 },
-        alternateRowStyles: { fillColor: [240, 255, 240] },
-        didParseCell: function (data) {
-            // Colorear margen negativo en rojo
-            if (data.column.index === 9 && data.section === 'body') {
-                var val = parseFloat(data.cell.raw);
-                if (!isNaN(val) && val < 0) {
-                    data.cell.styles.textColor = [220, 53, 69];
-                }
-            }
-        }
-    });
-
-    doc.save('Rentabilidad_CPP_' + fi + '_' + ff + '.pdf');
+    $('#hRentFechaInicio').val(fi);
+    $('#hRentFechaFin').val(ff);
+    $('#hRentIdTienda').val(id);
+    $('#hRentIdCategoria').val(ic);
+    $('#frmPDFRent').submit();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────

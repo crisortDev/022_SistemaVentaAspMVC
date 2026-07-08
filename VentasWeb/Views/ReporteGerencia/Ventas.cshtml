@@ -1,0 +1,234 @@
+@{
+    ViewBag.Title = "Reporte de Ventas — Alta Gerencia";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var tiendas = ViewBag.Tiendas as List<CapaModelo.Tienda> ?? new List<CapaModelo.Tienda>();
+    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+}
+
+@section estilos {
+<style>
+    .kpi-grid          { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin-bottom:1rem; }
+    .kpi-card          { border-radius:8px; padding:.8rem 1rem; color:#fff; }
+    .kpi-card .kpi-lbl { font-size:.75rem; opacity:.85; }
+    .kpi-card .kpi-val { font-size:1.35rem; font-weight:700; line-height:1.3; }
+    .kpi-card .kpi-sub { font-size:.7rem; opacity:.75; }
+    .kpi-azul    { background:linear-gradient(135deg,#1a3566,#2563eb); }
+    .kpi-verde   { background:linear-gradient(135deg,#059669,#10b981); }
+    .kpi-cyan    { background:linear-gradient(135deg,#0891b2,#06b6d4); }
+    .kpi-rojo    { background:linear-gradient(135deg,#991b1b,#ef4444); }
+    .kpi-morado  { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
+    .kpi-ambar   { background:linear-gradient(135deg,#b45309,#f59e0b); }
+    .sec-title   { font-size:.85rem; font-weight:700; color:#1a3566;
+                   border-left:3px solid #1a3566; padding-left:.5rem;
+                   margin:1rem 0 .4rem; }
+    #spinner     { display:none; }
+    /* Formulario PDF oculto */
+    #frmPDF      { display:none; }
+</style>
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Reportes</a></li>
+        <li class="breadcrumb-item active">Reporte de Ventas — Gerencia</li>
+    </ol>
+</nav>
+
+<!-- Filtros -->
+<div class="card border-primary mb-3">
+    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-chart-line mr-1"></i> Reporte de Ventas — Alta Gerencia</span>
+        <div id="spinner" class="spinner-border spinner-border-sm text-light" role="status"></div>
+    </div>
+    <div class="card-body p-2">
+        <div class="row align-items-end">
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm font-weight-bold">Fecha Inicio</label>
+                <input type="text" id="txtFechaInicio" class="form-control form-control-sm"
+                       placeholder="dd/mm/aaaa" autocomplete="off" />
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm font-weight-bold">Fecha Fin</label>
+                <input type="text" id="txtFechaFin" class="form-control form-control-sm"
+                       placeholder="dd/mm/aaaa" autocomplete="off" />
+            </div>
+            @if (esSuperAdmin)
+            {
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm font-weight-bold">Sucursal</label>
+                    <select id="cboTienda" class="form-control form-control-sm">
+                        <option value="0">Todas las sucursales</option>
+                        @foreach (var t in tiendas)
+                        {
+                            <option value="@t.IdTienda">@t.Nombre</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" id="cboTienda" value="@(Session["TiendaActiva"] ?? 0)" />
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm font-weight-bold">Sucursal</label>
+                    <div class="form-control form-control-sm bg-light" style="line-height:1.8;">
+                        <i class="fas fa-store text-primary mr-1"></i>
+                        <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
+                    </div>
+                </div>
+            }
+            <div class="col-sm-2">
+                <button class="btn btn-primary btn-sm btn-block" onclick="generarReporte()">
+                    <i class="fas fa-search mr-1"></i> Generar
+                </button>
+            </div>
+            <div class="col-sm-2">
+                <button class="btn btn-danger btn-sm btn-block" id="btnPDF" onclick="descargarPDF()" disabled>
+                    <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reporte en pantalla -->
+<div id="divReporte" style="display:none;">
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi-card kpi-azul">
+            <div class="kpi-lbl">Ventas Efectivas</div>
+            <div class="kpi-val" id="kpiVentas">—</div>
+            <div class="kpi-sub" id="kpiVentasVar"></div>
+        </div>
+        <div class="kpi-card kpi-verde">
+            <div class="kpi-lbl">Monto Neto</div>
+            <div class="kpi-val" id="kpiMonto">—</div>
+            <div class="kpi-sub" id="kpiMontoVar"></div>
+        </div>
+        <div class="kpi-card kpi-cyan">
+            <div class="kpi-lbl">Ticket Promedio</div>
+            <div class="kpi-val" id="kpiTicket">—</div>
+        </div>
+        <div class="kpi-card kpi-rojo">
+            <div class="kpi-lbl">Notas de Crédito</div>
+            <div class="kpi-val" id="kpiNC">—</div>
+            <div class="kpi-sub" id="kpiNCMonto"></div>
+        </div>
+        <div class="kpi-card kpi-morado">
+            <div class="kpi-lbl">Clientes Atendidos</div>
+            <div class="kpi-val" id="kpiClientes">—</div>
+        </div>
+        <div class="kpi-card kpi-ambar">
+            <div class="kpi-lbl">Unidades Vendidas</div>
+            <div class="kpi-val" id="kpiUnidades">—</div>
+        </div>
+    </div>
+
+    <!-- Comparativo -->
+    <div class="sec-title"><i class="fas fa-exchange-alt mr-1"></i> Comparativo vs. Período Anterior</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered">
+            <thead class="thead-dark">
+                <tr><th>Indicador</th><th class="text-right">Período Actual</th><th class="text-right">Período Anterior</th><th class="text-center">Variación</th></tr>
+            </thead>
+            <tbody id="tbodyComparativo"></tbody>
+        </table>
+    </div>
+
+    <!-- Ventas por mes -->
+    <div class="sec-title"><i class="fas fa-calendar-alt mr-1"></i> Evolución de Ventas por Mes</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr><th>Año</th><th>Mes</th><th class="text-right">Cantidad Ventas</th><th class="text-right">Monto Total</th></tr>
+            </thead>
+            <tbody id="tbodyMes"></tbody>
+        </table>
+    </div>
+
+    <!-- Ventas por tienda -->
+    <div class="sec-title"><i class="fas fa-store mr-1"></i> Ventas por Sucursal</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr><th>Sucursal</th><th class="text-right">Cantidad</th><th class="text-right">Monto Total</th><th class="text-center">% del Total</th></tr>
+            </thead>
+            <tbody id="tbodyTiendas"></tbody>
+        </table>
+    </div>
+
+    <!-- Ventas por vendedor -->
+    <div class="sec-title"><i class="fas fa-user-tie mr-1"></i> Ventas por Vendedor</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr><th>Vendedor</th><th>Sucursal</th><th class="text-right">Ventas</th><th class="text-right">Monto Total</th><th class="text-right">Ticket Prom.</th></tr>
+            </thead>
+            <tbody id="tbodyVendedores"></tbody>
+        </table>
+    </div>
+
+    <!-- Top productos -->
+    <div class="sec-title"><i class="fas fa-trophy mr-1"></i> Top 10 Productos más Vendidos</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr><th>#</th><th>Código</th><th>Producto</th><th>Categoría</th><th class="text-right">Unidades</th><th class="text-right">Monto</th></tr>
+            </thead>
+            <tbody id="tbodyTopProductos"></tbody>
+        </table>
+    </div>
+
+    <!-- Utilidad -->
+    <div class="sec-title"><i class="fas fa-percentage mr-1"></i> Top 10 Productos por Utilidad Bruta</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr><th>#</th><th>Producto</th><th class="text-right">Venta</th><th class="text-right">Costo</th><th class="text-right">Utilidad</th><th class="text-right">Margen</th></tr>
+            </thead>
+            <tbody id="tbodyUtilidad"></tbody>
+        </table>
+    </div>
+
+    <!-- Top clientes -->
+    <div class="sec-title"><i class="fas fa-star mr-1"></i> Top 10 Clientes por Monto</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr><th>#</th><th>Cliente</th><th class="text-right">Facturas</th><th class="text-right">Monto Total</th><th class="text-right">Ticket Prom.</th></tr>
+            </thead>
+            <tbody id="tbodyClientes"></tbody>
+        </table>
+    </div>
+
+    <!-- Inventario -->
+    <div class="sec-title"><i class="fas fa-warehouse mr-1"></i> Relación con Inventario</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr><th>Sucursal</th><th class="text-center">Agotados</th><th class="text-center">Bajo Stock (≤5)</th><th class="text-center">Total Prod.</th><th class="text-center">Inv. Aprobados</th><th class="text-center">Dif. Prom.</th></tr>
+            </thead>
+            <tbody id="tbodyInventario"></tbody>
+        </table>
+    </div>
+
+    <!-- Botón PDF al pie -->
+    <div class="text-right mb-4">
+        <button class="btn btn-danger" onclick="descargarPDF()">
+            <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
+        </button>
+    </div>
+</div>
+
+<!-- Formulario oculto para POST del PDF -->
+@using (Html.BeginForm("DescargarPDFVentas", "ReporteGerencia", FormMethod.Post, new { id = "frmPDF" }))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="hFechaInicio" name="fechainicio" />
+    <input type="hidden" id="hFechaFin"    name="fechafin"    />
+    <input type="hidden" id="hIdTienda"    name="idtienda"    />
+}
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/Views/ReporteGerencia_Ventas.js?v=" + DateTime.Now.Ticks)"></script>
+}

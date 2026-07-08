@@ -1,145 +1,136 @@
-﻿
-var table;
+// Reporte_Venta.js — Reporte Operativo de Ventas
+'use strict';
 
+$(function () {
+    activarMenu('Reportes');
 
+    // Fechas por defecto: mes actual
+    var hoy = new Date();
+    var dd  = ('0' + hoy.getDate()).slice(-2);
+    var mm  = ('0' + (hoy.getMonth() + 1)).slice(-2);
+    var aa  = hoy.getFullYear();
+    $('#txtFechaInicio').val('01/' + mm + '/' + aa);
+    $('#txtFechaFin').val(dd + '/' + mm + '/' + aa);
 
-$(document).ready(function () {
-    $.datepicker.regional['es'] = {
-        closeText: 'Cerrar',
-        prevText: '< Ant',
-        nextText: 'Sig >',
-        currentText: 'Hoy',
-        monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-        monthNamesShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-        dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
-        dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Juv', 'Vie', 'Sáb'],
-        dayNamesMin: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'],
-        weekHeader: 'Sm',
-        dateFormat: 'dd/mm/yy',
-        firstDay: 1,
-        isRTL: false,
-        showMonthAfterYear: false,
-        yearSuffix: ''
-    };
-
-
-    $.datepicker.setDefaults($.datepicker.regional['es']);
-    activarMenu("Reportes");
-
-    // No permitir fechas futuras (máximo hoy)
-    $("#txtFechaInicio").datepicker({ maxDate: 0 });
-    $("#txtFechaFin").datepicker({ maxDate: 0 });
-    // Por defecto: desde un mes atrás hasta hoy
-    $("#txtFechaInicio").val(ObtenerFecha(-1));
-    $("#txtFechaFin").val(ObtenerFecha(0));
-
-
-    //OBTENER TIENDAS
-    jQuery.ajax({
-        url: $.MisUrls.url._ObtenerTiendas,
-        type: "GET",
-        dataType: "json",
-        contentType: "application/json; charset=utf-8",
-        success: function (data) {
-
-            $("#cboTienda").LoadingOverlay("hide");
-            $("#cboTienda").html("");
-
-            $("<option>").attr({ "value": 0 }).text("-- Seleccionar todas--").appendTo("#cboTienda");
-            if (data.data != null)
-                $.each(data.data, function (i, item) {
-
-                    if (item.Activo == true) {
-                        $("<option>").attr({ "value": item.IdTienda }).text(item.Nombre).appendTo("#cboTienda");
-                    }
-                })
-        },
-        error: function (error) {
-            console.log(error)
-        },
-        beforeSend: function () {
-            $("#cboTienda").LoadingOverlay("show");
-        },
-    });
-
-});
-
-$('#btnBuscar').on('click', function () {
-
-    jQuery.ajax({
-        url: $.MisUrls.url._ObtenerReporteVenta + "?fechainicio=" + $("#txtFechaInicio").val() + "&fechafin=" + $("#txtFechaFin").val() + "&idtienda=" + $("#cboTienda").val() ,
-        type: "GET",
-        dataType: "json",
-        contentType: "application/json; charset=utf-8",
-        success: function (data) {
-
-            if (data != undefined && data != null) {
-
-                $("#tbReporte tbody").html("");
-
-
-                $.each(data, function (i, row) {
-
-                    $("<tr>").append(
-                        $("<td>").text(row["FechaVenta"]),
-                        $("<td>").text(row["NumeroDocumento"]),
-                        $("<td>").text(row["TipoDocumento"]),
-                        $("<td>").text(row["NombreTienda"]),
-                        $("<td>").text(row["RucTienda"]),
-                        $("<td>").text(row["NombreEmpleado"]),
-                        $("<td>").text(row["CantidadUnidadesVendidas"]),
-                        $("<td>").text(row["CantidadProductos"]),
-                        $("<td>").text(row["TotalVenta"])
-
-                    ).appendTo("#tbReporte tbody");
-
-                })
-
-            }
-
-        },
-        error: function (error) {
-            console.log(error)
-        },
-        beforeSend: function () {
-        },
-    });
-})
-
-
-
-function ObtenerFecha(mesesOffset) {
-
-    var d = new Date();
-    if (mesesOffset) d.setMonth(d.getMonth() + mesesOffset);
-    var month = d.getMonth() + 1;
-    var day = d.getDate();
-    var output = (('' + day).length < 2 ? '0' : '') + day + '/' + (('' + month).length < 2 ? '0' : '') + month + '/' + d.getFullYear();
-
-    return output;
-}
-
-function printData() {
-
-    if ($('#tbReporte tbody tr').length == 0) {
-        swal("Mensaje", "No existen datos para imprimir", "warning")
-        return;
+    if ($.fn.datepicker) {
+        $('[id^="txtFecha"]').datepicker({
+            format: 'dd/mm/yyyy', autoclose: true, language: 'es',
+            todayHighlight: true, endDate: '0d'
+        });
     }
 
-    var divToPrint = document.getElementById("tbReporte");
+    // Cargar combo de tiendas
+    $.get($.MisUrls.url._ObtenerTiendas, function (data) {
+        var sel = $('#cboTienda').empty();
+        $('<option>').val(0).text('-- Todas las sucursales --').appendTo(sel);
+        if (data.data) {
+            $.each(data.data, function (_, t) {
+                if (t.Activo)
+                    $('<option>').val(t.IdTienda).text(t.Nombre).appendTo(sel);
+            });
+        }
+    });
+});
 
-    var style = "<style>";
-    style = style + "table {width: 100%;font: 17px Calibri;}";
-    style = style + "table, th, td {border: solid 1px #DDD; border-collapse: collapse;";
-    style = style + "padding: 2px 3px;text-align: center;}";
-    style = style + "</style>";
+// ── Buscar ────────────────────────────────────────────────────────────────────
+function buscarVentas() {
+    var fi = $('#txtFechaInicio').val().trim();
+    var ff = $('#txtFechaFin').val().trim();
+    var id = $('#cboTienda').val() || 0;
 
-    newWin = window.open("");
+    if (!fi || !ff) { toastr.warning('Ingrese el rango de fechas.'); return; }
 
+    $('#spinner').show();
+    $('#btnPDF').prop('disabled', true);
+    $('#divReporte').hide();
 
-    newWin.document.write(style);
-    newWin.document.write("<h3>Reporte de Ventas</h3>");
-    newWin.document.write(divToPrint.outerHTML);
-    newWin.print();
-    newWin.close();
+    $.get($.MisUrls.url._ObtenerReporteVenta,
+        { fechainicio: fi, fechafin: ff, idtienda: id },
+        function (data) {
+            $('#spinner').hide();
+
+            if (!data || !data.length) {
+                toastr.info('Sin ventas en el período seleccionado.');
+                $('#divReporte').hide();
+                return;
+            }
+
+            renderTabla(data);
+            renderEncabezado(data[0], fi, ff);
+
+            $('#divReporte').show();
+            $('#btnPDF').prop('disabled', false);
+        }
+    ).fail(function () {
+        $('#spinner').hide();
+        toastr.error('Error de comunicación con el servidor.');
+    });
+}
+
+// ── Encabezado (info-bar) ─────────────────────────────────────────────────────
+function renderEncabezado(fila, fi, ff) {
+    $('#lblTienda').text(fila.NombreTienda || '—');
+    $('#lblRuc').text(fila.RucTienda || '—');
+    $('#lblPeriodo').text('Período: ' + fi + ' al ' + ff);
+}
+
+// ── Tabla ─────────────────────────────────────────────────────────────────────
+function renderTabla(data) {
+    var tb = $('#tbodyVentas').empty();
+    var totalMonto = 0, totalUnid = 0, efectivas = 0, anuladas = 0;
+
+    data.forEach(function (v) {
+        var estado = (v.Estado || 'Efectiva').trim();
+        var esAnul = /^(anulad|cancelad)/i.test(estado);
+        if (esAnul) anuladas++; else efectivas++;
+
+        var monto = parseFloat((v.TotalVenta || '0').toString().replace(/,/g, '')) || 0;
+        var unid  = parseInt(v.CantidadUnidadesVendidas || 0, 10) || 0;
+        if (!esAnul) { totalMonto += monto; totalUnid += unid; }
+
+        var badgeCls = esAnul ? 'badge-anulada'
+            : /^pendiente/i.test(estado) ? 'badge-pendiente'
+            : 'badge-efectiva';
+
+        var tr = $('<tr>');
+        if (esAnul) tr.addClass('text-muted');
+        tr.append(
+            $('<td>').text(v.FechaVenta),
+            $('<td>').text(v.NumeroDocumento),
+            $('<td class="text-center">').text(v.TipoDocumento),
+            $('<td class="text-center">').html(
+                '<span class="badge-estado ' + badgeCls + '">' + esc(estado) + '</span>'),
+            $('<td>').text(v.Cliente || 'Consumidor Final'),
+            $('<td>').text(v.FormaCobro || '—'),
+            $('<td>').text(v.NombreEmpleado),
+            $('<td class="text-right">').text(unid),
+            $('<td class="text-right">').text(gs(monto))
+        );
+        tb.append(tr);
+    });
+
+    $('#tfTotal').text(gs(totalMonto));
+    $('#tfUnidades').text(totalUnid);
+    $('#cntEfectivas').text(efectivas);
+    $('#cntAnuladas').text(anuladas);
+}
+
+// ── Descargar PDF ─────────────────────────────────────────────────────────────
+function descargarPDF() {
+    var fi = $('#txtFechaInicio').val().trim();
+    var ff = $('#txtFechaFin').val().trim();
+    var id = $('#cboTienda').val() || 0;
+    if (!fi || !ff) { toastr.warning('Ingrese el rango de fechas.'); return; }
+    $('#hFechaInicio').val(fi);
+    $('#hFechaFin').val(ff);
+    $('#hIdTienda').val(id);
+    $('#frmPDF').submit();
+}
+
+// ── Utilidades ────────────────────────────────────────────────────────────────
+function gs(v) {
+    return 'Gs. ' + (parseFloat(v) || 0).toLocaleString('es-PY', { maximumFractionDigits: 0 });
+}
+function esc(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

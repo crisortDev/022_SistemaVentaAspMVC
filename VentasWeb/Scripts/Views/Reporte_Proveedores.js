@@ -128,7 +128,7 @@ function formatGS(n) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  EXPORTAR PDF
+//  EXPORTAR PDF (via server — Python + membrete)
 // ══════════════════════════════════════════════════════════
 function exportarPDF() {
     if (_datosProv.length === 0) {
@@ -136,88 +136,9 @@ function exportarPDF() {
         return;
     }
 
-    var { jsPDF } = window.jspdf;
-    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-    var fecha = new Date().toLocaleDateString('es-PY');
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Reporte de Proveedores', 14, 15);
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    var fi = $('#txtFechaInicio').val() || 'Todo';
-    var ff = $('#txtFechaFin').val()    || 'Todo';
-    var tienda = $('#cboTienda option:selected').text();
-    doc.text('Período: ' + fi + ' — ' + ff + '   |   Tienda: ' + tienda + '   |   Fecha: ' + fecha, 14, 22);
-
-    var body = [];
-    var sumCompras = 0, sumNCPend = 0;
-
-    _datosProv.forEach(function (p) {
-        var moraFlag = p.TieneMorosa ? ' ⚠' : '';
-        var ncPendStr = p.NCPendientes > 0
-            ? String(p.NCPendientes) + '\nGs. ' + formatGS(p.MontoNCPendiente)
-            : '0';
-
-        sumCompras += p.TotalCompras;
-        sumNCPend  += p.MontoNCPendiente;
-
-        body.push([
-            p.Proveedor + moraFlag + '\n' + p.RucProveedor,
-            p.Telefono || '—',
-            { content: String(p.CantidadCompras), styles: { halign: 'center' } },
-            { content: 'Gs. ' + formatGS(p.TotalCompras), styles: { halign: 'right', fontStyle: 'bold' } },
-            { content: String(p.CantidadNC), styles: { halign: 'center' } },
-            { content: 'Gs. ' + formatGS(p.TotalMontoNC), styles: { halign: 'right' } },
-            { content: ncPendStr,
-              styles: { halign: 'center', textColor: p.NCPendientes > 0 ? [220, 53, 69] : [0, 0, 0], fontStyle: p.NCPendientes > 0 ? 'bold' : 'normal' } },
-            { content: 'Gs. ' + formatGS(p.MontoNeto),
-              styles: { halign: 'right', fontStyle: 'bold', textColor: p.MontoNeto < 0 ? [220, 53, 69] : [0, 0, 0] } }
-        ]);
-    });
-
-    // Fila totales
-    body.push([
-        { content: 'TOTAL (' + _datosProv.length + ' proveedores)', colSpan: 3,
-          styles: { fillColor: [33, 37, 41], textColor: 255, fontStyle: 'bold', halign: 'right' } },
-        { content: 'Gs. ' + formatGS(sumCompras),
-          styles: { fillColor: [33, 37, 41], textColor: 255, fontStyle: 'bold', halign: 'right' } },
-        { content: '', colSpan: 2, styles: { fillColor: [33, 37, 41] } },
-        { content: 'Gs. ' + formatGS(sumNCPend),
-          styles: { fillColor: [33, 37, 41], textColor: [255, 193, 7], fontStyle: 'bold', halign: 'center' } },
-        { content: '', styles: { fillColor: [33, 37, 41] } }
-    ]);
-
-    doc.autoTable({
-        startY: 27,
-        head: [[
-            'Proveedor / RUC', 'Teléfono', 'Compras',
-            'Total Compras', 'NC Total', 'Monto NC Total',
-            'NC Pend.', 'Monto Neto'
-        ]],
-        body: body,
-        headStyles: { fillColor: [0, 123, 255], textColor: 255, fontStyle: 'bold' },
-        columnStyles: {
-            0: { cellWidth: 55 },
-            1: { cellWidth: 28 },
-            2: { cellWidth: 18 },
-            3: { cellWidth: 35 },
-            4: { cellWidth: 18 },
-            5: { cellWidth: 35 },
-            6: { cellWidth: 28 },
-            7: { cellWidth: 35 }
-        },
-        styles: { fontSize: 7.5, cellPadding: 2 },
-        margin: { left: 10, right: 10 },
-        didDrawPage: function (d) {
-            var pgTotal = doc.internal.getNumberOfPages();
-            doc.setFontSize(7);
-            doc.setTextColor(150);
-            doc.text('Página ' + d.pageNumber + ' de ' + pgTotal + '   —   Compu Space',
-                10, doc.internal.pageSize.height - 8);
-        }
-    });
-
-    doc.save('ReporteProveedores_' + fecha.replace(/\//g, '-') + '.pdf');
+    $('#hProvFechaInicio').val($('#txtFechaInicio').val());
+    $('#hProvFechaFin').val($('#txtFechaFin').val());
+    $('#hProvIdTienda').val(parseInt($('#cboTienda').val()) || 0);
+    $('#hProvSoloDeuda').val($('#cboFiltro').val() === '1');
+    $('#frmPDFProv').submit();
 }
