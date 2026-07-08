@@ -400,7 +400,7 @@ namespace VentasWeb.Controllers
 
                 var psi = new ProcessStartInfo
                 {
-                    FileName               = "python",
+                    FileName               = FindPythonExe(),
                     Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
                     UseShellExecute        = false,
                     RedirectStandardOutput = true,

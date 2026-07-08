@@ -1,5 +1,6 @@
 ﻿using CapaDatos;
 using CapaModelo;
+using System.IO;
 using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
@@ -112,6 +113,35 @@ namespace VentasWeb.Controllers
                 resultado = false,
                 mensaje = "No tiene permisos para operar en esta sucursal."
             });
+
+        // ── Python ───────────────────────────────────────────────
+        /// <summary>
+        /// Retorna el ejecutable de Python más adecuado para esta máquina.
+        /// Prioridad: "py" (Python Launcher for Windows, python.org)
+        ///          → "python3" → "python"
+        /// Esto evita el problema del alias de Microsoft Store que no ejecuta Python real.
+        /// </summary>
+        protected static string FindPythonExe()
+        {
+            // py.exe — Python Launcher para Windows (instalado por python.org)
+            string pyLauncher = Path.Combine(
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.Windows),
+                "py.exe");
+            if (File.Exists(pyLauncher)) return "py";
+
+            // Buscar python.exe en PATH manualmente
+            string pathEnv = System.Environment.GetEnvironmentVariable("PATH") ?? "";
+            foreach (string dir in pathEnv.Split(';'))
+            {
+                if (File.Exists(Path.Combine(dir.Trim(), "python.exe")))
+                    return "python";
+                if (File.Exists(Path.Combine(dir.Trim(), "python3.exe")))
+                    return "python3";
+            }
+
+            // Fallback: intentar con "python" y que el OS lo resuelva
+            return "python";
+        }
 
         // ── Auditoría ─────────────────────────────────────────────
         /// <summary>

@@ -109,7 +109,7 @@ namespace VentasWeb.Controllers
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_venta.py");
                 var psi = new ProcessStartInfo
                 {
-                    FileName               = "python",
+                    FileName               = FindPythonExe(),
                     Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
                     UseShellExecute        = false,
                     RedirectStandardOutput = true,
@@ -204,7 +204,7 @@ namespace VentasWeb.Controllers
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_bajas.py");
                 var psi = new ProcessStartInfo
                 {
-                    FileName               = "python",
+                    FileName               = FindPythonExe(),
                     Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
                     UseShellExecute        = false,
                     RedirectStandardOutput = true,
@@ -398,7 +398,7 @@ namespace VentasWeb.Controllers
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_rentabilidad.py");
                 var psi = new ProcessStartInfo
                 {
-                    FileName               = "python",
+                    FileName               = FindPythonExe(),
                     Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
                     UseShellExecute        = false,
                     RedirectStandardOutput = true,
@@ -467,7 +467,7 @@ namespace VentasWeb.Controllers
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_productos_tienda.py");
                 var psi = new ProcessStartInfo
                 {
-                    FileName               = "python",
+                    FileName               = FindPythonExe(),
                     Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
                     UseShellExecute        = false,
                     RedirectStandardOutput = true,
@@ -541,7 +541,7 @@ namespace VentasWeb.Controllers
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_proveedores.py");
                 var psi = new ProcessStartInfo
                 {
-                    FileName               = "python",
+                    FileName               = FindPythonExe(),
                     Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
                     UseShellExecute        = false,
                     RedirectStandardOutput = true,
@@ -652,7 +652,7 @@ namespace VentasWeb.Controllers
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_traslados.py");
                 var psi = new ProcessStartInfo
                 {
-                    FileName               = "python",
+                    FileName               = FindPythonExe(),
                     Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
                     UseShellExecute        = false,
                     RedirectStandardOutput = true,
