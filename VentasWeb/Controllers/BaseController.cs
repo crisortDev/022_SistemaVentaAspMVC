@@ -1,6 +1,5 @@
 ﻿using CapaDatos;
 using CapaModelo;
-using System.IO;
 using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
@@ -124,18 +123,18 @@ namespace VentasWeb.Controllers
         protected static string FindPythonExe()
         {
             // py.exe — Python Launcher para Windows (instalado por python.org)
-            string pyLauncher = Path.Combine(
+            string pyLauncher = System.IO.Path.Combine(
                 System.Environment.GetFolderPath(System.Environment.SpecialFolder.Windows),
                 "py.exe");
-            if (File.Exists(pyLauncher)) return "py";
+            if (System.IO.File.Exists(pyLauncher)) return "py";
 
             // Buscar python.exe en PATH manualmente
             string pathEnv = System.Environment.GetEnvironmentVariable("PATH") ?? "";
             foreach (string dir in pathEnv.Split(';'))
             {
-                if (File.Exists(Path.Combine(dir.Trim(), "python.exe")))
+                if (System.IO.File.Exists(System.IO.Path.Combine(dir.Trim(), "python.exe")))
                     return "python";
-                if (File.Exists(Path.Combine(dir.Trim(), "python3.exe")))
+                if (System.IO.File.Exists(System.IO.Path.Combine(dir.Trim(), "python3.exe")))
                     return "python3";
             }
 
