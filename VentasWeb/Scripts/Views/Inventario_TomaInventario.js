@@ -154,6 +154,7 @@ function construirTabla(productos) {
 
     // Actualizar contador al cambiar cantidades
     $('#tblConteo').on('input', '.qty-input', function () {
+        $(this).attr('data-touched', '1');   // marcar como revisado
         actualizarContador();
     });
 }
@@ -161,11 +162,26 @@ function construirTabla(productos) {
 function actualizarContador() {
     if (!dtConteo) return;
     var allInputs = $(dtConteo.rows().nodes().toArray()).find('.qty-input');
-    var total = allInputs.length;
-    var conCantidad = allInputs.filter(function () {
-        return parseInt($(this).val()) > 0;
-    }).length;
-    $('#lblCantItems').text(conCantidad + ' de ' + total + ' productos con cantidad > 0');
+    var total        = allInputs.length;
+    var encontrados  = 0;
+    var sinExistencia = 0;
+    var pendientes   = 0;
+
+    allInputs.each(function () {
+        var qty    = parseInt($(this).val()) || 0;
+        var tocado = $(this).attr('data-touched') === '1';
+        if (qty > 0)       encontrados++;
+        else if (tocado)   sinExistencia++;   // revisado pero sin stock
+        else               pendientes++;      // todavía no revisado
+    });
+
+    $('#lblCantItems').text(encontrados + ' de ' + total + ' productos con cantidad > 0');
+
+    // Resumen del conteo
+    $('#resumenTotal').text(total);
+    $('#resumenEncontrados').text(encontrados);
+    $('#resumenSinExistencia').text(sinExistencia);
+    $('#resumenPendientes').text(pendientes);
 }
 
 // ── Finalizar conteo — envía TODOS los productos (incluso los en 0) ──────────

@@ -1,112 +1,145 @@
 @{
-    ViewBag.Title = "Reporte de Bajas";
+    ViewBag.Title = "Reporte Gerencial de Bajas";
     Layout = "~/Views/Shared/_Layout.cshtml";
-}
-
-@section estilos{
-    <style>
-        #inner-table { max-height: 420px; overflow-y: auto; }
-        .badge-estado { font-size: 0.75em; }
-    </style>
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Reportes</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Bajas de Productos</li>
+        <li class="breadcrumb-item active">Reporte Gerencial de Bajas de Productos</li>
     </ol>
 </nav>
 
-<div class="row">
-    <div class="col-sm-12">
+<div class="card border-danger mb-3">
+    <div class="card-header bg-danger text-white">
+        <i class="fas fa-sliders-h mr-1"></i> Filtros
+    </div>
+    <div class="card-body py-2">
+        <div class="form-row align-items-end">
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Inicio</label>
+                <input type="date" id="txtFechaInicio" class="form-control form-control-sm" />
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Fecha Fin</label>
+                <input type="date" id="txtFechaFin" class="form-control form-control-sm" />
+            </div>
+            @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+            {
+                <div class="col-sm-2">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <select id="cboTienda" class="form-control form-control-sm">
+                        <option value="0">-- Todas las sucursales --</option>
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-2">
+                    <label class="col-form-label col-form-label-sm">Sucursal</label>
+                    <div class="form-control form-control-sm bg-light" style="line-height:1.8;">
+                        <i class="fas fa-store text-danger mr-1"></i>
+                        <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
+                    </div>
+                    <input type="hidden" id="cboTienda" value="@(Session["TiendaActiva"] ?? 0)" />
+                </div>
+            }
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm">Estado</label>
+                <select id="cboEstado" class="form-control form-control-sm">
+                    <option value="">-- Todos --</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Aprobada">Aprobada</option>
+                    <option value="Rechazada">Rechazada</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button id="btnBuscar" class="btn btn-sm btn-danger btn-block mt-4">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        <!-- FILTROS -->
-        <div class="card border-info mb-3">
-            <div class="card-header bg-info text-white">Filtros</div>
-            <div class="card-body">
-                <div class="form-row align-items-end">
-                    <div class="col-sm-2">
-                        <label class="col-form-label col-form-label-sm">Fecha Inicio</label>
-                        <input type="date" id="txtFechaInicio" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-sm-2">
-                        <label class="col-form-label col-form-label-sm">Fecha Fin</label>
-                        <input type="date" id="txtFechaFin" class="form-control form-control-sm" />
-                    </div>
-                    @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
-                    {
-                        <div class="col-sm-2">
-                            <label class="col-form-label col-form-label-sm">Sucursal</label>
-                            <select id="cboTienda" class="form-control form-control-sm">
-                                <option value="0">-- Todas las sucursales --</option>
-                            </select>
+<div class="card border-danger">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-arrow-down mr-1"></i> Reporte Gerencial de Bajas de Productos</span>
+        <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
+            <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
+        </button>
+    </div>
+    <div class="card-body">
+
+        @* ── 4 KPI Cards ──────────────────────────────────────────────────── *@
+        <div id="panelKPI" class="d-none mb-3">
+            <div class="row text-center">
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-dark h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Solicitudes</div>
+                            <div id="kpiSolicitudes" class="h4 font-weight-bold text-dark mb-0">—</div>
                         </div>
-                    }
-                    else
-                    {
-                        <div class="col-sm-2">
-                            <label class="col-form-label col-form-label-sm">Sucursal</label>
-                            <div class="form-control form-control-sm bg-light" style="line-height:1.8;">
-                                <i class="fas fa-store text-info mr-1"></i>
-                                <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
-                            </div>
-                            <input type="hidden" id="cboTienda" value="@(Session["TiendaActiva"] ?? 0)" />
-                        </div>
-                    }
-                    <div class="col-sm-2">
-                        <label class="col-form-label col-form-label-sm">Estado</label>
-                        <select id="cboEstado" class="form-control form-control-sm">
-                            <option value="">-- Todos --</option>
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="Aprobada">Aprobada</option>
-                            <option value="Rechazada">Rechazada</option>
-                        </select>
                     </div>
-                    <div class="col-sm-2">
-                        <label class="col-form-label col-form-label-sm">&nbsp;</label>
-                        <button id="btnBuscar" class="btn btn-sm btn-info btn-block">
-                            <i class="fas fa-search"></i> Buscar
-                        </button>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-warning h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Unidades</div>
+                            <div id="kpiUnidades" class="h4 font-weight-bold text-warning mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-info h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Productos afectados</div>
+                            <div id="kpiProductos" class="h4 font-weight-bold text-info mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-danger h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Costo estimado</div>
+                            <div id="kpiCosto" class="h6 font-weight-bold text-danger mb-0">—</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- RESULTADO -->
-        <div class="card border-info">
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-arrow-down"></i> Resultado</span>
-                <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
-                    <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
-                </button>
-            </div>
-            <div class="card-body p-2">
-                <div id="inner-table">
-                    <table id="tbReporte" class="table table-bordered table-sm" style="width:100%">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Nro</th>
-                                <th>Fecha</th>
-                                <th>Tienda</th>
-                                <th>Código</th>
-                                <th>Producto</th>
-                                <th class="text-center">Cant.</th>
-                                <th>Motivo Baja</th>
-                                <th>Estado</th>
-                                <th>Registró</th>
-                                <th>Aprobador</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="10" class="text-center text-muted py-3">
-                                    Seleccioná un rango de fechas y presioná <strong>Buscar</strong>.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+        @* ── Análisis ──────────────────────────────────────────────────────── *@
+        <div id="panelAnalisis" class="d-none mb-3">
+            <div class="row">
+                <div class="col-md-5 mb-3">
+                    <h6 class="font-weight-bold text-danger border-bottom pb-1">
+                        <i class="fas fa-tasks mr-1"></i> Estado de Solicitudes
+                    </h6>
+                    <div id="tablaEstado"></div>
+                </div>
+                <div class="col-md-7 mb-3">
+                    <h6 class="font-weight-bold text-danger border-bottom pb-1">
+                        <i class="fas fa-list-ul mr-1"></i> Motivos de Baja
+                    </h6>
+                    <div id="tablaMotivos"></div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <h6 class="font-weight-bold text-danger border-bottom pb-1">
+                        <i class="fas fa-box-open mr-1"></i> Productos con Mayor Cantidad de Bajas (Top 5)
+                    </h6>
+                    <div id="tablaTopProductos"></div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Detalle ──────────────────────────────────────────────────────── *@
+        <div id="contenedorBajas">
+            <p class="text-muted text-center mt-4">
+                Seleccioná un rango de fechas y presioná <strong>Buscar</strong>.
+            </p>
         </div>
 
     </div>

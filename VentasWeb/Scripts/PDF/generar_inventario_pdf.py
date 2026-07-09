@@ -154,6 +154,34 @@ def productos_table(prods):
     return t
 
 
+# ── Resumen del conteo (para completar a mano) ───────────────────────────────
+def resumen_table():
+    AMARILLO = colors.HexColor('#fefce8')
+    BORDE    = colors.HexColor('#ca8a04')
+
+    filas = [
+        [P('<b>Concepto</b>', ST_HDR_L), P('<b>Resultado</b>', ST_HDR)],
+        [P('Total productos revisados', ST_CELL),  P('', ST_CELL_C)],
+        [P('Productos encontrados',     ST_CELL),  P('', ST_CELL_C)],
+        [P('Productos sin existencia',  ST_CELL),  P('', ST_CELL_C)],
+        [P('Productos pendientes',      ST_CELL),  P('', ST_CELL_C)],
+    ]
+
+    w_concepto = 7.0 * cm
+    w_result   = 3.0 * cm
+
+    t = Table(filas, colWidths=[w_concepto, w_result])
+    t.setStyle(TableStyle(CELL_PAD + [
+        ('BACKGROUND',    (0,0), (-1,0),  AZUL),
+        ('BACKGROUND',    (0,1), (-1,-1), AMARILLO),
+        ('GRID',          (0,0), (-1,-1), 0.5, BORDE),
+        ('ALIGN',         (1,0), (1,-1),  'CENTER'),
+        ('FONTNAME',      (0,1), (0,-1),  'Helvetica'),
+        ('FONTSIZE',      (0,0), (-1,-1), 7.5),
+    ]))
+    return t
+
+
 # ── Sección de firmas ─────────────────────────────────────────────────────────
 def firmas_section():
     w = PAGE_W / 3.0
@@ -184,9 +212,19 @@ def build_pdf(data, output_path):
     nombre_usuario= data.get('NombreUsuario', '')
     logo_path     = data.get('LogoPath',      '')
 
-    numero   = hdr.get('Numero', 'SIN NUMERO')
-    tienda   = hdr.get('NombreTienda', '')
-    filtros  = 'N° Inventario: ' + numero
+    numero    = hdr.get('Numero', 'SIN NUMERO')
+    tienda    = hdr.get('NombreTienda', '')
+    filtros   = 'N° Inventario: ' + numero
+
+    # Período: fecha de apertura — fecha de fin (si existe)
+    fecha_ini = (hdr.get('FechaRegistro',     '') or '').split(' ')[0]
+    fecha_fin = (hdr.get('FechaFinalizacion', '') or '').split(' ')[0]
+    if fecha_ini and fecha_fin:
+        periodo = fecha_ini + ' — ' + fecha_fin
+    elif fecha_ini:
+        periodo = fecha_ini
+    else:
+        periodo = ''
 
     doc = SimpleDocTemplate(
         output_path,
@@ -196,7 +234,7 @@ def build_pdf(data, output_path):
         title='Hoja de Inventario ' + numero
     )
 
-    cb    = _Canvas('Hoja de Conteo de Inventario Fisico', empresa, '',
+    cb    = _Canvas('Hoja de Conteo de Inventario Fisico', empresa, periodo,
                     filtros, nombre_usuario, reporte_id, logo_path)
     story = []
 
@@ -218,6 +256,12 @@ def build_pdf(data, output_path):
     else:
         story.append(P('No hay productos asociados a esta tienda.', ST_VAL))
 
+    story.append(Spacer(1, 14))
+
+    # Resumen del conteo
+    story.append(P('<b>Resumen del Conteo</b>', ST_LBL))
+    story.append(Spacer(1, 4))
+    story.append(resumen_table())
     story.append(Spacer(1, 14))
 
     # Espacio de observaciones del repositor

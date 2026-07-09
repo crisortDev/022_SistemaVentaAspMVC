@@ -68,6 +68,39 @@
             <input type="hidden" id="hdnIdInventarioActivo" />
             <input type="hidden" id="hdnIdTiendaConteo" />
 
+            @* Resumen del conteo *@
+            <div class="mb-3">
+                <h6 class="font-weight-bold border-bottom pb-1 mb-2">
+                    <i class="fas fa-chart-bar mr-1"></i> Resumen del Conteo
+                </h6>
+                <table class="table table-sm table-bordered" style="max-width:420px; font-size:13px;">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Concepto</th>
+                            <th class="text-center" style="width:100px;">Resultado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Total productos a revisar</td>
+                            <td class="text-center font-weight-bold" id="resumenTotal">—</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><i class="fas fa-check-circle text-success mr-1"></i> Productos encontrados</td>
+                            <td class="text-center font-weight-bold text-success" id="resumenEncontrados">—</td>
+                        </tr>
+                        <tr class="table-danger">
+                            <td><i class="fas fa-times-circle text-danger mr-1"></i> Productos sin existencia</td>
+                            <td class="text-center font-weight-bold text-danger" id="resumenSinExistencia">—</td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><i class="fas fa-clock text-warning mr-1"></i> Productos pendientes</td>
+                            <td class="text-center font-weight-bold" style="color:#856404;" id="resumenPendientes">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             @* DataTable de productos *@
             <div class="table-responsive">
                 <table id="tblConteo" class="table table-sm table-bordered table-hover w-100">

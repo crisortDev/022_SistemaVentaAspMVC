@@ -24,7 +24,8 @@ namespace CapaModelo
             public string UsuarioRegistro  { get; set; }
             public string UsuarioAprueba   { get; set; }
             public string FechaAprobacion  { get; set; }
-            public string MotivoRechazo    { get; set; }
+            public string  MotivoRechazo    { get; set; }
+            public decimal CostoPromedio    { get; set; }
         }
     }
 }

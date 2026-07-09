@@ -175,7 +175,8 @@ namespace CapaDatos
                                 UsuarioRegistro  = LeerStr(dr,  "UsuarioRegistro"),
                                 UsuarioAprueba   = LeerStr(dr,  "UsuarioAprueba"),
                                 FechaAprobacion  = LeerStr(dr,  "FechaAprobacion"),
-                                MotivoRechazo    = LeerStr(dr,  "MotivoRechazo")
+                                MotivoRechazo    = LeerStr(dr,     "MotivoRechazo"),
+                                CostoPromedio    = LeerDecimal(dr, "CostoPromedio")
                             });
                         }
                     }

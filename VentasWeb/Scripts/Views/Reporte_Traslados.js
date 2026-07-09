@@ -1,23 +1,23 @@
 // ═══════════════════════════════════════════════════════════
-//  REPORTE — TRASLADOS DE PRODUCTOS
+//  REPORTE GERENCIAL — TRASLADOS DE PRODUCTOS
 // ═══════════════════════════════════════════════════════════
+
+var _datosTraslados = [];
 
 $(document).ready(function () {
     activarMenu("Reportes");
 
-    // Fecha de hoy por defecto
     var hoy = new Date().toISOString().split('T')[0];
-    $("#txtFechaInicio").val(hoy);
-    $("#txtFechaFin").val(hoy);
+    $('#txtFechaInicio').val(hoy);
+    $('#txtFechaFin').val(hoy);
 
-    // Cargar tiendas (solo SuperAdmin verá el select real)
-    if ($("#cboTienda").is("select")) {
+    if ($('#cboTienda').is('select')) {
         $.ajax({
             url: $.MisUrls.url._ObtenerTiendas,
-            type: "GET",
-            dataType: "json",
+            type: 'GET',
+            dataType: 'json',
             success: function (data) {
-                var $cbo = $("#cboTienda");
+                var $cbo = $('#cboTienda');
                 $cbo.empty().append('<option value="0">-- Todas las sucursales --</option>');
                 var lista = data.data || data;
                 if (lista && lista.length > 0) {
@@ -33,106 +33,218 @@ $(document).ready(function () {
 
 // ── Buscar ────────────────────────────────────────────────
 $('#btnBuscar').on('click', function () {
-    var fechaInicio = $("#txtFechaInicio").val();
-    var fechaFin    = $("#txtFechaFin").val();
+    var fi = $('#txtFechaInicio').val();
+    var ff = $('#txtFechaFin').val();
 
-    if (!fechaInicio || !fechaFin) {
-        Swal.fire("Atención", "Debe seleccionar un rango de fechas.", "warning");
-        return;
-    }
-    if (fechaInicio > fechaFin) {
-        Swal.fire("Atención", "La fecha inicio no puede ser mayor a la fecha fin.", "warning");
-        return;
-    }
+    if (!fi || !ff) { Swal.fire('Atención', 'Debe seleccionar un rango de fechas.', 'warning'); return; }
+    if (fi > ff)    { Swal.fire('Atención', 'Fecha inicio no puede ser mayor a fecha fin.', 'warning'); return; }
 
     $.ajax({
         url: $.MisUrls.url._ObtenerReporteTraslados,
-        type: "GET",
-        data: {
-            fechainicio:    fechaInicio,
-            fechafin:       fechaFin,
-            idtienda:       $("#cboTienda").val(),
-            estadotraslado: $("#cboEstado").val()
-        },
-        dataType: "json",
+        type: 'GET',
+        data: { fechainicio: fi, fechafin: ff, idtienda: $('#cboTienda').val(), estadotraslado: $('#cboEstado').val() },
+        dataType: 'json',
         beforeSend: function () {
-            $("#tbReporte tbody").html(
-                '<tr><td colspan="10" class="text-center">' +
-                '<i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>'
-            );
-            $("#btnBuscar").prop("disabled", true);
-            $("#btnExportarPDF").prop("disabled", true);
+            $('#contenedorTraslados').html('<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>');
+            $('#btnBuscar').prop('disabled', true);
+            $('#btnExportarPDF').prop('disabled', true);
+            $('#panelKPI').addClass('d-none');
+            $('#panelAnalisis').addClass('d-none');
         },
         success: function (data) {
-            var $tbody = $("#tbReporte tbody");
-            $tbody.empty();
-
-            if (!data || data.length === 0) {
-                $tbody.html(
-                    '<tr><td colspan="10" class="text-center text-muted py-3">' +
-                    'No se encontraron traslados en el período seleccionado.</td></tr>'
-                );
-                return;
-            }
-
-            $.each(data, function (i, row) {
-                var estado   = row.EstadoAprobacion || 'Pendiente';
-                var badgeCls = estado === 'Aprobada'  ? 'success'
-                             : estado === 'Rechazada' ? 'danger'
-                             : 'warning';
-                var $badge   = $('<span class="badge badge-' + badgeCls + ' badge-estado">')
-                                 .text(estado);
-                var rowClass = estado === 'Pendiente'  ? 'table-warning'
-                             : estado === 'Rechazada'  ? 'table-danger'
-                             : '';
-
-                var $tr = $('<tr>').addClass(rowClass).append(
-                    $('<td>').text(row.Numero          || ''),
-                    $('<td>').text(row.FechaTraslado   || ''),
-                    $('<td>').text(row.CodigoProducto  || ''),
-                    $('<td>').text(row.NombreProducto  || ''),
-                    $('<td class="text-center">').text(row.Cantidad || 0),
-                    $('<td>').text(row.TiendaOrigen    || ''),
-                    $('<td>').text(row.TiendaDestino   || ''),
-                    $('<td class="text-center">').append($badge),
-                    $('<td>').text(row.Usuario         || ''),
-                    $('<td>').text(row.UsuarioAprueba  || '')
-                );
-
-                // Fila extra para motivo de rechazo
-                if (estado === 'Rechazada' && row.MotivoRechazo) {
-                    var $trDetalle = $('<tr class="table-danger">').append(
-                        $('<td colspan="10" class="py-1 pl-4 text-muted" style="font-size:0.82em;">')
-                          .html('<i class="fas fa-exclamation-circle text-danger mr-1"></i>' +
-                                '<strong>Motivo de rechazo:</strong> ' +
-                                $('<span>').text(row.MotivoRechazo).html())
-                    );
-                    $tbody.append($tr).append($trDetalle);
-                } else {
-                    $tbody.append($tr);
-                }
-            });
-
-            $("#btnExportarPDF").prop("disabled", false);
+            _datosTraslados = data || [];
+            renderizarTodo();
+            $('#btnExportarPDF').prop('disabled', _datosTraslados.length === 0);
         },
         error: function () {
-            $("#tbReporte tbody").html(
-                '<tr><td colspan="10" class="text-center text-danger">' +
-                'Error al cargar los datos.</td></tr>'
-            );
-            Swal.fire("Error", "No se pudo obtener el reporte.", "error");
+            $('#contenedorTraslados').html('<p class="text-danger text-center">Error al cargar los datos.</p>');
+            Swal.fire('Error', 'No se pudo obtener el reporte.', 'error');
         },
-        complete: function () {
-            $("#btnBuscar").prop("disabled", false);
-        }
+        complete: function () { $('#btnBuscar').prop('disabled', false); }
     });
 });
 
-// ── Exportar PDF (via server — Python + membrete) ─────────
+// ── Dispatcher ────────────────────────────────────────────
+function renderizarTodo() {
+    if (_datosTraslados.length === 0) {
+        $('#contenedorTraslados').html('<p class="text-muted text-center mt-3">Sin resultados para los filtros seleccionados.</p>');
+        return;
+    }
+    renderizarKPIs();
+    renderizarEstado();
+    renderizarSucursales();
+    renderizarTopProductos();
+    renderizarTabla();
+    $('#panelKPI').removeClass('d-none');
+    $('#panelAnalisis').removeClass('d-none');
+}
+
+// ══════════════════════════════════════════════════════════
+//  KPIs
+// ══════════════════════════════════════════════════════════
+function renderizarKPIs() {
+    var traslados  = _datosTraslados.length;
+    var movilizados= _datosTraslados.reduce(function(s,t){ return s + (t.Cantidad||0); }, 0);
+    var sucursales = new Set();
+    _datosTraslados.forEach(function(t){
+        if (t.TiendaOrigen)  sucursales.add(t.TiendaOrigen);
+        if (t.TiendaDestino) sucursales.add(t.TiendaDestino);
+    });
+
+    $('#kpiTraslados').text(traslados);
+    $('#kpiProductos').text(movilizados);
+    $('#kpiSucursales').text(sucursales.size);
+}
+
+// ══════════════════════════════════════════════════════════
+//  ESTADO DE TRASLADOS
+// ══════════════════════════════════════════════════════════
+function renderizarEstado() {
+    var total      = _datosTraslados.length;
+    var aprobados  = _datosTraslados.filter(function(t){ return t.EstadoAprobacion === 'Aprobada'; }).length;
+    var pendientes = _datosTraslados.filter(function(t){ return t.EstadoAprobacion === 'Pendiente'; }).length;
+    var rechazados = _datosTraslados.filter(function(t){ return t.EstadoAprobacion === 'Rechazada'; }).length;
+
+    function fila(label, n, cls) {
+        var pct  = total > 0 ? (n / total * 100).toFixed(1) : '0.0';
+        var bars = total > 0 ? Math.round(n / total * 20) : 0;
+        var barHtml = bars > 0 ? '<span class="text-' + cls + '">' + '█'.repeat(bars) + '</span>' : '';
+        return '<tr><td>' + label + '</td>' +
+               '<td class="text-center font-weight-bold">' + n + '</td>' +
+               '<td class="text-center">' + pct + '%</td>' +
+               '<td>' + barHtml + '</td></tr>';
+    }
+
+    var html = '<table class="table table-sm table-bordered" style="font-size:12px;">' +
+        '<thead class="thead-dark"><tr><th>Estado</th><th class="text-center">Cantidad</th>' +
+        '<th class="text-center">%</th><th>Gráfico</th></tr></thead><tbody>' +
+        fila('Aprobados',  aprobados,  'success') +
+        fila('Pendientes', pendientes, 'warning') +
+        fila('Rechazados', rechazados, 'danger') +
+        '</tbody></table>';
+
+    $('#tablaEstado').html(html);
+}
+
+// ══════════════════════════════════════════════════════════
+//  SUCURSALES QUE MÁS ENVÍAN
+// ══════════════════════════════════════════════════════════
+function renderizarSucursales() {
+    var mapaSuc = {};
+    _datosTraslados.forEach(function(t) {
+        var suc = t.TiendaOrigen || '(Sin origen)';
+        mapaSuc[suc] = (mapaSuc[suc] || 0) + 1;
+    });
+
+    var sorted = Object.keys(mapaSuc).map(function(k){ return { suc: k, cantidad: mapaSuc[k] }; });
+    sorted.sort(function(a,b){ return b.cantidad - a.cantidad; });
+
+    var total  = _datosTraslados.length;
+    var maxVal = sorted.length > 0 ? sorted[0].cantidad : 1;
+
+    var filas = sorted.map(function(s) {
+        var pct  = total > 0 ? (s.cantidad / total * 100).toFixed(1) : '0.0';
+        var bars = Math.round(s.cantidad / maxVal * 15);
+        var barHtml = bars > 0 ? '<span class="text-info">' + '█'.repeat(bars) + '</span>' : '';
+        return '<tr><td>' + s.suc + '</td>' +
+               '<td class="text-center font-weight-bold">' + s.cantidad + '</td>' +
+               '<td class="text-center">' + pct + '%</td>' +
+               '<td>' + barHtml + '</td></tr>';
+    }).join('');
+
+    var html = '<table class="table table-sm table-bordered" style="font-size:12px;">' +
+        '<thead class="thead-dark"><tr><th>Sucursal</th><th class="text-center">Traslados</th>' +
+        '<th class="text-center">%</th><th>Gráfico</th></tr></thead>' +
+        '<tbody>' + filas + '</tbody></table>';
+
+    $('#tablaSucursales').html(html);
+}
+
+// ══════════════════════════════════════════════════════════
+//  TOP 5 PRODUCTOS MÁS TRASLADADOS
+// ══════════════════════════════════════════════════════════
+function renderizarTopProductos() {
+    var mapaProds = {};
+    _datosTraslados.forEach(function(t) {
+        var key = t.CodigoProducto || '—';
+        if (!mapaProds[key]) mapaProds[key] = { nombre: t.NombreProducto || key, cantidad: 0 };
+        mapaProds[key].cantidad += (t.Cantidad || 0);
+    });
+
+    var sorted = Object.keys(mapaProds).map(function(k){ return mapaProds[k]; });
+    sorted.sort(function(a,b){ return b.cantidad - a.cantidad; });
+    var top5   = sorted.slice(0, 5);
+    var total  = _datosTraslados.reduce(function(s,t){ return s + (t.Cantidad||0); }, 0);
+    var maxVal = top5.length > 0 ? top5[0].cantidad : 1;
+
+    var filas = top5.map(function(p, i) {
+        var pct  = total > 0 ? (p.cantidad / total * 100).toFixed(1) : '0.0';
+        var bars = Math.round(p.cantidad / maxVal * 20);
+        var barHtml = bars > 0 ? '<span class="text-primary">' + '█'.repeat(bars) + '</span>' : '';
+        return '<tr>' +
+            '<td class="text-center font-weight-bold">' + (i+1) + '</td>' +
+            '<td>' + p.nombre + '</td>' +
+            '<td class="text-center font-weight-bold">' + p.cantidad + '</td>' +
+            '<td class="text-center">' + pct + '%</td>' +
+            '<td>' + barHtml + '</td>' +
+            '</tr>';
+    }).join('');
+
+    var html = '<table class="table table-sm table-bordered table-hover" style="font-size:12px;">' +
+        '<thead class="thead-dark"><tr><th class="text-center">#</th><th>Producto</th>' +
+        '<th class="text-center">Unidades</th><th class="text-center">%</th><th>Gráfico</th></tr></thead>' +
+        '<tbody>' + filas + '</tbody></table>';
+
+    $('#tablaTopProductos').html(html);
+}
+
+// ══════════════════════════════════════════════════════════
+//  TABLA DETALLE
+// ══════════════════════════════════════════════════════════
+function renderizarTabla() {
+    var filas = '';
+    _datosTraslados.forEach(function (t) {
+        var estado   = t.EstadoAprobacion || 'Pendiente';
+        var badgeCls = estado === 'Aprobada' ? 'success' : estado === 'Rechazada' ? 'danger' : 'warning';
+        var rowClass = estado === 'Pendiente' ? 'table-warning' : estado === 'Rechazada' ? 'table-danger' : '';
+
+        filas += '<tr class="' + rowClass + '">' +
+            '<td>' + (t.Numero         || '') + '</td>' +
+            '<td>' + (t.FechaTraslado  || '') + '</td>' +
+            '<td>' + (t.CodigoProducto || '') + '</td>' +
+            '<td>' + (t.NombreProducto || '') + '</td>' +
+            '<td class="text-center">' + (t.Cantidad || 0) + '</td>' +
+            '<td>' + (t.TiendaOrigen   || '') + '</td>' +
+            '<td>' + (t.TiendaDestino  || '') + '</td>' +
+            '<td class="text-center"><span class="badge badge-' + badgeCls + '">' + estado + '</span></td>' +
+            '<td class="small">' + (t.Usuario      || '') + '</td>' +
+            '<td class="small">' + (t.UsuarioAprueba || '') + '</td>' +
+            '</tr>';
+
+        if (estado === 'Rechazada' && t.MotivoRechazo) {
+            filas += '<tr class="table-danger"><td colspan="10" class="py-1 pl-4 text-muted small">' +
+                '<i class="fas fa-exclamation-circle text-danger mr-1"></i>' +
+                '<strong>Motivo:</strong> ' + $('<span>').text(t.MotivoRechazo).html() + '</td></tr>';
+        }
+    });
+
+    var html = '<h6 class="font-weight-bold text-info border-bottom pb-1 mt-2">' +
+        '<i class="fas fa-list mr-1"></i> Detalle Completo</h6>' +
+        '<div style="overflow-x:auto;">' +
+        '<table class="table table-sm table-bordered table-hover">' +
+        '<thead class="thead-dark"><tr>' +
+        '<th>Nro</th><th>Fecha</th><th>Código</th><th>Producto</th>' +
+        '<th class="text-center">Cant.</th><th>Origen</th><th>Destino</th>' +
+        '<th class="text-center">Estado</th><th>Registró</th><th>Aprobó</th>' +
+        '</tr></thead><tbody>' + filas + '</tbody></table></div>';
+
+    $('#contenedorTraslados').html(html);
+}
+
+// ── Exportar PDF ──────────────────────────────────────────
 function exportarPDF() {
-    if ($('#tbReporte tbody tr td[colspan]').length > 0 ||
-        $('#tbReporte tbody tr').length === 0) {
-        Swal.fire('Atención', 'No hay datos para exportar.', 'warning');
+    if (_datosTraslados.length === 0) {
+        Swal.fire('Sin datos', 'No hay datos para exportar.', 'warning');
         return;
     }
     $('#hTrasladoFechaInicio').val($('#txtFechaInicio').val());

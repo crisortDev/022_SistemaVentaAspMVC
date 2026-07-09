@@ -1,26 +1,22 @@
 @{
-    ViewBag.Title = "Reporte NC";
+    ViewBag.Title = "Reporte Gerencial de Notas de Crédito";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">Reporte</a></li>
-        <li class="breadcrumb-item active">Reporte NC Asociadas</li>
+        <li class="breadcrumb-item"><a href="#">Reportes</a></li>
+        <li class="breadcrumb-item active">Reporte Gerencial de Notas de Crédito</li>
     </ol>
 </nav>
 
-<div class="card border-warning">
-    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-        <span><i class="fas fa-file-invoice-dollar"></i> Reporte de Notas de Crédito Asociadas</span>
-        <button id="btnExportarPDF" class="btn btn-sm btn-dark" onclick="exportarPDF()" disabled>
-            <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
-        </button>
+@* ── Filtros ──────────────────────────────────────────────────────────────────── *@
+<div class="card border-warning mb-3">
+    <div class="card-header bg-warning text-dark">
+        <i class="fas fa-sliders-h mr-1"></i> Filtros
     </div>
-    <div class="card-body">
-
-        @* Filtros *@
-        <div class="row mb-3">
+    <div class="card-body py-2">
+        <div class="form-row align-items-end">
             <div class="col-sm-2">
                 <label class="col-form-label col-form-label-sm">Fecha Desde</label>
                 <input type="date" id="txtFechaInicio" class="form-control form-control-sm" />
@@ -49,7 +45,7 @@
                 <div class="col-sm-2">
                     <label class="col-form-label col-form-label-sm">Sucursal</label>
                     <div class="form-control form-control-sm bg-light" style="line-height:1.8; font-size:0.78rem;">
-                        <i class="fas fa-store text-info mr-1"></i>
+                        <i class="fas fa-store text-warning mr-1"></i>
                         <strong>@(ViewBag.NombreTiendaActual ?? "Mi sucursal")</strong>
                     </div>
                     <input type="hidden" id="cboTienda" value="@(Session["TiendaActiva"] ?? 0)" />
@@ -65,53 +61,149 @@
                 </select>
             </div>
             <div class="col-sm-1 d-flex align-items-end">
-                <button onclick="buscarNC()" class="btn btn-warning btn-sm">
-                    <i class="fas fa-search"></i>
+                <button id="btnBuscar" class="btn btn-sm btn-warning btn-block mt-4">
+                    <i class="fas fa-search"></i> Buscar
                 </button>
             </div>
         </div>
+    </div>
+</div>
 
-        @* Leyenda *@
-        <div class="mb-2 small">
-            <span class="badge badge-secondary mr-2">Pendiente</span> NC generada, sin documento físico &nbsp;
-            <span class="badge badge-success mr-2">Recibida</span> Documento confirmado &nbsp;
-            <span class="badge badge-danger mr-2">Rechazada</span> NC rechazada &nbsp;
-            <span class="badge badge-warning text-dark mr-2"><i class="fas fa-exclamation-triangle"></i> Morosa</span> Pendiente &gt; 30 días
+@* ── Reporte principal ────────────────────────────────────────────────────────── *@
+<div class="card border-warning">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-file-invoice-dollar mr-1"></i> Reporte Gerencial de Notas de Crédito</span>
+        <button id="btnExportarPDF" class="btn btn-sm btn-dark" onclick="exportarPDF()" disabled>
+            <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
+        </button>
+    </div>
+    <div class="card-body">
+
+        @* ── 8 KPI Cards ──────────────────────────────────────────────────────── *@
+        <div id="panelKPI" class="d-none mb-3">
+            <div class="row text-center mb-2">
+                <div class="col-md-3 mb-2">
+                    <div class="card border-warning h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Total NC</div>
+                            <div id="kpiTotalNC" class="h3 font-weight-bold text-warning mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-success h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Monto Total NC</div>
+                            <div id="kpiMontoTotal" class="h5 font-weight-bold text-success mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-info h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Proveedores Involucrados</div>
+                            <div id="kpiProveedores" class="h3 font-weight-bold text-info mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-secondary h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Promedio por NC</div>
+                            <div id="kpiPromedio" class="h5 font-weight-bold text-secondary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-md-3 mb-2">
+                    <div class="card border-success h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">NC Recibidas</div>
+                            <div id="kpiRecibidas" class="h5 font-weight-bold text-success mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-secondary h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">NC Pendientes</div>
+                            <div id="kpiPendientes" class="h5 font-weight-bold text-secondary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-warning h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Motivo Principal</div>
+                            <div id="kpiMotivoPrincipal" class="small font-weight-bold text-dark mb-0"
+                                 style="min-height:2rem; display:flex; align-items:center; justify-content:center; text-align:center;">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-danger h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Mayor Proveedor Afectado</div>
+                            <div id="kpiMayorProveedor" class="small font-weight-bold text-danger mb-0"
+                                 style="min-height:2rem; display:flex; align-items:center; justify-content:center; text-align:center;">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        @* Tabla *@
+        @* ── Análisis ──────────────────────────────────────────────────────────── *@
+        <div id="panelAnalisis" class="d-none mb-3">
+            <div class="row">
+                <div class="col-md-5 mb-3">
+                    <h6 class="font-weight-bold text-warning border-bottom pb-1">
+                        <i class="fas fa-tasks mr-1"></i> Estado de las Notas de Crédito
+                    </h6>
+                    <div id="tablaEstado"></div>
+                </div>
+                <div class="col-md-7 mb-3">
+                    <h6 class="font-weight-bold text-warning border-bottom pb-1">
+                        <i class="fas fa-trophy mr-1"></i> Proveedores con Mayor Monto de NC
+                    </h6>
+                    <div id="tablaProveedores"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <h6 class="font-weight-bold text-warning border-bottom pb-1">
+                        <i class="fas fa-tags mr-1"></i> Motivos de las Notas de Crédito
+                    </h6>
+                    <div id="tablaMotivos"></div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <h6 class="font-weight-bold text-warning border-bottom pb-1">
+                        <i class="fas fa-chart-line mr-1"></i> Impacto Económico
+                    </h6>
+                    <div id="tablaImpacto"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <h6 class="font-weight-bold text-warning border-bottom pb-1">
+                        <i class="fas fa-clipboard-check mr-1"></i> Análisis Gerencial
+                    </h6>
+                    <div id="tablaAnalisis"></div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Detalle ──────────────────────────────────────────────────────────── *@
         <div id="contenedorNC">
-            <p class="text-muted text-center mt-4">Seleccioná un rango de fechas y presioná <i class="fas fa-search"></i> para cargar.</p>
-        </div>
-
-        @* Panel totales *@
-        <div id="panelTotalesNC" class="d-none mt-3">
-            <table class="table table-sm table-bordered w-auto ml-auto">
-                <tbody>
-                    <tr class="table-dark">
-                        <th>Total NCs</th>
-                        <td id="tdTotalNCs" class="text-center font-weight-bold"></td>
-                    </tr>
-                    <tr class="table-warning">
-                        <th>Monto total NCs</th>
-                        <td id="tdMontoTotal" class="text-center font-weight-bold"></td>
-                    </tr>
-                    <tr class="table-secondary">
-                        <th>NCs Pendientes</th>
-                        <td id="tdPendientes" class="text-center font-weight-bold"></td>
-                    </tr>
-                    <tr class="table-danger">
-                        <th>NCs Morosas</th>
-                        <td id="tdMorosas" class="text-center font-weight-bold"></td>
-                    </tr>
-                </tbody>
-            </table>
+            <p class="text-muted text-center mt-4">
+                Seleccioná un rango de fechas y presioná <strong>Buscar</strong>.
+            </p>
         </div>
 
     </div>
 </div>
 
-@* Formulario oculto POST para PDF (servidor Python) *@
+@* Formulario oculto POST para PDF *@
 @using (Html.BeginForm("DescargarPDFNC", "Reporte", FormMethod.Post, new { id = "frmPDFNC" }))
 {
     @Html.AntiForgeryToken()
