@@ -1,37 +1,22 @@
 @{
-    ViewBag.Title = "Reporte de Ventas";
+    ViewBag.Title = "Reporte Gerencial de Ventas";
     Layout = "~/Views/Shared/_Layout.cshtml";
-}
-
-@section estilos {
-<style>
-    .badge-efectiva { background:#059669; color:#fff; }
-    .badge-anulada  { background:#dc2626; color:#fff; }
-    .badge-estado   { font-size:.72rem; padding:2px 7px; border-radius:4px; white-space:nowrap; }
-    .info-bar        { background:#f0f4ff; border:1px solid #c7d4f0;
-                       border-radius:6px; padding:.5rem 1rem; margin-bottom:.8rem;
-                       font-size:.85rem; }
-    .info-bar strong { color:#1a3566; }
-    #spinner         { display:none; }
-    #divReporte      { display:none; }
-</style>
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Reportes</a></li>
-        <li class="breadcrumb-item active">Ventas</li>
+        <li class="breadcrumb-item active">Reporte Gerencial de Ventas</li>
     </ol>
 </nav>
 
-<!-- Filtros -->
+@* ── Filtros ──────────────────────────────────────────────────────────────────── *@
 <div class="card border-primary mb-3">
-    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-        <span><i class="fas fa-cash-register mr-1"></i> Reporte de Ventas</span>
-        <div id="spinner" class="spinner-border spinner-border-sm text-light" role="status"></div>
+    <div class="card-header bg-primary text-white">
+        <i class="fas fa-sliders-h mr-1"></i> Filtros
     </div>
-    <div class="card-body p-2">
-        <div class="row align-items-end">
+    <div class="card-body py-2">
+        <div class="form-row align-items-end">
             <div class="col-sm-2">
                 <label class="col-form-label col-form-label-sm font-weight-bold">Fecha Inicio</label>
                 <input type="text" id="txtFechaInicio" class="form-control form-control-sm"
@@ -49,76 +34,165 @@
             <div class="col-sm-2">
                 <label class="col-form-label col-form-label-sm font-weight-bold">Estado</label>
                 <select id="cboEstado" class="form-control form-control-sm">
+                    <option value="">-- Todos --</option>
                     <option value="Efectiva">Efectiva</option>
-                    <option value="">Todos</option>
                     <option value="Anulada">Anulada</option>
                 </select>
             </div>
             <div class="col-sm-2">
-                <label class="col-form-label col-form-label-sm d-block">&nbsp;</label>
-                <button class="btn btn-primary btn-sm btn-block" onclick="buscarVentas()">
-                    <i class="fas fa-search mr-1"></i> Buscar
+                <label class="col-form-label col-form-label-sm font-weight-bold">Forma de Cobro</label>
+                <select id="cboFormaCobro" class="form-control form-control-sm">
+                    <option value="">-- Todas --</option>
+                </select>
+            </div>
+            <div class="col-sm-1 d-flex align-items-end">
+                <button id="btnBuscar" class="btn btn-sm btn-primary btn-block mt-4"
+                        onclick="buscarVentas()">
+                    <i class="fas fa-search"></i> Buscar
                 </button>
             </div>
-            <div class="col-sm-2">
-                <label class="col-form-label col-form-label-sm d-block">&nbsp;</label>
-                <button class="btn btn-danger btn-sm btn-block" id="btnPDF" onclick="descargarPDF()" disabled>
-                    <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
+            <div class="col-sm-1 d-flex align-items-end">
+                <button id="btnPDF" class="btn btn-sm btn-danger btn-block mt-4"
+                        onclick="descargarPDF()" disabled>
+                    <i class="fas fa-file-pdf"></i> PDF
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Reporte en pantalla -->
-<div id="divReporte">
+@* ── Reporte principal ────────────────────────────────────────────────────────── *@
+<div class="card border-primary">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-cash-register mr-1"></i> Reporte Gerencial de Ventas</span>
+        <div id="spinner" class="spinner-border spinner-border-sm text-light d-none" role="status"></div>
+    </div>
+    <div class="card-body">
 
-    <!-- Info panel: Tienda y RUC en el encabezado (no en columnas) -->
-    <div class="info-bar d-flex justify-content-between align-items-center flex-wrap">
-        <div>
-            <i class="fas fa-store text-primary mr-1"></i>
-            <strong id="lblTienda">—</strong>
-            <span class="text-muted ml-3 mr-1">RUC:</span>
-            <strong id="lblRuc">—</strong>
+        @* ── 8 KPI Cards ──────────────────────────────────────────────────────── *@
+        <div id="panelKPI" class="d-none mb-3">
+            <div class="row text-center mb-2">
+                <div class="col-md-3 mb-2">
+                    <div class="card border-primary h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Total Ventas</div>
+                            <div id="kpiTotalVentas" class="h3 font-weight-bold text-primary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-success h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Monto Total</div>
+                            <div id="kpiMontoTotal" class="h5 font-weight-bold text-success mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-success h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Efectivas</div>
+                            <div id="kpiEfectivas" class="h3 font-weight-bold text-success mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-danger h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Anuladas</div>
+                            <div id="kpiAnuladas" class="h3 font-weight-bold text-danger mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-md-3 mb-2">
+                    <div class="card border-secondary h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Promedio por Venta</div>
+                            <div id="kpiPromedio" class="h5 font-weight-bold text-secondary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-primary h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Total Unidades</div>
+                            <div id="kpiUnidades" class="h3 font-weight-bold text-primary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-warning h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Mayor Venta</div>
+                            <div id="kpiMayorVenta" class="h5 font-weight-bold text-warning mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="card border-info h-100 shadow-sm">
+                        <div class="card-body py-2">
+                            <div class="text-muted" style="font-size:.7rem;">Empleado Estrella</div>
+                            <div id="kpiEmpleadoTop" class="small font-weight-bold text-info mb-0"
+                                 style="min-height:2rem; display:flex; align-items:center; justify-content:center; text-align:center;">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="text-muted small" id="lblPeriodo"></div>
-    </div>
 
-    <!-- Tabla de ventas -->
-    <div class="table-responsive">
-        <table class="table table-sm table-bordered table-hover mb-1" id="tbReporte">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Fecha</th>
-                    <th>Nro Documento</th>
-                    <th class="text-center">Tipo</th>
-                    <th class="text-center">Estado</th>
-                    <th>Cliente</th>
-                    <th>Forma Cobro</th>
-                    <th>Empleado</th>
-                    <th class="text-right">Unidades</th>
-                    <th class="text-right">Total (Gs.)</th>
-                </tr>
-            </thead>
-            <tbody id="tbodyVentas"></tbody>
-            <tfoot>
-                <tr class="font-weight-bold bg-light">
-                    <td colspan="7" class="text-right text-muted small">Total del período:</td>
-                    <td class="text-right" id="tfUnidades">—</td>
-                    <td class="text-right" id="tfTotal">—</td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
+        @* ── Paneles de Análisis ───────────────────────────────────────────────── *@
+        <div id="panelAnalisis" class="d-none mb-3">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <h6 class="font-weight-bold text-primary border-bottom pb-1">
+                        <i class="fas fa-tasks mr-1"></i> Estado de Ventas
+                    </h6>
+                    <div id="tablaEstado"></div>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <h6 class="font-weight-bold text-primary border-bottom pb-1">
+                        <i class="fas fa-user-tie mr-1"></i> Top Empleados por Monto
+                    </h6>
+                    <div id="tablaEmpleados"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-5 mb-3">
+                    <h6 class="font-weight-bold text-primary border-bottom pb-1">
+                        <i class="fas fa-wallet mr-1"></i> Distribución por Forma de Cobro
+                    </h6>
+                    <div id="tablaFormaCobro"></div>
+                </div>
+                <div class="col-md-7 mb-3">
+                    <h6 class="font-weight-bold text-primary border-bottom pb-1">
+                        <i class="fas fa-users mr-1"></i> Top Clientes por Monto
+                    </h6>
+                    <div id="tablaClientes"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <h6 class="font-weight-bold text-primary border-bottom pb-1">
+                        <i class="fas fa-clipboard-check mr-1"></i> Análisis Gerencial
+                    </h6>
+                    <div id="tablaAnalisis"></div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Resumen rápido -->
-    <div class="d-flex justify-content-end mb-4 small text-muted">
-        <span class="mr-3">Efectivas: <strong class="text-success" id="cntEfectivas">0</strong></span>
-        <span>Anuladas: <strong class="text-danger" id="cntAnuladas">0</strong></span>
+        @* ── Detalle ──────────────────────────────────────────────────────────── *@
+        <div id="contenedorVentas">
+            <p class="text-muted text-center mt-4">
+                Seleccioná un rango de fechas y presioná <strong>Buscar</strong>.
+            </p>
+        </div>
+
     </div>
 </div>
 
-<!-- Formulario oculto POST para PDF -->
+@* Formulario oculto POST para PDF *@
 @using (Html.BeginForm("DescargarPDFVenta", "Reporte", FormMethod.Post, new { id = "frmPDF" }))
 {
     @Html.AntiForgeryToken()
