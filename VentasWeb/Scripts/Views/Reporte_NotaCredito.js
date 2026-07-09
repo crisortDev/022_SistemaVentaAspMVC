@@ -141,7 +141,7 @@ function formatGS(n) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  EXPORTAR PDF
+//  EXPORTAR PDF (Python backend — con membrete y logo)
 // ══════════════════════════════════════════════════════════
 function exportarPDF() {
     if (_datosNC.length === 0) {
@@ -149,82 +149,10 @@ function exportarPDF() {
         return;
     }
 
-    var { jsPDF } = window.jspdf;
-    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-    var fecha = new Date().toLocaleDateString('es-PY');
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Reporte de Notas de Crédito Asociadas', 14, 15);
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    var fi = $('#txtFechaInicio').val() || 'Todo';
-    var ff = $('#txtFechaFin').val()    || 'Todo';
-    var prov = $('#cboProveedor option:selected').text();
-    doc.text('Período: ' + fi + ' — ' + ff + '   |   Proveedor: ' + prov + '   |   Fecha impresión: ' + fecha, 14, 22);
-
-    var body = [];
-    var totalMonto = 0;
-
-    _datosNC.forEach(function (nc) {
-        var estadoColor = nc.Estado === 'Recibida'  ? [40, 167, 69]
-                        : nc.Estado === 'Rechazada' ? [220, 53, 69]
-                        : [108, 117, 125];
-        totalMonto += nc.MontoNC;
-
-        body.push([
-            nc.FechaRegistro,
-            nc.Proveedor,
-            nc.Tienda,
-            nc.NumeroFactura + '\n' + nc.FechaFactura,
-            nc.NumeroNC || '—',
-            nc.FechaEmision || '—',
-            { content: 'Gs. ' + formatGS(nc.MontoNC), styles: { halign: 'right', fontStyle: 'bold' } },
-            { content: nc.Estado + (nc.EsMorosa ? ' ⚠' : ''),
-              styles: { halign: 'center', textColor: estadoColor, fontStyle: 'bold' } },
-            nc.MotivoNC || '—'
-        ]);
-    });
-
-    // Fila total
-    body.push([
-        { content: 'TOTAL: ' + _datosNC.length + ' NC(s)', colSpan: 6,
-          styles: { halign: 'right', fillColor: [33, 37, 41], textColor: 255, fontStyle: 'bold' } },
-        { content: 'Gs. ' + formatGS(totalMonto),
-          styles: { halign: 'right', fillColor: [33, 37, 41], textColor: 255, fontStyle: 'bold' } },
-        { content: '', colSpan: 2, styles: { fillColor: [33, 37, 41] } }
-    ]);
-
-    doc.autoTable({
-        startY: 27,
-        head: [[
-            'Fecha Reg.', 'Proveedor', 'Tienda', 'Factura / Fecha',
-            'N° NC', 'Fecha Emisión', 'Monto NC', 'Estado', 'Motivo'
-        ]],
-        body: body,
-        headStyles: { fillColor: [33, 37, 41], textColor: 255, fontStyle: 'bold' },
-        columnStyles: {
-            0: { cellWidth: 22 },
-            1: { cellWidth: 45 },
-            2: { cellWidth: 28 },
-            3: { cellWidth: 30 },
-            4: { cellWidth: 28 },
-            5: { cellWidth: 22 },
-            6: { cellWidth: 28 },
-            7: { cellWidth: 22 },
-            8: { cellWidth: 40 }
-        },
-        styles: { fontSize: 7, cellPadding: 2 },
-        margin: { left: 10, right: 10 },
-        didDrawPage: function (d) {
-            var pgTotal = doc.internal.getNumberOfPages();
-            doc.setFontSize(7);
-            doc.setTextColor(150);
-            doc.text('Página ' + d.pageNumber + ' de ' + pgTotal + '   —   Compu Space',
-                10, doc.internal.pageSize.height - 8);
-        }
-    });
-
-    doc.save('ReporteNC_' + fecha.replace(/\//g, '-') + '.pdf');
+    $('#hNcFechaInicio').val($('#txtFechaInicio').val());
+    $('#hNcFechaFin').val($('#txtFechaFin').val());
+    $('#hNcIdProveedor').val(parseInt($('#cboProveedor').val()) || 0);
+    $('#hNcIdTienda').val(parseInt($('#cboTienda').val())    || 0);
+    $('#hNcEstado').val($('#cboEstado').val());
+    $('#frmPDFNC').submit();
 }

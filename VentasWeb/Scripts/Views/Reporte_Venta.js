@@ -32,11 +32,24 @@ $(function () {
     });
 });
 
+// ── Helpers de estado ────────────────────────────────────────────────────────
+// Normaliza el valor real de BD ('Activa', 'Activo', '', NULL) → 'Efectiva'
+function normalizarEstado(est) {
+    est = (est || '').trim();
+    if (!est || /^activ/i.test(est)) return 'Efectiva';
+    return est;
+}
+
+function esAnulada(est) {
+    return /^(anulad|cancelad)/i.test(est);
+}
+
 // ── Buscar ────────────────────────────────────────────────────────────────────
 function buscarVentas() {
-    var fi = $('#txtFechaInicio').val().trim();
-    var ff = $('#txtFechaFin').val().trim();
-    var id = $('#cboTienda').val() || 0;
+    var fi     = $('#txtFechaInicio').val().trim();
+    var ff     = $('#txtFechaFin').val().trim();
+    var id     = $('#cboTienda').val() || 0;
+    var filtro = $('#cboEstado').val(); // 'Efectiva' | '' (Todos) | 'Anulada'
 
     if (!fi || !ff) { toastr.warning('Ingrese el rango de fechas.'); return; }
 
@@ -55,7 +68,28 @@ function buscarVentas() {
                 return;
             }
 
-            renderTabla(data);
+            // Filtrar en memoria según el combo Estado
+            var rows = data;
+            if (filtro === 'Efectiva') {
+                rows = data.filter(function (v) { return !esAnulada(normalizarEstado(v.Estado)); });
+            } else if (filtro === 'Anulada') {
+                rows = data.filter(function (v) { return esAnulada(normalizarEstado(v.Estado)); });
+            }
+            // '' (Todos) → sin filtro
+
+            // Ordenar: efectivas primero, anuladas al final
+            rows.sort(function (a, b) {
+                return (esAnulada(normalizarEstado(a.Estado)) ? 1 : 0)
+                     - (esAnulada(normalizarEstado(b.Estado)) ? 1 : 0);
+            });
+
+            if (!rows.length) {
+                toastr.info('Sin ventas para el filtro seleccionado.');
+                $('#divReporte').hide();
+                return;
+            }
+
+            renderTabla(rows);
             renderEncabezado(data[0], fi, ff);
 
             $('#divReporte').show();
@@ -80,17 +114,15 @@ function renderTabla(data) {
     var totalMonto = 0, totalUnid = 0, efectivas = 0, anuladas = 0;
 
     data.forEach(function (v) {
-        var estado = (v.Estado || 'Efectiva').trim();
-        var esAnul = /^(anulad|cancelad)/i.test(estado);
+        var estado = normalizarEstado(v.Estado);
+        var esAnul = esAnulada(estado);
         if (esAnul) anuladas++; else efectivas++;
 
         var monto = parseFloat((v.TotalVenta || '0').toString().replace(/,/g, '')) || 0;
         var unid  = parseInt(v.CantidadUnidadesVendidas || 0, 10) || 0;
         if (!esAnul) { totalMonto += monto; totalUnid += unid; }
 
-        var badgeCls = esAnul ? 'badge-anulada'
-            : /^pendiente/i.test(estado) ? 'badge-pendiente'
-            : 'badge-efectiva';
+        var badgeCls = esAnul ? 'badge-anulada' : 'badge-efectiva';
 
         var tr = $('<tr>');
         if (esAnul) tr.addClass('text-muted');
@@ -117,13 +149,15 @@ function renderTabla(data) {
 
 // ── Descargar PDF ─────────────────────────────────────────────────────────────
 function descargarPDF() {
-    var fi = $('#txtFechaInicio').val().trim();
-    var ff = $('#txtFechaFin').val().trim();
-    var id = $('#cboTienda').val() || 0;
+    var fi     = $('#txtFechaInicio').val().trim();
+    var ff     = $('#txtFechaFin').val().trim();
+    var id     = $('#cboTienda').val() || 0;
+    var estado = $('#cboEstado').val();
     if (!fi || !ff) { toastr.warning('Ingrese el rango de fechas.'); return; }
     $('#hFechaInicio').val(fi);
     $('#hFechaFin').val(ff);
     $('#hIdTienda').val(id);
+    $('#hEstado').val(estado);
     $('#frmPDF').submit();
 }
 

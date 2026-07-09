@@ -64,6 +64,7 @@ namespace VentasWeb.Controllers
             DateTime ff = string.IsNullOrWhiteSpace(fechafin)
                 ? DateTime.Today : Convert.ToDateTime(fechafin);
 
+            // Devuelve todos los registros — el filtro por estado lo aplica el JS en memoria
             List<ReporteVenta> lista = CD_Reportes.Instancia.ReporteVenta(fi, ff, idtienda);
             return Json(lista, JsonRequestBehavior.AllowGet);
         }
@@ -71,7 +72,7 @@ namespace VentasWeb.Controllers
         // ── PDF: Reporte de Ventas operativo ─────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult DescargarPDFVenta(string fechainicio, string fechafin, int idtienda = 0)
+        public ActionResult DescargarPDFVenta(string fechainicio, string fechafin, int idtienda = 0, string estado = "")
         {
             try
             {
@@ -84,6 +85,15 @@ namespace VentasWeb.Controllers
 
                 List<ReporteVenta> lista = CD_Reportes.Instancia.ReporteVenta(fi, ff, idtienda);
 
+                // "Efectiva" abarca 'Activo', 'Efectiva', NULL/vacío — todo lo que no sea 'Anulada'
+                if (!string.IsNullOrWhiteSpace(estado))
+                {
+                    bool filtroEfectiva = estado.Equals("Efectiva", StringComparison.OrdinalIgnoreCase);
+                    lista = filtroEfectiva
+                        ? lista.Where(v => !string.Equals(v.Estado, "Anulada", StringComparison.OrdinalIgnoreCase)).ToList()
+                        : lista.Where(v => string.Equals(v.Estado, estado, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
                 // Tienda para el header del PDF
                 string nomTienda = lista.Count > 0 ? lista[0].NombreTienda : "Todas las sucursales";
                 string rucTienda = lista.Count > 0 ? lista[0].RucTienda    : "";
@@ -94,7 +104,12 @@ namespace VentasWeb.Controllers
                     RucTienda     = rucTienda,
                     FechaInicio   = fi.ToString("dd/MM/yyyy"),
                     FechaFin      = ff.ToString("dd/MM/yyyy"),
-                    Ventas        = lista
+                    EstadoFiltro  = estado,
+                    Ventas        = lista,
+                    ReporteId     = GetReporteId(),
+                    NombreUsuario = GetNombreUsuario(),
+                    NombreEmpresa = GetNombreEmpresa(),
+                    LogoPath      = GetLogoPath()
                 };
 
                 string tmpJson = Path.Combine(Path.GetTempPath(),
@@ -189,7 +204,11 @@ namespace VentasWeb.Controllers
                     FechaFin      = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
                     EstadoFiltro  = estadobaja ?? "",
                     IdTienda      = idtienda,
-                    Bajas         = lista
+                    Bajas         = lista,
+                    ReporteId     = GetReporteId(),
+                    NombreUsuario = GetNombreUsuario(),
+                    NombreEmpresa = GetNombreEmpresa(),
+                    LogoPath      = GetLogoPath()
                 };
 
                 string tmpJson = Path.Combine(Path.GetTempPath(),
@@ -265,6 +284,82 @@ namespace VentasWeb.Controllers
             catch (Exception ex)
             {
                 return Json(new { data = new List<NotaCredito>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult DescargarPDFNC(string fechainicio, string fechafin,
+            int idproveedor = 0, int idtienda = 0, string estado = "")
+        {
+            try
+            {
+                if (!EsSuperAdmin) idtienda = TiendaActiva;
+
+                DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
+                DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
+
+                var lista = CD_Reportes.Instancia.ReporteNC(fi, ff, idproveedor, idtienda, estado);
+
+                // Nombre del proveedor para el filtro en el membrete
+                string provNombre = "";
+                if (idproveedor > 0 && lista.Any())
+                    provNombre = lista.First().Proveedor ?? "";
+
+                string tmpJson = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                  "nc_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                  "nc_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                var jo = new Newtonsoft.Json.Linq.JObject();
+                jo["Items"]           = Newtonsoft.Json.Linq.JArray.FromObject(lista);
+                jo["FechaInicio"]     = fechainicio ?? "";
+                jo["FechaFin"]        = fechafin    ?? "";
+                jo["NombreProveedor"] = provNombre;
+                jo["EstadoFiltro"]    = estado      ?? "";
+                jo["ReporteId"]       = GetReporteId();
+                jo["NombreUsuario"]   = GetNombreUsuario();
+                jo["NombreEmpresa"]   = GetNombreEmpresa();
+                jo["LogoPath"]        = GetLogoPath();
+                System.IO.File.WriteAllText(tmpJson,
+                    jo.ToString(Newtonsoft.Json.Formatting.None),
+                    new System.Text.UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_nc.py");
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName               = FindPythonExe(),
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = System.Diagnostics.Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                    {
+                        string err = proc.StandardError.ReadToEnd();
+                        throw new Exception("Error en script PDF: " + err);
+                    }
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el archivo PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string fecha = System.DateTime.Now.ToString("yyyyMMdd");
+                return this.File(pdfBytes, "application/pdf", "ReporteNC_" + fecha + ".pdf");
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
             }
         }
 
@@ -380,10 +475,14 @@ namespace VentasWeb.Controllers
 
                 var payload = new
                 {
-                    NombreTienda = nomTienda,
-                    FechaInicio  = fi.ToString("dd/MM/yyyy"),
-                    FechaFin     = ff.ToString("dd/MM/yyyy"),
-                    Datos        = lista
+                    NombreTienda  = nomTienda,
+                    FechaInicio   = fi.ToString("dd/MM/yyyy"),
+                    FechaFin      = ff.ToString("dd/MM/yyyy"),
+                    Datos         = lista,
+                    ReporteId     = GetReporteId(),
+                    NombreUsuario = GetNombreUsuario(),
+                    NombreEmpresa = GetNombreEmpresa(),
+                    LogoPath      = GetLogoPath()
                 };
 
                 string tmpJson = Path.Combine(Path.GetTempPath(),
@@ -448,11 +547,15 @@ namespace VentasWeb.Controllers
 
                 var payload = new
                 {
-                    NombreTienda = nomTienda,
-                    RucTienda    = rucTienda,
-                    CodigoFiltro = codigoproducto ?? "",
-                    IdTienda     = idtienda,
-                    Productos    = lista
+                    NombreTienda  = nomTienda,
+                    RucTienda     = rucTienda,
+                    CodigoFiltro  = codigoproducto ?? "",
+                    IdTienda      = idtienda,
+                    Productos     = lista,
+                    ReporteId     = GetReporteId(),
+                    NombreUsuario = GetNombreUsuario(),
+                    NombreEmpresa = GetNombreEmpresa(),
+                    LogoPath      = GetLogoPath()
                 };
 
                 string tmpJson = Path.Combine(Path.GetTempPath(),
@@ -523,10 +626,14 @@ namespace VentasWeb.Controllers
 
                 var payload = new
                 {
-                    NombreTienda = nomTienda,
-                    FechaInicio  = fi.HasValue ? fi.Value.ToString("dd/MM/yyyy") : "—",
-                    FechaFin     = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
-                    Proveedores  = lista
+                    NombreTienda  = nomTienda,
+                    FechaInicio   = fi.HasValue ? fi.Value.ToString("dd/MM/yyyy") : "—",
+                    FechaFin      = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
+                    Proveedores   = lista,
+                    ReporteId     = GetReporteId(),
+                    NombreUsuario = GetNombreUsuario(),
+                    NombreEmpresa = GetNombreEmpresa(),
+                    LogoPath      = GetLogoPath()
                 };
 
                 string tmpJson = Path.Combine(Path.GetTempPath(),
@@ -632,12 +739,16 @@ namespace VentasWeb.Controllers
 
                 var payload = new
                 {
-                    NombreTienda   = nomTienda,
-                    FechaInicio    = fi.HasValue ? fi.Value.ToString("dd/MM/yyyy") : "—",
-                    FechaFin       = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
-                    EstadoFiltro   = estadotraslado ?? "",
-                    IdTienda       = idtienda,
-                    Traslados      = lista
+                    NombreTienda  = nomTienda,
+                    FechaInicio   = fi.HasValue ? fi.Value.ToString("dd/MM/yyyy") : "—",
+                    FechaFin      = ff.HasValue ? ff.Value.ToString("dd/MM/yyyy") : "—",
+                    EstadoFiltro  = estadotraslado ?? "",
+                    IdTienda      = idtienda,
+                    Traslados     = lista,
+                    ReporteId     = GetReporteId(),
+                    NombreUsuario = GetNombreUsuario(),
+                    NombreEmpresa = GetNombreEmpresa(),
+                    LogoPath      = GetLogoPath()
                 };
 
                 string tmpJson = Path.Combine(Path.GetTempPath(),

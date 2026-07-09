@@ -5,10 +5,9 @@
 
 @section estilos {
 <style>
-    .badge-efectiva  { background:#059669; color:#fff; }
-    .badge-anulada   { background:#dc2626; color:#fff; }
-    .badge-pendiente { background:#b45309; color:#fff; }
-    .badge-estado    { font-size:.72rem; padding:2px 7px; border-radius:4px; white-space:nowrap; }
+    .badge-efectiva { background:#059669; color:#fff; }
+    .badge-anulada  { background:#dc2626; color:#fff; }
+    .badge-estado   { font-size:.72rem; padding:2px 7px; border-radius:4px; white-space:nowrap; }
     .info-bar        { background:#f0f4ff; border:1px solid #c7d4f0;
                        border-radius:6px; padding:.5rem 1rem; margin-bottom:.8rem;
                        font-size:.85rem; }
@@ -43,16 +42,26 @@
                 <input type="text" id="txtFechaFin" class="form-control form-control-sm"
                        placeholder="dd/mm/aaaa" autocomplete="off" />
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-2">
                 <label class="col-form-label col-form-label-sm font-weight-bold">Sucursal</label>
                 <select id="cboTienda" class="form-control form-control-sm"></select>
             </div>
             <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm font-weight-bold">Estado</label>
+                <select id="cboEstado" class="form-control form-control-sm">
+                    <option value="Efectiva">Efectiva</option>
+                    <option value="">Todos</option>
+                    <option value="Anulada">Anulada</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm d-block">&nbsp;</label>
                 <button class="btn btn-primary btn-sm btn-block" onclick="buscarVentas()">
                     <i class="fas fa-search mr-1"></i> Buscar
                 </button>
             </div>
             <div class="col-sm-2">
+                <label class="col-form-label col-form-label-sm d-block">&nbsp;</label>
                 <button class="btn btn-danger btn-sm btn-block" id="btnPDF" onclick="descargarPDF()" disabled>
                     <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
                 </button>
@@ -116,6 +125,7 @@
     <input type="hidden" id="hFechaInicio" name="fechainicio" />
     <input type="hidden" id="hFechaFin"    name="fechafin"    />
     <input type="hidden" id="hIdTienda"    name="idtienda"    />
+    <input type="hidden" id="hEstado"      name="estado"      />
 }
 
 @section scripts {

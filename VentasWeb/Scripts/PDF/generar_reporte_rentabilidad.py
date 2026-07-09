@@ -6,8 +6,12 @@
 # ============================================================
 
 import sys
+import os
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from membrete import _Canvas, MARG_TOP, MARG_H
 
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units     import cm
@@ -20,8 +24,6 @@ from reportlab.platypus      import (
 
 # ── Página ────────────────────────────────────────────────────────────────────
 PAGE     = landscape(A4)          # 297 × 210 mm en apaisado
-MARG_H   = 1.5 * cm
-MARG_TOP = 2.6 * cm
 MARG_BOT = 1.5 * cm
 PAGE_W   = PAGE[0] - 2 * MARG_H  # ≈ 26.7 cm útil
 
@@ -80,43 +82,6 @@ def pct(v):
 def P(txt, sty):
     return Paragraph(str(txt) if txt is not None else '—', sty)
 
-# ── Header/Footer canvas ──────────────────────────────────────────────────────
-class _Canvas:
-    def __init__(self, tienda, periodo):
-        self.tienda  = tienda
-        self.periodo = periodo
-        self._pg     = [0]
-
-    def __call__(self, canvas, doc):
-        self._pg[0] += 1
-        canvas.saveState()
-        w, h = PAGE
-
-        # Barra azul superior
-        canvas.setFillColor(AZUL)
-        canvas.rect(0, h - 2.0*cm, w, 2.0*cm, fill=True, stroke=False)
-
-        canvas.setFillColor(BLANCO)
-        canvas.setFont('Helvetica-Bold', 11)
-        canvas.drawString(MARG_H, h - 0.9*cm, 'Reporte de Rentabilidad por Producto — CPP')
-
-        canvas.setFont('Helvetica', 7.5)
-        canvas.drawString(MARG_H, h - 1.55*cm,
-                          'Metodo: Costo Promedio Ponderado (Inventario Permanente Movil)')
-        canvas.drawRightString(w - MARG_H, h - 0.9*cm,  self.tienda)
-        canvas.drawRightString(w - MARG_H, h - 1.55*cm, self.periodo)
-
-        # Footer
-        canvas.setFillColor(GRIS_L)
-        canvas.rect(0, 0, w, 1.0*cm, fill=True, stroke=False)
-        canvas.setFillColor(GRIS_T)
-        canvas.setFont('Helvetica', 7)
-        canvas.drawString(MARG_H, 0.35*cm,
-                          'Generado: ' + datetime.now().strftime('%d/%m/%Y %H:%M'))
-        canvas.drawCentredString(w/2, 0.35*cm, 'Sistema de Ventas — Confidencial')
-        canvas.drawRightString(w - MARG_H, 0.35*cm, 'Pag. %d' % self._pg[0])
-
-        canvas.restoreState()
 
 
 # ── Tabla principal ───────────────────────────────────────────────────────────
@@ -245,10 +210,16 @@ def leyenda():
 #  BUILD PDF
 # ════════════════════════════════════════════════════════════════════════════
 def build_pdf(data, output_path):
-    tienda  = data.get('NombreTienda', '')
-    periodo = 'Periodo: {} al {}'.format(
-        data.get('FechaInicio',''), data.get('FechaFin',''))
-    datos   = data.get('Datos', [])
+    tienda        = data.get('NombreTienda',  '')
+    empresa       = data.get('NombreEmpresa', tienda)
+    fi_str        = data.get('FechaInicio',   '')
+    ff_str        = data.get('FechaFin',      '')
+    periodo       = '{} — {}'.format(fi_str, ff_str) if fi_str else ''
+    filtros       = 'Sucursal: ' + tienda if tienda else ''
+    reporte_id    = data.get('ReporteId',     '')
+    nombre_usuario= data.get('NombreUsuario', '')
+    logo_path     = data.get('LogoPath',      '')
+    datos         = data.get('Datos',         [])
 
     doc = SimpleDocTemplate(
         output_path,
@@ -258,7 +229,8 @@ def build_pdf(data, output_path):
         title='Rentabilidad por Producto CPP'
     )
 
-    cb    = _Canvas(tienda, periodo)
+    cb    = _Canvas('Reporte de Rentabilidad por Producto — CPP', empresa,
+                    periodo, filtros, nombre_usuario, reporte_id, logo_path)
     story = []
 
     # Leyenda

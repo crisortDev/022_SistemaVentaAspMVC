@@ -5,8 +5,12 @@
 # ============================================================
 
 import sys
+import os
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from membrete import _Canvas, MARG_TOP, MARG_H
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units     import cm
@@ -19,8 +23,6 @@ from reportlab.platypus      import (
 
 # ── Página ─────────────────────────────────────────────────────────────────────
 PAGE     = A4               # 21 × 29.7 cm, vertical
-MARG_H   = 1.5 * cm
-MARG_TOP = 2.8 * cm        # espacio para header de canvas
 MARG_BOT = 2.2 * cm
 PAGE_W   = PAGE[0] - 2 * MARG_H   # ≈ 18 cm útil
 
@@ -70,43 +72,6 @@ CELL_PAD = [
     ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
 ]
 
-# ── Header / Footer en canvas ──────────────────────────────────────────────────
-class _Canvas:
-    def __init__(self, numero, tienda, generado):
-        self.numero    = numero
-        self.tienda    = tienda
-        self.generado  = generado
-
-    def __call__(self, canvas, doc):
-        canvas.saveState()
-        w, h = PAGE
-
-        # Barra superior
-        canvas.setFillColor(AZUL)
-        canvas.rect(0, h - 2.2*cm, w, 2.2*cm, fill=True, stroke=False)
-
-        canvas.setFillColor(BLANCO)
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(MARG_H, h - 1.1*cm, 'SISTEMA DE VENTAS')
-        canvas.setFont('Helvetica', 7.5)
-        canvas.drawString(MARG_H, h - 1.65*cm, 'Hoja de Conteo de Inventario Fisico')
-
-        canvas.setFont('Helvetica-Bold', 9)
-        canvas.drawRightString(w - MARG_H, h - 0.95*cm, self.numero)
-        canvas.setFont('Helvetica', 7.5)
-        canvas.drawRightString(w - MARG_H, h - 1.5*cm, self.tienda)
-
-        # Footer
-        canvas.setFillColor(GRIS_L)
-        canvas.rect(0, 0, w, 0.9*cm, fill=True, stroke=False)
-        canvas.setFillColor(GRIS_D)
-        canvas.setFont('Helvetica', 6.5)
-        canvas.drawString(MARG_H, 0.32*cm, 'Generado: ' + self.generado)
-        canvas.drawCentredString(w/2, 0.32*cm, 'CONFIDENCIAL — Uso interno')
-        canvas.drawRightString(w - MARG_H, 0.32*cm,
-                               'Pag. %d' % doc.page)
-
-        canvas.restoreState()
 
 
 # ── Tabla de información de cabecera ──────────────────────────────────────────
@@ -212,12 +177,16 @@ def firmas_section():
 #  BUILD PDF
 # ════════════════════════════════════════════════════════════════════════════════
 def build_pdf(data, output_path):
-    hdr   = data.get('Header')   or {}
-    prods = data.get('Productos') or []
+    hdr           = data.get('Header')   or {}
+    prods         = data.get('Productos') or []
+    empresa       = data.get('NombreEmpresa', hdr.get('NombreTienda', ''))
+    reporte_id    = data.get('ReporteId',     '')
+    nombre_usuario= data.get('NombreUsuario', '')
+    logo_path     = data.get('LogoPath',      '')
 
-    numero    = hdr.get('Numero', 'SIN NUMERO')
-    tienda    = hdr.get('NombreTienda', '')
-    generado  = datetime.now().strftime('%d/%m/%Y %H:%M')
+    numero   = hdr.get('Numero', 'SIN NUMERO')
+    tienda   = hdr.get('NombreTienda', '')
+    filtros  = 'N° Inventario: ' + numero
 
     doc = SimpleDocTemplate(
         output_path,
@@ -227,7 +196,8 @@ def build_pdf(data, output_path):
         title='Hoja de Inventario ' + numero
     )
 
-    cb    = _Canvas(numero, tienda, generado)
+    cb    = _Canvas('Hoja de Conteo de Inventario Fisico', empresa, '',
+                    filtros, nombre_usuario, reporte_id, logo_path)
     story = []
 
     # Cabecera de datos

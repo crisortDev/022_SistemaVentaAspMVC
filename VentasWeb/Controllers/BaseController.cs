@@ -1,5 +1,6 @@
 ﻿using CapaDatos;
 using CapaModelo;
+using System.Linq;
 using System.Web.Mvc;
 
 namespace VentasWeb.Controllers
@@ -141,6 +142,32 @@ namespace VentasWeb.Controllers
             // Fallback: intentar con "python" y que el OS lo resuelva
             return "python";
         }
+
+        // ── Helpers para PDF ─────────────────────────────────────────
+
+        /// <summary>Genera un ID único para el reporte: RPT-YYYYMMDD-HHmmss.</summary>
+        protected string GetReporteId() =>
+            "RPT-" + System.DateTime.Now.ToString("yyyyMMdd-HHmmss");
+
+        /// <summary>Nombre completo del usuario logueado, o "—" si no hay sesión.</summary>
+        protected string GetNombreUsuario()
+        {
+            var u = UsuarioActual;
+            if (u == null) return "—";
+            return ((u.Nombres ?? "") + " " + (u.Apellidos ?? "")).Trim();
+        }
+
+        /// <summary>Ruta absoluta al logo de la aplicación.</summary>
+        protected string GetLogoPath() =>
+            Server.MapPath("~/Imagenes/logo.png");
+
+        /// <summary>
+        /// Nombre general de la empresa (razón social), leído de Web.config (NombreEmpresa).
+        /// Fallback "Sistema de Ventas" si la clave no está configurada.
+        /// </summary>
+        protected string GetNombreEmpresa() =>
+            System.Web.Configuration.WebConfigurationManager.AppSettings["NombreEmpresa"]
+            ?? "Sistema de Ventas";
 
         // ── Auditoría ─────────────────────────────────────────────
         /// <summary>

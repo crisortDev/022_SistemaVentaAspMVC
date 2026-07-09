@@ -392,8 +392,13 @@ namespace VentasWeb.Controllers
                 string tmpPdf  = Path.Combine(Path.GetTempPath(),
                                   "inv_" + Guid.NewGuid().ToString("N") + ".pdf");
 
+                var joInv = Newtonsoft.Json.Linq.JObject.FromObject(datos);
+                joInv["ReporteId"]     = GetReporteId();
+                joInv["NombreUsuario"] = GetNombreUsuario();
+                joInv["NombreEmpresa"] = GetNombreEmpresa();
+                joInv["LogoPath"]      = GetLogoPath();
                 System.IO.File.WriteAllText(tmpJson,
-                    Newtonsoft.Json.JsonConvert.SerializeObject(datos, Newtonsoft.Json.Formatting.None),
+                    joInv.ToString(Newtonsoft.Json.Formatting.None),
                     new System.Text.UTF8Encoding(false));  // sin BOM
 
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_inventario_pdf.py");
@@ -445,6 +450,84 @@ namespace VentasWeb.Controllers
             catch (Exception ex)
             {
                 return Json(new { data = new List<ProductoTiendaBaja>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // =============================================
+        // PDF STOCK POR TIENDA
+        // =============================================
+
+        [HttpGet]
+        public ActionResult DescargarPDFStock(int idtienda = 0, string categoria = "", string estado = "")
+        {
+            try
+            {
+                var lista = CD_Inventario.Instancia.ObtenerStockPorTienda(idtienda, 0);
+
+                // Filtrar en C# según los parámetros recibidos
+                if (!string.IsNullOrWhiteSpace(categoria))
+                    lista = lista.Where(s => string.Equals(s.Categoria, categoria, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (!string.IsNullOrWhiteSpace(estado))
+                    lista = lista.Where(s => string.Equals(s.EstadoStock, estado, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                // Nombre de tienda para el membrete
+                string tiendaNombre = idtienda > 0 && lista.Any()
+                    ? lista.First().NombreTienda
+                    : "Todas las tiendas";
+
+                string tmpJson = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                  "stock_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                  "stock_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                var jo = new Newtonsoft.Json.Linq.JObject();
+                jo["Items"]           = Newtonsoft.Json.Linq.JArray.FromObject(lista);
+                jo["NombreTienda"]    = tiendaNombre;
+                jo["CategoriaFiltro"] = categoria ?? "";
+                jo["EstadoFiltro"]    = estado    ?? "";
+                jo["ReporteId"]       = GetReporteId();
+                jo["NombreUsuario"]   = GetNombreUsuario();
+                jo["NombreEmpresa"]   = GetNombreEmpresa();
+                jo["LogoPath"]        = GetLogoPath();
+                System.IO.File.WriteAllText(tmpJson,
+                    jo.ToString(Newtonsoft.Json.Formatting.None),
+                    new System.Text.UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_stock_pdf.py");
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName               = FindPythonExe(),
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = System.Diagnostics.Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                    {
+                        string err = proc.StandardError.ReadToEnd();
+                        throw new Exception("Error en script PDF: " + err);
+                    }
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el archivo PDF.");
+
+                byte[] pdfBytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                return this.File(pdfBytes, "application/pdf",
+                    "Stock_" + System.DateTime.Now.ToString("yyyyMMdd") + ".pdf");
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
             }
         }
 

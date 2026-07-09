@@ -111,8 +111,17 @@
     </div>
 </div>
 
+@* Formulario oculto POST para PDF (servidor Python) *@
+@using (Html.BeginForm("DescargarPDFNC", "Reporte", FormMethod.Post, new { id = "frmPDFNC" }))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="hNcFechaInicio"  name="fechainicio"  />
+    <input type="hidden" id="hNcFechaFin"     name="fechafin"     />
+    <input type="hidden" id="hNcIdProveedor"  name="idproveedor"  />
+    <input type="hidden" id="hNcIdTienda"     name="idtienda"     />
+    <input type="hidden" id="hNcEstado"       name="estado"       />
+}
+
 @section scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="@Url.Content("~/Scripts/Views/Reporte_NotaCredito.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

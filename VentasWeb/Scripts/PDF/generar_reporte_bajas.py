@@ -6,8 +6,12 @@
 # ============================================================
 
 import sys
+import os
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from membrete import _Canvas, MARG_TOP, MARG_H
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units     import cm
@@ -20,8 +24,6 @@ from reportlab.platypus      import (
 
 # ── Página ────────────────────────────────────────────────────────────────────
 PAGE     = A4                      # 210 × 297 mm portrait
-MARG_H   = 1.5 * cm
-MARG_TOP = 2.6 * cm
 MARG_BOT = 1.5 * cm
 PAGE_W   = PAGE[0] - 2 * MARG_H   # 18.0 cm útil
 
@@ -70,48 +72,6 @@ CELL_PAD = [
 
 def P(txt, sty):
     return Paragraph(str(txt) if txt is not None else '—', sty)
-
-# ── Header/Footer canvas ──────────────────────────────────────────────────────
-class _Canvas:
-    def __init__(self, tienda, periodo, estado_filtro):
-        self.tienda        = tienda
-        self.periodo       = periodo
-        self.estado_filtro = estado_filtro
-        self._pg           = [0]
-
-    def __call__(self, canvas, doc):
-        self._pg[0] += 1
-        canvas.saveState()
-        w, h = PAGE
-
-        # Barra azul superior
-        canvas.setFillColor(AZUL)
-        canvas.rect(0, h - 2.0*cm, w, 2.0*cm, fill=True, stroke=False)
-
-        canvas.setFillColor(BLANCO)
-        canvas.setFont('Helvetica-Bold', 11)
-        canvas.drawString(MARG_H, h - 0.9*cm, 'Reporte de Bajas de Productos')
-
-        canvas.setFont('Helvetica', 7.5)
-        sub = 'Sucursal: ' + self.tienda
-        canvas.drawString(MARG_H, h - 1.55*cm, sub)
-
-        right_top = self.estado_filtro if self.estado_filtro else 'Todos los estados'
-        canvas.drawRightString(w - MARG_H, h - 0.9*cm, self.periodo)
-        canvas.drawRightString(w - MARG_H, h - 1.55*cm,
-                               'Generado: ' + datetime.now().strftime('%d/%m/%Y'))
-
-        # Footer
-        canvas.setFillColor(GRIS_L)
-        canvas.rect(0, 0, w, 1.0*cm, fill=True, stroke=False)
-        canvas.setFillColor(GRIS_T)
-        canvas.setFont('Helvetica', 7)
-        canvas.drawString(MARG_H, 0.35*cm,
-                          'Generado: ' + datetime.now().strftime('%d/%m/%Y %H:%M'))
-        canvas.drawCentredString(w/2, 0.35*cm, 'Sistema de Ventas — Confidencial')
-        canvas.drawRightString(w - MARG_H, 0.35*cm, 'Pag. %d' % self._pg[0])
-
-        canvas.restoreState()
 
 
 # ── Columnas ─────────────────────────────────────────────────────────────────
@@ -274,15 +234,20 @@ def leyenda():
 #  BUILD PDF
 # ════════════════════════════════════════════════════════════════════════════
 def build_pdf(data, output_path):
-    tienda       = data.get('NombreTienda', 'Todas las sucursales')
-    id_tienda    = int(data.get('IdTienda', 0) or 0)
-    fi           = data.get('FechaInicio', '—')
-    ff           = data.get('FechaFin',    '—')
-    estado_filtro= data.get('EstadoFiltro', '') or ''
-    bajas        = data.get('Bajas', [])
+    tienda        = data.get('NombreTienda',  'Todas las sucursales')
+    empresa       = data.get('NombreEmpresa', tienda)
+    id_tienda     = int(data.get('IdTienda',  0) or 0)
+    fi            = data.get('FechaInicio',   '—')
+    ff            = data.get('FechaFin',      '—')
+    estado_filtro = data.get('EstadoFiltro',  '') or ''
+    reporte_id    = data.get('ReporteId',     '')
+    nombre_usuario= data.get('NombreUsuario', '')
+    logo_path     = data.get('LogoPath',      '')
+    bajas         = data.get('Bajas', [])
 
     mostrar_tienda = (id_tienda == 0)
-    periodo = 'Período: {} — {}'.format(fi, ff) if fi != '—' else 'Período: Todos'
+    periodo  = '{} — {}'.format(fi, ff) if fi != '—' else ''
+    filtros  = ('Estado: ' + estado_filtro) if estado_filtro else ''
 
     doc = SimpleDocTemplate(
         output_path,
@@ -292,7 +257,8 @@ def build_pdf(data, output_path):
         title='Reporte de Bajas de Productos'
     )
 
-    cb    = _Canvas(tienda, periodo, estado_filtro)
+    cb    = _Canvas('Reporte de Bajas de Productos', empresa, periodo,
+                    filtros, nombre_usuario, reporte_id, logo_path)
     story = []
 
     if bajas:

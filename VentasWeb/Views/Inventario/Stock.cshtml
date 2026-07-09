@@ -12,7 +12,7 @@
 
 <div class="card border-success">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-        <span><i class="fas fa-boxes"></i> Reporte de Stock por Tienda y Categoría</span>
+        <span><i class="fas fa-boxes"></i> Reporte Gerencial de Productos por Tienda</span>
         <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
             <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
         </button>
@@ -50,43 +50,142 @@
         </div>
 
         @* Leyenda *@
-        <div class="mb-2">
-            <span class="badge badge-danger mr-2">CRÍTICO</span> Stock &le; mínimo &nbsp;
-            <span class="badge badge-warning mr-2">BAJO</span> Stock &le; 1.5&times; mínimo &nbsp;
-            <span class="badge badge-success mr-2">OK</span> Stock normal
+        <div class="mb-3 small">
+            <span class="badge badge-danger mr-1">CRÍTICO</span> Stock &le; mínimo &nbsp;
+            <span class="badge badge-warning mr-1">BAJO</span> Stock &le; 1.5&times; mínimo &nbsp;
+            <span class="badge badge-success mr-1">OK</span> Stock normal &nbsp;
+            <span class="badge badge-secondary mr-1">SIN STOCK</span> Stock = 0
         </div>
 
-        @* Tabla agrupada (renderizada por JS) *@
+        @* ── KPI Cards ─────────────────────────────────────────────────────── *@
+        <div id="panelKPI" class="d-none mb-3">
+            <div class="row text-center">
+                <div class="col-6 col-md mb-2">
+                    <div class="card border-primary h-100 shadow-sm">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Productos</div>
+                            <div id="kpiProductos" class="h5 font-weight-bold text-primary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md mb-2">
+                    <div class="card border-info h-100 shadow-sm">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Sucursales</div>
+                            <div id="kpiSucursales" class="h5 font-weight-bold text-info mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md mb-2">
+                    <div class="card border-success h-100 shadow-sm">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Unidades</div>
+                            <div id="kpiUnidades" class="h5 font-weight-bold text-success mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md mb-2">
+                    <div class="card border-warning h-100 shadow-sm">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Inversión (compra)</div>
+                            <div id="kpiInversion" class="h6 font-weight-bold text-warning mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md mb-2">
+                    <div class="card h-100 shadow-sm" style="border-color:#20c997;">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Valor potencial venta</div>
+                            <div id="kpiValorVenta" class="h6 font-weight-bold mb-0" style="color:#20c997;">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md mb-2">
+                    <div class="card border-dark h-100 shadow-sm">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Ganancia potencial</div>
+                            <div id="kpiGanancia" class="h6 font-weight-bold text-dark mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md mb-2">
+                    <div class="card border-secondary h-100 shadow-sm">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Sin stock</div>
+                            <div id="kpiSinStock" class="h5 font-weight-bold text-secondary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md mb-2">
+                    <div class="card border-danger h-100 shadow-sm">
+                        <div class="card-body py-2 px-1">
+                            <div class="text-muted" style="font-size:.7rem;">Crítico</div>
+                            <div id="kpiCritico" class="h5 font-weight-bold text-danger mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Resumen por Sucursal ──────────────────────────────────────────── *@
+        <div id="panelResumenSucursal" class="d-none mb-3">
+            <h6 class="font-weight-bold text-success border-bottom pb-1">
+                <i class="fas fa-store mr-1"></i> Resumen por Sucursal
+            </h6>
+            <div id="tablaResumenSucursal"></div>
+        </div>
+
+        @* ── Detalle agrupado por Tienda → Categoría ──────────────────────── *@
         <div id="contenedorStock">
             <p class="text-muted text-center mt-4">Presioná <strong>Consultar</strong> para cargar el reporte.</p>
         </div>
 
-        @* Totales generales *@
-        <div id="panelTotales" class="d-none mt-3">
-            <table class="table table-sm table-bordered w-auto ml-auto">
-                <tbody>
-                    <tr class="table-dark">
-                        <th>Total general de unidades</th>
-                        <td id="tdTotalGeneral" class="text-center font-weight-bold"></td>
-                    </tr>
-                    <tr class="table-danger">
-                        <th>Productos en estado CRÍTICO</th>
-                        <td id="tdTotalCritico" class="text-center font-weight-bold"></td>
-                    </tr>
-                    <tr class="table-warning">
-                        <th>Productos en estado BAJO</th>
-                        <td id="tdTotalBajo" class="text-center font-weight-bold"></td>
-                    </tr>
-                </tbody>
-            </table>
+        @* ── Paneles inferiores ────────────────────────────────────────────── *@
+        <div id="panelInferior" class="d-none">
+
+            <div class="row mt-3">
+                <div class="col-md-6 mb-3">
+                    <h6 class="font-weight-bold text-secondary border-bottom pb-1">
+                        <i class="fas fa-box-open mr-1"></i> Productos sin stock
+                    </h6>
+                    <div id="tablaSinStock"></div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <h6 class="font-weight-bold text-dark border-bottom pb-1">
+                        <i class="fas fa-coins mr-1"></i> Mayor valor inmovilizado (Top 5)
+                    </h6>
+                    <div id="tablaTopInmovilizado"></div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-7 mb-3">
+                    <h6 class="font-weight-bold text-info border-bottom pb-1">
+                        <i class="fas fa-chart-bar mr-1"></i> Distribución del inventario
+                    </h6>
+                    <div id="tablaDistribucion"></div>
+                </div>
+                <div class="col-md-5 mb-3">
+                    <h6 class="font-weight-bold border-bottom pb-1">
+                        <i class="fas fa-tachometer-alt mr-1"></i> Estado del stock
+                    </h6>
+                    <div id="tablaEstadoStock"></div>
+                </div>
+            </div>
+
         </div>
 
     </div>
 </div>
 
+@* Formulario oculto GET para PDF (servidor Python) *@
+<form id="frmPDFStock" method="get"
+      action="@Url.Action("DescargarPDFStock", "Inventario")">
+    <input type="hidden" id="hStockTienda"    name="idtienda"   value="0" />
+    <input type="hidden" id="hStockCategoria" name="categoria"  value=""  />
+    <input type="hidden" id="hStockEstado"    name="estado"     value=""  />
+</form>
+
 @section scripts {
-    @* jsPDF + autoTable para exportar PDF *@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="@Url.Content("~/Scripts/Views/Inventario_Stock.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
 }

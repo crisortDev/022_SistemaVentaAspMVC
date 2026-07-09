@@ -6,8 +6,12 @@
 # ============================================================
 
 import sys
+import os
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from membrete import _Canvas, MARG_TOP, MARG_H
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units     import cm
@@ -20,8 +24,6 @@ from reportlab.platypus      import (
 
 # ── Página ────────────────────────────────────────────────────────────────────
 PAGE     = A4                      # 210 × 297 mm portrait
-MARG_H   = 1.5 * cm
-MARG_TOP = 2.6 * cm
 MARG_BOT = 1.5 * cm
 PAGE_W   = PAGE[0] - 2 * MARG_H   # 18.0 cm útil
 
@@ -72,48 +74,6 @@ def gs(v):
 
 def P(txt, sty):
     return Paragraph(str(txt) if txt is not None else '—', sty)
-
-# ── Header/Footer canvas ──────────────────────────────────────────────────────
-class _Canvas:
-    def __init__(self, tienda, ruc, filtro):
-        self.tienda = tienda
-        self.ruc    = ruc
-        self.filtro = filtro
-        self._pg    = [0]
-
-    def __call__(self, canvas, doc):
-        self._pg[0] += 1
-        canvas.saveState()
-        w, h = PAGE
-
-        # Barra azul superior
-        canvas.setFillColor(AZUL)
-        canvas.rect(0, h - 2.0*cm, w, 2.0*cm, fill=True, stroke=False)
-
-        canvas.setFillColor(BLANCO)
-        canvas.setFont('Helvetica-Bold', 11)
-        canvas.drawString(MARG_H, h - 0.9*cm, 'Reporte de Productos por Tienda')
-
-        canvas.setFont('Helvetica', 7.5)
-        sub = 'Sucursal: ' + self.tienda
-        if self.ruc:
-            sub += '   |   RUC: ' + self.ruc
-        canvas.drawString(MARG_H, h - 1.55*cm, sub)
-        canvas.drawRightString(w - MARG_H, h - 0.9*cm, self.filtro)
-        canvas.drawRightString(w - MARG_H, h - 1.55*cm,
-                               'Generado: ' + datetime.now().strftime('%d/%m/%Y'))
-
-        # Footer
-        canvas.setFillColor(GRIS_L)
-        canvas.rect(0, 0, w, 1.0*cm, fill=True, stroke=False)
-        canvas.setFillColor(GRIS_T)
-        canvas.setFont('Helvetica', 7)
-        canvas.drawString(MARG_H, 0.35*cm,
-                          'Generado: ' + datetime.now().strftime('%d/%m/%Y %H:%M'))
-        canvas.drawCentredString(w/2, 0.35*cm, 'Sistema de Ventas — Confidencial')
-        canvas.drawRightString(w - MARG_H, 0.35*cm, 'Pag. %d' % self._pg[0])
-
-        canvas.restoreState()
 
 
 # ── Helpers de parseo ────────────────────────────────────────────────────────
@@ -235,16 +195,21 @@ def totales_table(productos, mostrar_tienda):
 #  BUILD PDF
 # ════════════════════════════════════════════════════════════════════════════
 def build_pdf(data, output_path):
-    tienda    = data.get('NombreTienda', 'Todas las sucursales')
-    ruc       = data.get('RucTienda', '')
-    codigo    = data.get('CodigoFiltro', '')
-    id_tienda = int(data.get('IdTienda', 0) or 0)
-    productos = data.get('Productos', [])
+    tienda        = data.get('NombreTienda',  'Todas las sucursales')
+    ruc           = data.get('RucTienda',     '')
+    empresa       = data.get('NombreEmpresa', tienda)
+    codigo        = data.get('CodigoFiltro',  '')
+    id_tienda     = int(data.get('IdTienda',  0) or 0)
+    productos     = data.get('Productos',     [])
+    reporte_id    = data.get('ReporteId',     '')
+    nombre_usuario= data.get('NombreUsuario', '')
+    logo_path     = data.get('LogoPath',      '')
 
     # Columna Tienda solo cuando se consulta "todas las sucursales"
     mostrar_tienda = (id_tienda == 0)
 
-    filtro = 'Código: ' + codigo if codigo else 'Todos los productos'
+    filtro_cod = ('Código: ' + codigo) if codigo else 'Todos los productos'
+    filtros    = filtro_cod
 
     doc = SimpleDocTemplate(
         output_path,
@@ -254,7 +219,8 @@ def build_pdf(data, output_path):
         title='Reporte de Productos por Tienda'
     )
 
-    cb    = _Canvas(tienda, ruc, filtro)
+    cb    = _Canvas('Reporte de Productos por Tienda', empresa, '',
+                    filtros, nombre_usuario, reporte_id, logo_path)
     story = []
 
     if productos:

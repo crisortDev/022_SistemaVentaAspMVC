@@ -6,8 +6,12 @@
 # ============================================================
 
 import sys
+import os
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from membrete import _Canvas, MARG_TOP, MARG_H
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units     import cm
@@ -20,8 +24,6 @@ from reportlab.platypus      import (
 
 # ── Página ────────────────────────────────────────────────────────────────────
 PAGE     = A4
-MARG_H   = 1.5 * cm
-MARG_TOP = 2.8 * cm
 MARG_BOT = 1.5 * cm
 PAGE_W   = PAGE[0] - 2 * MARG_H   # ≈ 18 cm útil
 
@@ -73,46 +75,6 @@ def P(txt, sty):
 def estado_badge(est):
     """Retorna el texto del estado (se colorea via TableStyle si es necesario)."""
     return str(est) if est else 'Efectiva'
-
-# ── Header/Footer canvas ──────────────────────────────────────────────────────
-class _Canvas:
-    def __init__(self, tienda, ruc, periodo):
-        self.tienda  = tienda
-        self.ruc     = ruc
-        self.periodo = periodo
-        self._pg     = [0]
-
-    def __call__(self, canvas, doc):
-        self._pg[0] += 1
-        canvas.saveState()
-        w, h = PAGE
-
-        # Barra azul superior (membrete)
-        canvas.setFillColor(AZUL)
-        canvas.rect(0, h - 2.2*cm, w, 2.2*cm, fill=True, stroke=False)
-
-        canvas.setFillColor(BLANCO)
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(MARG_H, h - 1.0*cm, 'Reporte de Ventas')
-
-        canvas.setFont('Helvetica', 8)
-        canvas.drawString(MARG_H, h - 1.6*cm, self.tienda)
-
-        canvas.setFont('Helvetica', 7.5)
-        canvas.drawString(MARG_H, h - 2.05*cm, 'RUC: ' + self.ruc)
-        canvas.drawRightString(w - MARG_H, h - 1.0*cm,  self.periodo)
-        canvas.drawRightString(w - MARG_H, h - 1.55*cm,
-                               'Generado: ' + datetime.now().strftime('%d/%m/%Y %H:%M'))
-
-        # Footer
-        canvas.setFillColor(GRIS_L)
-        canvas.rect(0, 0, w, 1.0*cm, fill=True, stroke=False)
-        canvas.setFillColor(GRIS_T)
-        canvas.setFont('Helvetica', 7)
-        canvas.drawCentredString(w/2, 0.35*cm, 'Sistema de Ventas — Confidencial')
-        canvas.drawRightString(w - MARG_H, 0.35*cm, 'Pag. %d' % self._pg[0])
-
-        canvas.restoreState()
 
 
 # ── Tabla principal ───────────────────────────────────────────────────────────
@@ -197,11 +159,21 @@ def totales_table(ventas):
 #  BUILD PDF
 # ════════════════════════════════════════════════════════════════════════════
 def build_pdf(data, output_path):
-    tienda  = data.get('NombreTienda', '')
-    ruc     = data.get('RucTienda',    '')
-    periodo = 'Período: {} al {}'.format(
-        data.get('FechaInicio', ''), data.get('FechaFin', ''))
-    ventas  = data.get('Ventas', [])
+    tienda        = data.get('NombreTienda',  '')
+    ruc           = data.get('RucTienda',     '')
+    empresa       = data.get('NombreEmpresa', tienda)
+    fi_str        = data.get('FechaInicio',   '')
+    ff_str        = data.get('FechaFin',      '')
+    estado_filtro = data.get('EstadoFiltro',  '') or ''
+    periodo       = '{} — {}'.format(fi_str, ff_str) if fi_str else ''
+    partes_filtro = []
+    if tienda:        partes_filtro.append('Sucursal: ' + tienda)
+    if estado_filtro: partes_filtro.append('Estado: ' + estado_filtro)
+    filtros       = '   '.join(partes_filtro)
+    reporte_id    = data.get('ReporteId',     '')
+    nombre_usuario= data.get('NombreUsuario', '')
+    logo_path     = data.get('LogoPath',      '')
+    ventas        = data.get('Ventas', [])
 
     doc = SimpleDocTemplate(
         output_path,
@@ -211,11 +183,12 @@ def build_pdf(data, output_path):
         title='Reporte de Ventas'
     )
 
-    cb    = _Canvas(tienda, ruc, periodo)
+    cb    = _Canvas('Reporte de Ventas', empresa, periodo, filtros,
+                    nombre_usuario, reporte_id, logo_path)
     story = []
 
     # ── Encabezado del período ────────────────────────────────────────────
-    story.append(P('Detalle de Ventas — ' + periodo, ST_SEC))
+    story.append(P('Detalle de Ventas' + (' — ' + periodo if periodo else ''), ST_SEC))
     story.append(Spacer(1, 4))
 
     # ── Tabla de ventas ───────────────────────────────────────────────────

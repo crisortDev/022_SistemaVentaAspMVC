@@ -19,5 +19,8 @@ namespace CapaModelo
         public decimal StockMinimo { get; set; }
         public decimal StockMaximo { get; set; }
         public string EstadoStock { get; set; }
+        public string Descripcion { get; set; }
+        public decimal CostoUnitario { get; set; }
+        public decimal PrecioVenta { get; set; }
     }
 }

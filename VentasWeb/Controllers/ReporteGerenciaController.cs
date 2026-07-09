@@ -115,7 +115,12 @@ namespace VentasWeb.Controllers
                 string tmpPdf  = Path.Combine(Path.GetTempPath(),
                                               "reporte_compras_" + Guid.NewGuid().ToString("N") + ".pdf");
 
-                System.IO.File.WriteAllText(tmpJson, JsonConvert.SerializeObject(reporte, Formatting.None));
+                var joCompras = Newtonsoft.Json.Linq.JObject.FromObject(reporte);
+                joCompras["ReporteId"]     = GetReporteId();
+                joCompras["NombreUsuario"] = GetNombreUsuario();
+                joCompras["NombreEmpresa"] = GetNombreEmpresa();
+                joCompras["LogoPath"]      = GetLogoPath();
+                System.IO.File.WriteAllText(tmpJson, joCompras.ToString(Formatting.None));
 
                 // ── Llamar al script Python ───────────────────────────────────
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_compras.py");
@@ -252,8 +257,13 @@ namespace VentasWeb.Controllers
                 string tmpPdf  = Path.Combine(Path.GetTempPath(),
                                               "rptventas_" + Guid.NewGuid().ToString("N") + ".pdf");
 
+                var joVentas = Newtonsoft.Json.Linq.JObject.FromObject(reporte);
+                joVentas["ReporteId"]     = GetReporteId();
+                joVentas["NombreUsuario"] = GetNombreUsuario();
+                joVentas["NombreEmpresa"] = GetNombreEmpresa();
+                joVentas["LogoPath"]      = GetLogoPath();
                 System.IO.File.WriteAllText(tmpJson,
-                    JsonConvert.SerializeObject(reporte, Formatting.None),
+                    joVentas.ToString(Formatting.None),
                     new UTF8Encoding(false));   // sin BOM
 
                 string scriptPath = Server.MapPath("~/Scripts/PDF/generar_reporte_ventas_gerencia.py");

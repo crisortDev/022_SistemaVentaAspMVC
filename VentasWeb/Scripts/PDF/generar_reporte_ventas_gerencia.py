@@ -6,8 +6,12 @@
 # ============================================================
 
 import sys
+import os
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from membrete import _Canvas, MARG_TOP, MARG_H
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units     import cm
@@ -20,8 +24,6 @@ from reportlab.platypus      import (
 
 # ── Página ────────────────────────────────────────────────────────────────────
 PAGE     = A4                         # 21 × 29.7 cm
-MARG_H   = 1.5 * cm
-MARG_TOP = 2.6 * cm
 MARG_BOT = 1.5 * cm
 PAGE_W   = PAGE[0] - 2 * MARG_H      # ≈ 18 cm útil
 
@@ -136,42 +138,6 @@ def data_table(headers, rows, col_w_cm, aligns=None, max_rows=None):
 def hr():
     return HRFlowable(width='100%', thickness=0.5, color=GRIS_M, spaceAfter=4)
 
-# ── Header / Footer en canvas ─────────────────────────────────────────────────
-class _Canvas:
-    def __init__(self, tienda, periodo):
-        self.tienda  = tienda
-        self.periodo = periodo
-        self._pg     = [0]
-
-    def __call__(self, canvas, doc):
-        self._pg[0] += 1
-        canvas.saveState()
-        w, h = PAGE
-
-        # Barra azul superior
-        canvas.setFillColor(AZUL)
-        canvas.rect(0, h - 2.0*cm, w, 2.0*cm, fill=True, stroke=False)
-        canvas.setFillColor(BLANCO)
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(MARG_H, h - 1.1*cm, 'Reporte de Ventas — Alta Gerencia')
-        canvas.setFont('Helvetica', 8)
-        canvas.drawRightString(w - MARG_H, h - 1.0*cm, self.tienda)
-        canvas.setFont('Helvetica', 7.5)
-        canvas.drawRightString(w - MARG_H, h - 1.55*cm, self.periodo)
-
-        # Footer
-        canvas.setFillColor(GRIS_L)
-        canvas.rect(0, 0, w, 1.0*cm, fill=True, stroke=False)
-        canvas.setFillColor(colors.HexColor('#6b7280'))
-        canvas.setFont('Helvetica', 7)
-        canvas.drawString(MARG_H, 0.35*cm,
-                          'Generado: ' + datetime.now().strftime('%d/%m/%Y %H:%M'))
-        canvas.drawCentredString(w/2, 0.35*cm, 'Sistema de Ventas — Confidencial')
-        canvas.drawRightString(w - MARG_H, 0.35*cm,
-                               'Pag. %d' % self._pg[0])
-
-        canvas.restoreState()
-
 
 # ════════════════════════════════════════════════════════════════════════════
 #  BUILD PDF
@@ -185,19 +151,26 @@ def build_pdf(data, output_path):
         title='Reporte Ventas Gerencia'
     )
 
-    kpis       = data.get('KPIs', {})
-    por_mes    = data.get('VentasPorMes', [])
-    top_prod   = data.get('TopProductos', [])
-    utilidad   = data.get('ProductosUtilidad', [])
-    por_tienda = data.get('VentasPorTienda', [])
-    vendedores = data.get('VentasPorVendedor', [])
-    clientes   = data.get('TopClientes', [])
-    inventario = data.get('Inventario', [])
-    tienda     = data.get('NombreTienda', '')
-    periodo    = 'Periodo: {} al {}'.format(
-        data.get('FechaInicio', ''), data.get('FechaFin', ''))
+    kpis          = data.get('KPIs', {})
+    por_mes       = data.get('VentasPorMes', [])
+    top_prod      = data.get('TopProductos', [])
+    utilidad      = data.get('ProductosUtilidad', [])
+    por_tienda    = data.get('VentasPorTienda', [])
+    vendedores    = data.get('VentasPorVendedor', [])
+    clientes      = data.get('TopClientes', [])
+    inventario    = data.get('Inventario', [])
+    tienda        = data.get('NombreTienda',  '')
+    empresa       = data.get('NombreEmpresa', tienda)
+    fi_str        = data.get('FechaInicio',   '')
+    ff_str        = data.get('FechaFin',      '')
+    periodo       = '{} — {}'.format(fi_str, ff_str) if fi_str else ''
+    filtros       = 'Sucursal: ' + tienda if tienda else ''
+    reporte_id    = data.get('ReporteId',     '')
+    nombre_usuario= data.get('NombreUsuario', '')
+    logo_path     = data.get('LogoPath',      '')
 
-    cb    = _Canvas(tienda, periodo)
+    cb    = _Canvas('Reporte de Ventas — Alta Gerencia', empresa, periodo,
+                    filtros, nombre_usuario, reporte_id, logo_path)
     story = []
 
     # ── Banda KPIs (2 filas de 3) ────────────────────────────────────────

@@ -774,7 +774,10 @@ namespace CapaDatos
                             Stock = Convert.ToInt32(dr["Stock"]),
                             StockMinimo = Convert.ToInt32(dr["StockMinimo"]),
                             StockMaximo = Convert.ToInt32(dr["StockMaximo"]),
-                            EstadoStock = dr["EstadoStock"].ToString()
+                            EstadoStock  = dr["EstadoStock"].ToString(),
+                            Descripcion  = dr["Descripcion"].ToString(),
+                            CostoUnitario = Convert.ToDecimal(dr["CostoUnitario"]),
+                            PrecioVenta   = Convert.ToDecimal(dr["PrecioVenta"])
                         });
                     }
                     dr.Close();
