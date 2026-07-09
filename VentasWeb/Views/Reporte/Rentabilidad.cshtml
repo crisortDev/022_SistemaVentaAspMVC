@@ -12,7 +12,7 @@
 
 <div class="card border-success">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-        <span><i class="fas fa-chart-line"></i> Rentabilidad por Producto — Costo Promedio Ponderado (CPP)</span>
+        <span><i class="fas fa-chart-line"></i> Reporte Gerencial de Rentabilidad por Producto — CPP</span>
         <button id="btnExportarPDF" class="btn btn-sm btn-light" onclick="exportarPDF()" disabled>
             <i class="fas fa-file-pdf text-danger"></i> Exportar PDF
         </button>
@@ -51,54 +51,135 @@
         @* Alerta metodología *@
         <div class="alert alert-info py-2 px-3 mb-3" style="font-size:12px;">
             <i class="fas fa-info-circle"></i>
-            <strong>Método CPP:</strong> El Costo Promedio Ponderado se recalcula automáticamente con cada compra confirmada.
-            La <em>Utilidad Bruta</em> = Precio Venta − CPP por unidad vendida.
-            El margen negativo indica que el precio de venta está por debajo del costo real.
+            <strong>Método CPP:</strong> Costo Promedio Ponderado recalculado con cada compra confirmada.
+            <em>Utilidad Bruta</em> = Precio Venta − CPP × Uds. Vendidas.
+            Margen negativo indica precio de venta por debajo del costo real.
         </div>
 
-        @* Tabla de resultados *@
-        <div id="contenedorRentabilidad">
-            <p class="text-muted text-center mt-4">
-                Seleccioná un rango de fechas y presioná <strong>Consultar</strong>.
-            </p>
-        </div>
-
-        @* Panel resumen *@
-        <div id="panelResumen" class="d-none mt-3">
-            <div class="row">
-                <div class="col-sm-3">
-                    <div class="card border-primary text-center py-2">
-                        <div class="card-body p-1">
-                            <div class="text-muted small">Total Ingresos</div>
-                            <div class="h6 text-primary font-weight-bold mb-0" id="lblTotalIngresos">—</div>
+        @* ── 8 KPI Cards ──────────────────────────────────────────────────── *@
+        <div id="panelKPI" class="d-none mb-3">
+            <div class="row text-center">
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-primary h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Productos Analizados</div>
+                            <div id="kpiAnalizados" class="h4 font-weight-bold text-primary mb-0">—</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-3">
-                    <div class="card border-warning text-center py-2">
-                        <div class="card-body p-1">
-                            <div class="text-muted small">Costo Total (CPP)</div>
-                            <div class="h6 text-warning font-weight-bold mb-0" id="lblTotalCosto">—</div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-success h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Con Ventas</div>
+                            <div id="kpiConVentas" class="h4 font-weight-bold text-success mb-0">—</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-3">
-                    <div class="card border-success text-center py-2">
-                        <div class="card-body p-1">
-                            <div class="text-muted small">Utilidad Bruta</div>
-                            <div class="h6 text-success font-weight-bold mb-0" id="lblTotalUtilidad">—</div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-info h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Ingresos Totales</div>
+                            <div id="kpiIngresos" class="h6 font-weight-bold text-info mb-0">—</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-3">
-                    <div class="card border-info text-center py-2">
-                        <div class="card-body p-1">
-                            <div class="text-muted small">Valor Inventario (CPP)</div>
-                            <div class="h6 text-info font-weight-bold mb-0" id="lblTotalInventario">—</div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-warning h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Costo Total CPP</div>
+                            <div id="kpiCosto" class="h6 font-weight-bold text-warning mb-0">—</div>
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="row text-center">
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-success h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Utilidad Total</div>
+                            <div id="kpiUtilidad" class="h6 font-weight-bold text-success mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-dark h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Margen Promedio</div>
+                            <div id="kpiMargen" class="h4 font-weight-bold text-dark mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card h-100 shadow-sm" style="border-color:#6f42c1;">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Valor Inventario (CPP)</div>
+                            <div id="kpiInventario" class="h6 font-weight-bold mb-0" style="color:#6f42c1;">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <div class="card border-secondary h-100 shadow-sm">
+                        <div class="card-body py-2 px-2">
+                            <div class="text-muted" style="font-size:.7rem;">Sin Ventas</div>
+                            <div id="kpiSinVentas" class="h4 font-weight-bold text-secondary mb-0">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Análisis de rentabilidad ──────────────────────────────────────── *@
+        <div id="panelAnalisis" class="d-none">
+
+            @* Fila: Clasificación | Top Utilidad | Top Margen *@
+            <div class="row mb-3">
+                <div class="col-md-4 mb-3">
+                    <h6 class="font-weight-bold text-success border-bottom pb-1">
+                        <i class="fas fa-layer-group mr-1"></i> Clasificación de Rentabilidad
+                    </h6>
+                    <div id="tablaClasificacion"></div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h6 class="font-weight-bold text-success border-bottom pb-1">
+                        <i class="fas fa-trophy mr-1"></i> Mayor Utilidad (Top 5)
+                    </h6>
+                    <div id="tablaTopUtilidad"></div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h6 class="font-weight-bold text-success border-bottom pb-1">
+                        <i class="fas fa-percentage mr-1"></i> Mayor Margen (Top 5)
+                    </h6>
+                    <div id="tablaTopMargen"></div>
+                </div>
+            </div>
+
+            @* Fila: Bajo Desempeño | Indicadores + Análisis *@
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <h6 class="font-weight-bold text-danger border-bottom pb-1">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Productos de Bajo Desempeño
+                    </h6>
+                    <div id="tablaBajoDesempeno"></div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <h6 class="font-weight-bold border-bottom pb-1">
+                        <i class="fas fa-chart-pie mr-1"></i> Indicadores Estratégicos
+                    </h6>
+                    <div id="tablaIndicadores"></div>
+                    <h6 class="font-weight-bold border-bottom pb-1 mt-3">
+                        <i class="fas fa-briefcase mr-1"></i> Análisis Gerencial
+                    </h6>
+                    <div id="tablaAnalisis"></div>
+                </div>
+            </div>
+
+        </div>
+
+        @* ── Detalle de productos ──────────────────────────────────────────── *@
+        <div id="contenedorRentabilidad">
+            <p class="text-muted text-center mt-4">
+                Seleccioná un rango de fechas y presioná <strong>Consultar</strong>.
+            </p>
         </div>
 
     </div>
