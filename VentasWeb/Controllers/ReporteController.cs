@@ -28,13 +28,14 @@ namespace VentasWeb.Controllers
         // GET: Reporte
         public ActionResult Ventas()
         {
+            SetNombreTienda();
             return View();
         }
 
         public JsonResult ObtenerProducto(int idtienda, string codigoproducto)
         {
             // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
-            if (!EsSuperAdmin) idtienda = TiendaActiva;
+            if (!EsAdminGlobal) idtienda = TiendaActiva;
 
             List<ReporteProducto> lista = CD_Reportes.Instancia.ReporteProductoTienda(idtienda, codigoproducto ?? "");
 
@@ -46,7 +47,7 @@ namespace VentasWeb.Controllers
         public JsonResult ObtenerTiendas()
         {
             var todas = CD_Tienda.Instancia.ObtenerTiendas() ?? new List<Tienda>();
-            var lista = EsSuperAdmin
+            var lista = EsAdminGlobal
                 ? todas
                 : todas.Where(t => t.IdTienda == TiendaActiva).ToList();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
@@ -56,7 +57,7 @@ namespace VentasWeb.Controllers
         public JsonResult ObtenerVenta(string fechainicio, string fechafin, int idtienda)
         {
             // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
-            if (!EsSuperAdmin) idtienda = TiendaActiva;
+            if (!EsAdminGlobal) idtienda = TiendaActiva;
 
             // Rango por defecto: último mes si no vienen fechas
             DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
@@ -76,7 +77,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
                     ? DateTime.Today.AddMonths(-1) : Convert.ToDateTime(fechainicio);
@@ -165,7 +166,7 @@ namespace VentasWeb.Controllers
             string fechainicio, string fechafin,
             int idtienda, string estadobaja = "")
         {
-            if (!EsSuperAdmin) idtienda = TiendaActiva;
+            if (!EsAdminGlobal) idtienda = TiendaActiva;
 
             DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
             DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
@@ -183,7 +184,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
                     ? (DateTime?)null : Convert.ToDateTime(fechainicio);
@@ -273,7 +274,7 @@ namespace VentasWeb.Controllers
             try
             {
                 // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
                 DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
@@ -294,7 +295,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
                 DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
@@ -380,7 +381,7 @@ namespace VentasWeb.Controllers
             try
             {
                 // Aislamiento por sucursal: si no es SuperAdmin, fuerza su tienda
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio) ? (DateTime?)null : Convert.ToDateTime(fechainicio);
                 DateTime? ff = string.IsNullOrWhiteSpace(fechafin)    ? (DateTime?)null : Convert.ToDateTime(fechafin);
@@ -413,6 +414,7 @@ namespace VentasWeb.Controllers
         // ============================================================
         public ActionResult Rentabilidad()
         {
+            SetNombreTienda();
             return View();
         }
 
@@ -437,7 +439,8 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                int tienda = idtienda > 0 ? idtienda : (EsSuperAdmin ? 0 : TiendaActiva);
+                // Aislamiento por sucursal: si no es SuperAdmin, ignora lo que mande el cliente y fuerza su tienda
+                int tienda = EsAdminGlobal ? idtienda : TiendaActiva;
                 DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
                     ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);
                 DateTime ff = string.IsNullOrWhiteSpace(fechafin)
@@ -461,7 +464,8 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                int tienda = idtienda > 0 ? idtienda : (EsSuperAdmin ? 0 : TiendaActiva);
+                // Aislamiento por sucursal: si no es SuperAdmin, ignora lo que mande el cliente y fuerza su tienda
+                int tienda = EsAdminGlobal ? idtienda : TiendaActiva;
                 DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
                     ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);
                 DateTime ff = string.IsNullOrWhiteSpace(fechafin)
@@ -535,7 +539,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 var lista = CD_Reportes.Instancia.ReporteProductoTienda(idtienda, codigoproducto ?? "");
 
@@ -610,7 +614,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
                     ? (DateTime?)null : Convert.ToDateTime(fechainicio);
@@ -698,7 +702,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
                     ? (DateTime?)null : Convert.ToDateTime(fechainicio);
@@ -723,7 +727,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin) idtienda = TiendaActiva;
+                if (!EsAdminGlobal) idtienda = TiendaActiva;
 
                 DateTime? fi = string.IsNullOrWhiteSpace(fechainicio)
                     ? (DateTime?)null : Convert.ToDateTime(fechainicio);
@@ -799,7 +803,7 @@ namespace VentasWeb.Controllers
         // ── Helper: pasa el nombre de la sucursal activa al ViewBag ──
         private void SetNombreTienda()
         {
-            if (!EsSuperAdmin && TiendaActiva > 0)
+            if (!EsAdminGlobal && TiendaActiva > 0)
             {
                 var tienda = CD_Tienda.Instancia.ObtenerTiendas()
                                       ?.Find(t => t.IdTienda == TiendaActiva);

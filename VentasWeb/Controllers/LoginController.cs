@@ -18,7 +18,7 @@ namespace VentasWeb.Controllers
         private static readonly string NombreSistema = ConfigurationManager.AppSettings["NombreSistema"] ?? "Sistema de Ventas";
 
         private const int MAX_INTENTOS = 5;
-        private const int ID_ROL_SUPERADMIN = 14;  // IdRol del SuperAdmin en BD
+        private const int ID_ROL_SUPERADMIN = 14;   // IdRol del SuperAdmin en BD — único rol con alcance multi-sucursal (2026-07-11)
 
         private string IP => Request?.UserHostAddress ?? "desconocida";
 
@@ -250,14 +250,26 @@ namespace VentasWeb.Controllers
         // ── Helper: IniciarSesion ─────────────────────────────────
         /// <summary>
         /// Centraliza la asignación de variables de sesión tras un login exitoso.
-        /// - Session["Usuario"]      → detalle completo del usuario
-        /// - Session["EsSuperAdmin"] → true si IdRol == 14
-        /// - Session["TiendaActiva"] → IdTienda del usuario (0 si es SuperAdmin global)
+        /// - Session["Usuario"]       → detalle completo del usuario
+        /// - Session["EsSuperAdmin"]  → true SOLO si IdRol == 14 (identidad estricta,
+        ///                              usada para no romper la segregación de funciones:
+        ///                              ej. no permitir aprobar lo que uno mismo registró).
+        /// - Session["EsAdminGlobal"] → true SOLO si IdRol == 14 (SuperAdmin). Administrador
+        ///                              y el resto de los roles operan restringidos a su
+        ///                              propia sucursal (decisión del dueño del proyecto,
+        ///                              2026-07-11). Se mantiene como clave separada de
+        ///                              EsSuperAdmin por si en el futuro se vuelve a
+        ///                              necesitar un alcance global distinto al de SuperAdmin.
+        /// - Session["TiendaActiva"]  → IdTienda del usuario (0 si tiene acceso global)
         /// </summary>
         private void IniciarSesion(Usuario usuario)
         {
+            bool esSuperAdmin = usuario.IdRol == ID_ROL_SUPERADMIN;
+            bool esAdminGlobal = esSuperAdmin; // Solo SuperAdmin opera en todas las sucursales.
+
             Session["Usuario"] = CD_Usuario.Instancia.ObtenerDetalleUsuario(usuario.IdUsuario);
-            Session["EsSuperAdmin"] = (usuario.IdRol == ID_ROL_SUPERADMIN);
+            Session["EsSuperAdmin"] = esSuperAdmin;
+            Session["EsAdminGlobal"] = esAdminGlobal;
             Session["TiendaActiva"] = usuario.IdTienda ?? 0;  // 0 = acceso global
         }
 

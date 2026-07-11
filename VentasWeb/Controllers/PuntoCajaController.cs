@@ -11,7 +11,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("PuntoCaja", "Index")]
         public ActionResult Index()
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
             ViewBag.Puntos   = CD_PuntoCaja.Instancia.ObtenerPuntos(idTienda);
             ViewBag.Tiendas  = CD_Tienda.Instancia.ObtenerTiendas();
             ViewBag.IdTienda = idTienda;
@@ -23,7 +23,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("PuntoCaja", "Index")]
         public JsonResult Obtener(int idTienda = 0)
         {
-            if (!EsSuperAdmin) idTienda = TiendaActiva;
+            if (!EsAdminGlobal) idTienda = TiendaActiva;
             var lista = CD_PuntoCaja.Instancia.ObtenerPuntos(idTienda);
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
@@ -33,7 +33,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("PuntoCaja", "Index")]
         public JsonResult ObtenerActivos(int idTienda = 0)
         {
-            if (!EsSuperAdmin) idTienda = TiendaActiva;
+            if (!EsAdminGlobal) idTienda = TiendaActiva;
             var lista = CD_PuntoCaja.Instancia.ObtenerPuntos(idTienda);
             var activos = new System.Collections.Generic.List<object>();
             foreach (var p in lista)
@@ -57,7 +57,7 @@ namespace VentasWeb.Controllers
         public JsonResult Guardar(int idPuntoCaja, int idTienda, string nombre,
                                    string descripcion, bool activo = true)
         {
-            if (!EsSuperAdmin) idTienda = TiendaActiva;
+            if (!EsAdminGlobal) idTienda = TiendaActiva;
 
             if (idPuntoCaja == 0)
             {

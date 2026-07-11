@@ -33,8 +33,8 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("NotaCredito", "Index")]
         public JsonResult Obtener(int idtienda = 0, string estado = "")
         {
-            // Seguridad: usuario no SuperAdmin solo ve su tienda
-            if (!EsSuperAdmin)
+            // Seguridad: usuario sin alcance global solo ve su tienda
+            if (!EsAdminGlobal)
                 idtienda = TiendaActiva;
 
             var lista = CD_NotaCredito.Instancia.ObtenerNotasCredito(idtienda, estado);

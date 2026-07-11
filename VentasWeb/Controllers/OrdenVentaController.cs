@@ -77,7 +77,7 @@ namespace VentasWeb.Controllers
             string fechainicio = "", string fechafin = "",
             string estado = "", string numerooV = "", string cliente = "")
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
 
             DateTime fi = ParseFecha(fechainicio, DateTime.Today.AddDays(-30));
             DateTime ff = ParseFecha(fechafin,   DateTime.Today);
@@ -109,7 +109,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("OrdenVenta", "Consultar Pre-ventas")]
+        [AuthorizeRol("OrdenVenta", "Anular")]
         public JsonResult Anular(int idOrdenVenta, string motivo)
         {
             if (UsuarioActual == null)

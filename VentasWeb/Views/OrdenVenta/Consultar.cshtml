@@ -7,8 +7,12 @@
     bool esRepositor = idRolActual == 7;
     // Cajero (4), Admin (1), SuperAdmin (14) pueden facturar
     bool puedeFacturar = esSuperAdminOV || idRolActual == 4 || idRolActual == 1;
+    // Anular es más restrictivo que facturar: el Cajero NO debe poder anular,
+    // solo consultar y facturar. Anular queda para Admin (1) y SuperAdmin (14).
+    bool puedeAnular = esSuperAdminOV || idRolActual == 1;
 }
 <input type="hidden" id="hdnPuedeFacturar" value="@(puedeFacturar ? "1" : "0")" />
+<input type="hidden" id="hdnPuedeAnular" value="@(puedeAnular ? "1" : "0")" />
 <input type="hidden" id="hdnEsRepositor" value="@(esRepositor ? "1" : "0")" />
 @if (TempData["Error"] != null)
 {

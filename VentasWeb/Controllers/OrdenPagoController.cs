@@ -40,7 +40,7 @@ namespace VentasWeb.Controllers
         [HttpGet]
         public JsonResult Obtener(string fechainicio, string fechafin, int idtienda, string estado)
         {
-            if (!EsSuperAdmin) idtienda = TiendaActiva;
+            if (!EsAdminGlobal) idtienda = TiendaActiva;
 
             DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
                             ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);

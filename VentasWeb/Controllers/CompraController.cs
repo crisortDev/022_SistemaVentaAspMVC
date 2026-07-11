@@ -52,7 +52,7 @@ namespace VentasWeb.Controllers
         public JsonResult Obtener(string fechainicio, string fechafin, int idproveedor, int idtienda)
         {
             // ── Si no es SuperAdmin, forzar su propia tienda ──────
-            if (!EsSuperAdmin)
+            if (!EsAdminGlobal)
                 idtienda = TiendaActiva;
 
             List<Compra> lista = CD_Compra.Instancia.ObtenerListaCompra(
@@ -72,7 +72,7 @@ namespace VentasWeb.Controllers
         public JsonResult ObtenerConsulta(string fechainicio, string fechafin,
                                           int idproveedor, int idtienda, string estado)
         {
-            if (!EsSuperAdmin)
+            if (!EsAdminGlobal)
                 idtienda = TiendaActiva;
 
             var lista = CD_Compra.Instancia.ObtenerListaRevision(

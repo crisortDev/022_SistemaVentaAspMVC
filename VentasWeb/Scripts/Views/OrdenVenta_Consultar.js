@@ -18,6 +18,7 @@ function iniciarTabla() {
                 data: null, orderable: false, searchable: false,
                 render: function (d) {
                     var puedeFacturar = $('#hdnPuedeFacturar').val() === '1';
+                    var puedeAnular = $('#hdnPuedeAnular').val() === '1';
                     var btns = '';
                     // Botón Ver Detalle — disponible para todos los roles
                     btns += '<button class="btn btn-info btn-sm mr-1" title="Ver productos" onclick="verDetalleOV(' + d.IdOrdenVenta + ',\'' + escapar(d.NumeroOV) + '\')"><i class="fas fa-eye"></i></button>';
@@ -25,9 +26,11 @@ function iniciarTabla() {
                         if (puedeFacturar) {
                             btns += '<a href="' + $.MisUrls.url._OV_UrlFacturar + '?idOrdenVenta=' + d.IdOrdenVenta +
                                 '" class="btn btn-primary btn-sm mr-1" title="Facturar"><i class="fas fa-file-invoice-dollar"></i></a>';
-                            btns += '<button class="btn btn-danger btn-sm" title="Anular" onclick="abrirAnular(' + d.IdOrdenVenta + ',\'' + escapar(d.NumeroOV) + '\')"><i class="fas fa-ban"></i></button>';
                         } else {
                             btns += '<button class="btn btn-secondary btn-sm mr-1" disabled title="Tu rol (Repositor) no puede facturar. Solicitá a un Cajero."><i class="fas fa-file-invoice-dollar"></i></button>';
+                        }
+                        if (puedeAnular) {
+                            btns += '<button class="btn btn-danger btn-sm" title="Anular" onclick="abrirAnular(' + d.IdOrdenVenta + ',\'' + escapar(d.NumeroOV) + '\')"><i class="fas fa-ban"></i></button>';
                         }
                     }
                     return btns || '—';

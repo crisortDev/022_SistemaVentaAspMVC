@@ -103,7 +103,7 @@ namespace VentasWeb.Controllers
         [HttpGet]
         public JsonResult ObtenerProductosParaOC(int idtienda = 0)
         {
-            if (!EsSuperAdmin && idtienda == 0) idtienda = TiendaActiva;
+            if (!EsAdminGlobal && idtienda == 0) idtienda = TiendaActiva;
 
             try
             {
@@ -251,8 +251,8 @@ namespace VentasWeb.Controllers
         public JsonResult Obtener(string fechainicio, string fechafin,
                                   int idproveedor, int idtienda, string estado)
         {
-            // Usuarios no SuperAdmin → forzar su propia tienda
-            if (!EsSuperAdmin)
+            // Usuarios sin alcance global → forzar su propia tienda
+            if (!EsAdminGlobal)
                 idtienda = TiendaActiva;
 
             List<OrdenCompra> lista = CD_OrdenCompra.Instancia.ObtenerListaOrdenCompra(
@@ -297,8 +297,8 @@ namespace VentasWeb.Controllers
                 if (idproveedor <= 0)
                     return Json(new { resultado = false, mensaje = "Debe seleccionar un proveedor." });
 
-                // Si no es SuperAdmin, la tienda es la propia
-                if (!EsSuperAdmin)
+                // Si no tiene alcance global, la tienda es la propia
+                if (!EsAdminGlobal)
                     idtienda = TiendaActiva;
 
                 if (idtienda <= 0)
@@ -437,7 +437,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin)
+                if (!EsAdminGlobal)
                     idtienda = TiendaActiva;
 
                 var lista = CD_OrdenCompra.Instancia.ObtenerOrdenesAprobadasPorProveedor(idproveedor, idtienda);
@@ -461,7 +461,7 @@ namespace VentasWeb.Controllers
         [HttpGet]
         public JsonResult ValidarStockItem(int idtienda, int idproducto, int cantidad)
         {
-            if (!EsSuperAdmin) idtienda = TiendaActiva;
+            if (!EsAdminGlobal) idtienda = TiendaActiva;
 
             try
             {
@@ -520,7 +520,7 @@ namespace VentasWeb.Controllers
             if (items == null || !items.Any())
                 return Json(new { advertencias = new System.Collections.Generic.List<object>() });
 
-            if (!EsSuperAdmin) idtienda = TiendaActiva;
+            if (!EsAdminGlobal) idtienda = TiendaActiva;
 
             var advertencias = new System.Collections.Generic.List<object>();
 

@@ -11,17 +11,32 @@ namespace VentasWeb.Controllers
     /// </summary>
     public class BaseController : Controller
     {
-        // ── Constante del IdRol SuperAdmin ────────────────────────
-        protected const int ID_ROL_SUPERADMIN = 14;
+        // ── Constantes de IdRol ────────────────────────────────────
+        protected const int ID_ROL_SUPERADMIN   = 14;
+        protected const int ID_ROL_ADMINISTRADOR = 1;
 
         // ── Propiedades de sesión ─────────────────────────────────
 
         /// <summary>
-        /// Retorna true si el usuario logueado es SuperAdmin (acceso global).
+        /// Retorna true si el usuario logueado es SuperAdmin (IdRol 14) en sentido ESTRICTO.
+        /// Usar solo para bypass de segregación de funciones (ej.: permitir aprobar
+        /// lo que uno mismo registró). Para alcance multi-sucursal usar <see cref="EsAdminGlobal"/>.
         /// Usa pattern matching seguro para evitar excepciones por tipo incorrecto en sesión.
         /// </summary>
         protected bool EsSuperAdmin =>
             Session["EsSuperAdmin"] is bool val && val;
+
+        /// <summary>
+        /// Retorna true si el usuario logueado tiene alcance GLOBAL multi-sucursal.
+        /// Desde el 2026-07-11, por decisión del dueño del proyecto, SOLO SuperAdmin
+        /// (IdRol 14) tiene este alcance — Administrador y el resto de los roles operan
+        /// restringidos a su propia sucursal (ver Session["EsAdminGlobal"] en LoginController).
+        /// Se mantiene como propiedad separada de <see cref="EsSuperAdmin"/> por si en el
+        /// futuro se necesita un alcance global distinto (ej. reintroducir Administrador
+        /// global) sin volver a tocar cada controller.
+        /// </summary>
+        protected bool EsAdminGlobal =>
+            Session["EsAdminGlobal"] is bool valGlobal && valGlobal;
 
         /// <summary>
         /// Retorna el IdTienda activo en sesión.
@@ -89,13 +104,14 @@ namespace VentasWeb.Controllers
         /// <summary>
         /// Verifica si el usuario tiene permiso para operar sobre un registro
         /// de una tienda específica.
-        /// - SuperAdmin: siempre true (sin restricción de sucursal).
-        /// - Otros roles: solo si la tienda del registro coincide con su TiendaActiva.
+        /// - SuperAdmin (alcance global): siempre true.
+        /// - Resto de los roles (incluido Administrador): solo si la tienda del registro
+        ///   coincide con su TiendaActiva.
         /// </summary>
         /// <param name="idTiendaDelRegistro">IdTienda del registro a operar.</param>
         protected bool TienePermiso(int idTiendaDelRegistro)
         {
-            if (EsSuperAdmin) return true;
+            if (EsAdminGlobal) return true;
             return TiendaActiva == idTiendaDelRegistro;
         }
 

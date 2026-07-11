@@ -8,9 +8,18 @@ using VentasWeb.Filters;
 
 namespace VentasWeb.Controllers
 {
-    [AuthorizeRol("Venta", "*")]
     public class VentaController : BaseController
     {
+        // NOTA: este controller ya NO tiene [AuthorizeRol] a nivel de clase.
+        // Antes exigía "Venta|*" para TODAS las acciones, incluyendo lookups
+        // de solo lectura (productos con stock, clientes, formas de cobro) que
+        // también usa la pantalla de Pre-venta (módulo OrdenVenta). Eso bloqueaba
+        // al Repositor —que no tiene permisos de "Venta", solo de "OrdenVenta"—
+        // al intentar cargar una pre-venta ("Acceso denegado" en los combos de
+        // producto/cliente). Cada acción sensible ya tiene su propio
+        // [AuthorizeRol] específico; los lookups de solo lectura quedan
+        // abiertos a cualquier usuario con sesión iniciada (VerificarSession
+        // global ya exige login).
         // ============================================================
         //  VISTAS
         // ============================================================
@@ -65,6 +74,7 @@ namespace VentasWeb.Controllers
         }
 
         /// <summary>Documento KuDE (factura electrónica Paraguay).</summary>
+        [AuthorizeRol("Venta", "*")]
         public ActionResult Documento(int idVenta = 0)
         {
             Venta oVenta = CD_Venta.Instancia.ObtenerDetalleVenta_v2(idVenta);
@@ -83,6 +93,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpGet]
+        [AuthorizeRol("Venta", "*")]
         public JsonResult ObtenerDatosTributarios()
         {
             var dt = CD_Venta.Instancia.ObtenerDatosTributarios();
@@ -190,7 +201,7 @@ namespace VentasWeb.Controllers
             string numerofactura = "", string documentocliente = "",
             string nombrecliente = "", string tipoflujo = "", string estado = "")
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
 
             DateTime fi = ParseFecha(fechainicio, DateTime.Today.AddDays(-30));
             DateTime ff = ParseFecha(fechafin,   DateTime.Today);
@@ -208,7 +219,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("Venta", "Consultar Ventas")]
+        [AuthorizeRol("Venta", "Anular")]
         public JsonResult Anular(int idVenta, string motivo)
         {
             if (UsuarioActual == null)
@@ -228,7 +239,7 @@ namespace VentasWeb.Controllers
         [HttpGet]
         public JsonResult ObtenerProductoStockPorTienda(int idtienda = 0, bool soloConStock = true)
         {
-            if (!EsSuperAdmin) idtienda = TiendaActiva;
+            if (!EsAdminGlobal) idtienda = TiendaActiva;
             var todos = CD_ProductoTienda.Instancia.ObtenerProductoTienda()
                         ?? new System.Collections.Generic.List<CapaModelo.ProductoTienda>();
             var lista = todos.FindAll(p =>

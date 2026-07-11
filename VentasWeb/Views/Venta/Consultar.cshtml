@@ -1,7 +1,14 @@
 @{
     ViewBag.Title = "Consultar Ventas";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var usuarioActualV = Session["Usuario"] as CapaModelo.Usuario;
+    bool esSuperAdminV = Session["EsSuperAdmin"] is bool saV && saV;
+    int idRolActualV = usuarioActualV?.IdRol ?? 0;
+    // Anular una venta es una operación sensible: solo Admin (1) y SuperAdmin (14).
+    // El Cajero puede consultar y facturar, pero no anular.
+    bool puedeAnularVenta = esSuperAdminV || idRolActualV == 1;
 }
+<input type="hidden" id="hdnPuedeAnularVenta" value="@(puedeAnularVenta ? "1" : "0")" />
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">

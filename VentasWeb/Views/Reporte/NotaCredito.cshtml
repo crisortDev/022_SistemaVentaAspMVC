@@ -31,7 +31,7 @@
                     <option value="0">-- Todos los proveedores --</option>
                 </select>
             </div>
-            @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+            @if (Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"])
             {
                 <div class="col-sm-2">
                     <label class="col-form-label col-form-label-sm">Sucursal</label>

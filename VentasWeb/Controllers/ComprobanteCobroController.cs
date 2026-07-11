@@ -24,7 +24,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("ComprobanteCobro", "Comprobantes de Cobro")]
         public JsonResult Obtener(string fechainicio = "", string fechafin = "")
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
 
             DateTime fi = string.IsNullOrWhiteSpace(fechainicio)
                 ? DateTime.Today.AddDays(-30) : Convert.ToDateTime(fechainicio);
@@ -62,7 +62,7 @@ namespace VentasWeb.Controllers
         public JsonResult ObtenerPendientes(bool soloVencidas = false)
         {
             // Segregación: supervisor solo ve su tienda; superadmin ve todas
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
 
             var lista = CD_ComprobanteCobro.Instancia
                             .ObtenerCuentasPorCobrar(idTienda, soloVencidas);
@@ -122,7 +122,7 @@ namespace VentasWeb.Controllers
             // ── Aislamiento por sucursal (SuperAdmin pasa) ──
             // TODO: requiere que el SP usp_ObtenerReciboCobro devuelva IdTienda
             // y que el modelo ComprobanteCobro exponga IdTienda. Ver checklist.
-            if (!EsSuperAdmin && recibo.IdTienda != 0 && recibo.IdTienda != TiendaActiva)
+            if (!EsAdminGlobal && recibo.IdTienda != 0 && recibo.IdTienda != TiendaActiva)
                 return new HttpStatusCodeResult(403, "No tiene permiso para ver un comprobante de otra sucursal.");
 
             return View(recibo);

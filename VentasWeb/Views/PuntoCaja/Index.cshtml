@@ -3,7 +3,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     var tiendas     = ViewBag.Tiendas  as List<CapaModelo.Tienda>;
     int idTiendaActual = (int)(ViewBag.IdTienda ?? 0);
-    bool esSuperAdmin  = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+    bool esSuperAdmin  = Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"];
 }
 
 <nav aria-label="breadcrumb">

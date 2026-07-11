@@ -17,7 +17,7 @@
     </div>
     <div class="card-body py-2">
         <div class="form-row align-items-end">
-            @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+            @if (Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"])
             {
                 <div class="col-sm-3">
                     <label class="col-form-label col-form-label-sm">Sucursal</label>

@@ -16,9 +16,9 @@ namespace VentasWeb.Controllers
             ViewBag.NombreUsuario = usuario.Nombres + " " + usuario.Apellidos;
             ViewBag.RolUsuario    = usuario.oRol?.Descripcion ?? "";
             ViewBag.EsSuperAdmin  = EsSuperAdmin;
+            ViewBag.EsAdminGlobal = EsAdminGlobal;
 
-            bool esSuperAdmin = usuario.IdRol == 14;
-            if (esSuperAdmin)
+            if (EsAdminGlobal)
                 ViewBag.NombreSucursal = "Todas las sucursales";
             else if (usuario.oTienda != null && !string.IsNullOrEmpty(usuario.oTienda.Nombre))
                 ViewBag.NombreSucursal = usuario.oTienda.Nombre;
@@ -57,6 +57,7 @@ namespace VentasWeb.Controllers
 
             Session["Usuario"] = null;
             Session["EsSuperAdmin"] = null;
+            Session["EsAdminGlobal"] = null;
             Session["TiendaActiva"] = null;
             return RedirectToAction("Index", "Login");
         }

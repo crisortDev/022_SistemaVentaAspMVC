@@ -29,7 +29,7 @@ namespace VentasWeb.Controllers
             ViewBag.Tiendas = tiendas;
 
             // Para usuarios normales: pasar el nombre de su sucursal
-            if (!EsSuperAdmin && TiendaActiva > 0)
+            if (!EsAdminGlobal && TiendaActiva > 0)
             {
                 var tiendaActual = tiendas?.Find(t => t.IdTienda == TiendaActiva);
                 ViewBag.NombreTiendaActual = tiendaActual?.Nombre ?? "Sucursal " + TiendaActiva;
@@ -48,7 +48,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin)
+                if (!EsAdminGlobal)
                     idtienda = TiendaActiva;
 
                 DateTime fi = ParseFecha(fechainicio, new DateTime(DateTime.Today.Year, 1, 1));
@@ -90,7 +90,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin)
+                if (!EsAdminGlobal)
                     idtienda = TiendaActiva;
 
                 DateTime fi = ParseFecha(fechainicio, new DateTime(DateTime.Today.Year, 1, 1));
@@ -173,7 +173,7 @@ namespace VentasWeb.Controllers
             var tiendas = CD_Tienda.Instancia.ObtenerTiendas();
             ViewBag.Tiendas = tiendas;
 
-            if (!EsSuperAdmin && TiendaActiva > 0)
+            if (!EsAdminGlobal && TiendaActiva > 0)
             {
                 var t = tiendas?.Find(x => x.IdTienda == TiendaActiva);
                 ViewBag.NombreTiendaActual = t?.Nombre ?? "Sucursal " + TiendaActiva;
@@ -192,7 +192,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin)
+                if (!EsAdminGlobal)
                     idtienda = TiendaActiva;
 
                 DateTime fi = ParseFecha(fechainicio, new DateTime(DateTime.Today.Year, 1, 1));
@@ -233,7 +233,7 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                if (!EsSuperAdmin)
+                if (!EsAdminGlobal)
                     idtienda = TiendaActiva;
 
                 DateTime fi = ParseFecha(fechainicio, new DateTime(DateTime.Today.Year, 1, 1));

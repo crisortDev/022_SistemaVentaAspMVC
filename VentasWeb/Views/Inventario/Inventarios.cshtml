@@ -1,7 +1,7 @@
 @{
     ViewBag.Title = "Gestión de Inventarios";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+    bool esSuperAdmin = Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"];
 }
 
 <nav aria-label="breadcrumb">

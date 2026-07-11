@@ -158,7 +158,7 @@ namespace VentasWeb.Controllers
         public JsonResult ObtenerRevision(string fechainicio, string fechafin,
                                           int idproveedor, int idtienda, string estado)
         {
-            if (!EsSuperAdmin)
+            if (!EsAdminGlobal)
                 idtienda = TiendaActiva;
 
             var lista = CD_Compra.Instancia.ObtenerListaRevision(
@@ -227,7 +227,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("Compra", "OrdenPago")]
+        [AuthorizeRol("OrdenPago", "Consultar")]
         public JsonResult GenerarOP(int idcompra)
         {
             if (UsuarioActual == null)

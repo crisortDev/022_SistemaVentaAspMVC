@@ -2,7 +2,7 @@
     ViewBag.Title = "Reporte de Ventas — Alta Gerencia";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var tiendas = ViewBag.Tiendas as List<CapaModelo.Tienda> ?? new List<CapaModelo.Tienda>();
-    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+    bool esSuperAdmin = Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"];
 }
 
 @section estilos {

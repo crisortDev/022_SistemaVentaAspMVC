@@ -58,6 +58,18 @@ namespace VentasWeb.Helpers
 
                 foreach (SubMenu subitem in subMenusActivos)
                 {
+                    // "Anular" no es una pantalla navegable — es una acción POST que se
+                    // dispara desde un botón dentro de la pantalla de Consultar. El
+                    // submenú existe solo para el chequeo de permisos (AuthorizeRol);
+                    // no debe renderizarse como link o da 404 (GET a una acción POST).
+                    bool esAccionSinVista = string.Equals(subitem.Vista, "Anular",
+                        System.StringComparison.OrdinalIgnoreCase);
+
+                    if (esAccionSinVista)
+                    {
+                        continue;
+                    }
+
                     if (subitem.EsGrupo || string.IsNullOrWhiteSpace(subitem.Controlador))
                     {
                         // Cabecera de grupo — no es navegable

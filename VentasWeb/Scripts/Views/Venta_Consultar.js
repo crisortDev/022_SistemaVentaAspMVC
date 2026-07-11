@@ -17,9 +17,10 @@ function iniciarTabla() {
             {
                 data: null, orderable: false, searchable: false,
                 render: function (d) {
+                    var puedeAnularVenta = $('#hdnPuedeAnularVenta').val() === '1';
                     var btns = '<a href="' + $.MisUrls.url._Venta_Documento + '?idVenta=' + d.IdVenta +
                         '" target="_blank" class="btn btn-success btn-sm mr-1" title="Ver factura"><i class="fas fa-file-invoice"></i></a>';
-                    if (d.Estado === 'Activa') {
+                    if (d.Estado === 'Activa' && puedeAnularVenta) {
                         btns += '<button class="btn btn-danger btn-sm" title="Anular" onclick="abrirAnular(' + d.IdVenta + ',\'' + escapar(d.NumeroFactura) + '\')"><i class="fas fa-ban"></i></button>';
                     }
                     return btns;

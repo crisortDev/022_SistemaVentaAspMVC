@@ -38,7 +38,7 @@ namespace VentasWeb.Controllers
         public JsonResult Guardar(Tienda objeto)
         {
             // Solo SuperAdmin puede crear o modificar tiendas
-            if (!EsSuperAdmin)
+            if (!EsAdminGlobal)
                 return Json(new { resultado = false, mensaje = "Solo el administrador global puede gestionar tiendas." });
 
             bool respuesta = false;
@@ -67,7 +67,7 @@ namespace VentasWeb.Controllers
         public JsonResult Eliminar(int id = 0)
         {
             // Solo SuperAdmin puede eliminar tiendas
-            if (!EsSuperAdmin)
+            if (!EsAdminGlobal)
                 return Json(new { resultado = false, mensaje = "Solo el administrador global puede eliminar tiendas." }, JsonRequestBehavior.AllowGet);
 
             bool respuesta = CD_Tienda.Instancia.EliminarTienda(id);

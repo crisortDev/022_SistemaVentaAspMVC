@@ -49,10 +49,10 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                // ── Seguridad: si no es SuperAdmin, forzar su propia tienda ──
+                // ── Seguridad: sin alcance global, forzar su propia tienda ──
                 // Evita que un usuario normal pase IdTienda=0 y obtenga
                 // productos de todas las sucursales.
-                if (!EsSuperAdmin)
+                if (!EsAdminGlobal)
                     IdTienda = TiendaActiva;
 
                 var productos = _productoService.ObtenerProducto()

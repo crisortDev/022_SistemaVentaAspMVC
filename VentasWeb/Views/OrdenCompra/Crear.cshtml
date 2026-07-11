@@ -1,7 +1,19 @@
+@using System.Linq
 @{
     ViewBag.Title = "Registrar Orden de Compra";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var categorias = ViewBag.Categorias as List<CapaModelo.CategoriaOC> ?? new List<CapaModelo.CategoriaOC>();
+
+    // ── ¿Puede consultar Orden de Compra? (Encargado/Supervisor/Admin sí; ──
+    // ── Repositor, que solo registra, no) — evita redirigir a una pantalla
+    // ── a la que no tiene acceso después de guardar.
+    bool esSuperAdminOC = Session["EsSuperAdmin"] is bool saOC && saOC;
+    var usuarioOC = Session["Usuario"] as CapaModelo.Usuario;
+    bool puedeConsultarOC = esSuperAdminOC || (usuarioOC?.oListaMenu?
+        .SelectMany(m => m.oSubMenu ?? new List<CapaModelo.SubMenu>())
+        .Any(sm => sm.Controlador == "OrdenCompra"
+                && sm.Nombre == "Consultar Orden de Compra"
+                && sm.Activo) ?? false);
 }
 
 <nav aria-label="breadcrumb">
@@ -13,6 +25,8 @@
 
 <div class="row">
     <input type="hidden" id="hdnIdUsuario" value="@ViewBag.IdUsuario" />
+    <input type="hidden" id="hdnPuedeConsultarOC" value="@(puedeConsultarOC ? "1" : "0")" />
+    <input type="hidden" id="hdnUrlHomeOC" value="@Url.Action("Index", "Home")" />
     <div class="col-sm-12">
         <div class="card border-info">
             <div class="card-header bg-info text-white">

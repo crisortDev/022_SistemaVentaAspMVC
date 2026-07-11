@@ -18,6 +18,9 @@ $(document).ready(function () {
 
 // ── Combos ───────────────────────────────────────────────────────────
 function cargarTiendas() {
+    // Solo si es un <select> real (SuperAdmin); para el resto de los roles
+    // #cboTienda es un input hidden con su sucursal fija.
+    if (!$('#cboTienda').is('select')) return;
     $.get('/Inventario/ObtenerTiendas', function (res) {
         var opts = '<option value="0">-- Todas las tiendas --</option>';
         (res.data || []).forEach(function (t) {

@@ -4,7 +4,7 @@
     var cajaActiva  = ViewBag.CajaActiva as CapaModelo.SesionCaja;
     bool hayaCaja   = cajaActiva != null;
     var tiendas     = ViewBag.Tiendas as List<CapaModelo.Tienda>;
-    bool esSuperAdmin = Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"];
+    bool esSuperAdmin = Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"];
 }
 
 <nav aria-label="breadcrumb">

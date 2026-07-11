@@ -72,8 +72,8 @@ namespace VentasWeb.Controllers
         {
             try
             {
-                // No-SuperAdmin solo ve traslados de su sucursal
-                if (!EsSuperAdmin && idtienda == 0) idtienda = TiendaActiva;
+                // Sin alcance global solo ve traslados de su sucursal
+                if (!EsAdminGlobal && idtienda == 0) idtienda = TiendaActiva;
 
                 var lista = CD_Inventario.Instancia.ObtenerHistorialTraslados(
                     Convert.ToDateTime(fechainicio),
@@ -92,7 +92,7 @@ namespace VentasWeb.Controllers
         public JsonResult ObtenerTrasladosPendientes()
         {
             // Trae solo los Pendientes del día anterior en adelante para la sucursal del encargado
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
             var lista = CD_Inventario.Instancia.ObtenerHistorialTraslados(
                 DateTime.Today.AddDays(-30), DateTime.Today, idTienda, "Pendiente");
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
@@ -249,7 +249,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("Inventario", "Inventarios")]
         public JsonResult ObtenerInventarios(string estado = "")
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
             var lista = CD_Inventario.Instancia.ObtenerInventariosSupervisor(idTienda, estado);
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
@@ -301,7 +301,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("Inventario", "Aprobar Bajas")]
         public JsonResult ObtenerBajas(string estado = "")
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
             var lista = CD_Inventario.Instancia.ObtenerBajas(idTienda, estado);
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }

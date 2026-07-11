@@ -24,7 +24,9 @@ $(function () {
         });
     }
 
-    // Cargar combo tiendas
+    // Cargar combo tiendas — solo si es un <select> real (SuperAdmin); para el
+    // resto de los roles #cboTienda es un input hidden con su sucursal fija.
+    if ($('#cboTienda').is('select')) {
     $.get($.MisUrls.url._ObtenerTiendas, function (data) {
         var sel = $('#cboTienda').empty();
         $('<option>').val(0).text('-- Todas las sucursales --').appendTo(sel);
@@ -34,6 +36,7 @@ $(function () {
                 $('<option>').val(t.IdTienda).text(t.Nombre).appendTo(sel);
         });
     });
+    }
 
     // Filtro de forma de cobro (cliente) — re-renderiza al cambiar
     $('#cboFormaCobro').on('change', function () {

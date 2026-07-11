@@ -20,7 +20,7 @@
             </div>
             <div class="card-body">
                 @{
-                    bool esSuperAdminTienda = Session["EsSuperAdmin"] is bool sa && sa;
+                    bool esSuperAdminTienda = Session["EsAdminGlobal"] is bool sa && sa;
                 }
                 <input type="hidden" id="hdnSoloLectura" value="@(esSuperAdminTienda ? "0" : "1")" />
                 <div class="row">

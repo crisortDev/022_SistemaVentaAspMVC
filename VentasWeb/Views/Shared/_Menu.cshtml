@@ -11,7 +11,13 @@
             <div class="dropdown-menu drop-menu">
                 @foreach (var subitem in item.oSubMenu ?? new List<CapaModelo.SubMenu>())
                 {
-                    if (subitem.Activo)
+                    // "Anular" no es una pantalla navegable — es una acción POST que
+                    // se dispara desde un botón dentro de la pantalla de Consultar.
+                    // El submenú existe solo para el chequeo de permisos (AuthorizeRol),
+                    // no debe renderizarse como link o da 404 (GET a una acción POST).
+                    bool esAccionSinVista = string.Equals(subitem.Vista, "Anular", StringComparison.OrdinalIgnoreCase);
+
+                    if (subitem.Activo && !esAccionSinVista)
                     {
                         if (string.IsNullOrWhiteSpace(subitem.Controlador))
                         {

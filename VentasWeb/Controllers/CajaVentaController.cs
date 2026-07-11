@@ -21,9 +21,9 @@ namespace VentasWeb.Controllers
         {
             // SuperAdmin: busca cualquier caja abierta (idTienda=0)
             // Otros roles: busca solo en su tienda activa
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
-            // Cada cajero ve SOLO la caja que él abrió; SuperAdmin ve cualquiera.
-            int idUsuario = EsSuperAdmin ? 0 : UsuarioActual.IdUsuario;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
+            // Cada cajero ve SOLO la caja que él abrió; SuperAdmin/Administrador ven cualquiera.
+            int idUsuario = EsAdminGlobal ? 0 : UsuarioActual.IdUsuario;
             ViewBag.CajaActiva = CD_CajaVenta.Instancia.ObtenerCajaActiva(idTienda, idUsuario);
             ViewBag.Tiendas = CD_Tienda.Instancia.ObtenerTiendas();
             return View();
@@ -36,7 +36,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("CajaVenta", "Index")]
         public JsonResult CajasDisponibles(int idTienda = 0)
         {
-            if (!EsSuperAdmin) idTienda = TiendaActiva;
+            if (!EsAdminGlobal) idTienda = TiendaActiva;
             var lista = CD_CajaVenta.Instancia.ObtenerCajasDisponibles(idTienda);
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
@@ -53,7 +53,7 @@ namespace VentasWeb.Controllers
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
             // SuperAdmin elige tienda en el formulario; usuarios normales usan su tienda activa
-            if (!EsSuperAdmin)
+            if (!EsAdminGlobal)
                 idTienda = TiendaActiva;
 
             if (idTienda == 0)
@@ -120,7 +120,7 @@ namespace VentasWeb.Controllers
             if (idCaja == 0)
             {
                 // Si no se pasa idCaja, buscar la caja activa de la tienda
-                int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+                int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
                 if (idTienda > 0)
                 {
                     var cajaActiva = CD_CajaVenta.Instancia.ObtenerCajaActiva(idTienda);
@@ -177,7 +177,7 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("CajaVenta", "Index")]
         public JsonResult Historial()
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
             var lista = CD_CajaVenta.Instancia.ObtenerHistorial(idTienda);
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }

@@ -17,7 +17,7 @@ namespace VentasWeb.Controllers
         //  VISTA PRINCIPAL
         // ============================================================
 
-        [AuthorizeRol("NotaCreditoVenta", "Notas de Crédito Venta")]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
         public ActionResult Index()
         {
             ViewBag.Tiendas = CD_Tienda.Instancia.ObtenerTiendas();
@@ -29,11 +29,11 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpGet]
-        [AuthorizeRol("NotaCreditoVenta", "Notas de Crédito Venta")]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
         public JsonResult Obtener(
             string fechainicio = "", string fechafin = "", string estado = "")
         {
-            int idTienda = EsSuperAdmin ? 0 : TiendaActiva;
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
 
             DateTime fi = ParseFecha(fechainicio, DateTime.Today.AddDays(-30));
             DateTime ff = ParseFecha(fechafin,   DateTime.Today);
@@ -50,7 +50,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("NotaCreditoVenta", "Notas de Crédito Venta")]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
         public JsonResult Registrar(
             int idVenta, int idMotivoNC, decimal monto, string observacion)
         {
@@ -71,7 +71,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("NotaCreditoVenta", "Notas de Crédito Venta")]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
         public JsonResult AprobarRechazar(
             int idNCVenta, string accion, string motivoRechazo = "")
         {

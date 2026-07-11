@@ -416,7 +416,7 @@
 
         // ── SESIÓN USUARIO — disponible globalmente en todo el JS ─
         var AppSession = {
-            esSuperAdmin:  @(Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"] ? "true" : "false"),
+            esSuperAdmin:  @(Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"] ? "true" : "false"),
             idTienda:      @(Session["TiendaActiva"]  != null ? Session["TiendaActiva"].ToString()  : "0"),
             cajaIdTienda:  @(Session["CajaIdTienda"]  != null ? Session["CajaIdTienda"].ToString()  : "0")
         };

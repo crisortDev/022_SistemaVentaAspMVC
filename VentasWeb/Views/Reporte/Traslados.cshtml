@@ -24,7 +24,7 @@
                 <label class="col-form-label col-form-label-sm">Fecha Fin</label>
                 <input type="date" id="txtFechaFin" class="form-control form-control-sm" />
             </div>
-            @if (Session["EsSuperAdmin"] != null && (bool)Session["EsSuperAdmin"])
+            @if (Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"])
             {
                 <div class="col-sm-2">
                     <label class="col-form-label col-form-label-sm">Sucursal (Origen o Destino)</label>

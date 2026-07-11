@@ -780,8 +780,14 @@ function enviarGuardarOC(idProveedor, idTienda, fechaEntrega, observacion, idCat
         complete:   function () { $("body").LoadingOverlay("hide"); },
         success: function (resp) {
             if (resp.resultado) {
+                // ── Repositor (u otro rol sin "Consultar Orden de Compra") no puede
+                // ── ver la lista de OCs — evita el "Acceso denegado" tras guardar.
+                var puedeConsultarOC = $('#hdnPuedeConsultarOC').val() === '1';
+                var urlDestino = puedeConsultarOC
+                    ? $.MisUrls.url._OC_Consultar
+                    : $('#hdnUrlHomeOC').val();
                 Swal.fire({ title: "Éxito", text: resp.mensaje || "Orden registrada correctamente.", icon: "success" })
-                    .then(function () { window.location.href = $.MisUrls.url._OC_Consultar; });
+                    .then(function () { window.location.href = urlDestino; });
             } else {
                 Swal.fire({ title: "Error", text: resp.mensaje || "No se pudo registrar la orden.", icon: "error" });
             }
