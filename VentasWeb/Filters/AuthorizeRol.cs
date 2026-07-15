@@ -10,7 +10,7 @@ namespace VentasWeb.Filters
     public class AuthorizeRolAttribute : AuthorizeAttribute
     {
         private readonly string _controlador;
-        private readonly string _vista;
+        private readonly string[] _vistas;   // admite una o varias vistas (OR lógico)
 
         // Mapeo de vistas personalizadas
         private static readonly Dictionary<string, string> mapeoVistas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -101,10 +101,15 @@ namespace VentasWeb.Filters
             { "Inventario|AnularInventario",               "Inventarios"                },
         };
 
-        public AuthorizeRolAttribute(string controlador, string vista)
+        /// <summary>
+        /// Constructor que acepta una o varias vistas (OR lógico).
+        /// Ejemplo: [AuthorizeRol("Compra", "Recepcion", "Revision")]
+        /// El usuario pasa si tiene permiso a CUALQUIERA de las vistas indicadas.
+        /// </summary>
+        public AuthorizeRolAttribute(string controlador, params string[] vistas)
         {
             _controlador = controlador;
-            _vista = vista;
+            _vistas      = vistas ?? new[] { "*" };
         }
 
         protected override bool AuthorizeCore(HttpContextBase httpContext)
@@ -118,22 +123,11 @@ namespace VentasWeb.Filters
                 return true;
 
             // ── Usuarios normales: validar por menú en sesión ─────
-            // El menú ya fue cargado durante el login — sin llamada extra a BD
             Usuario usuario = (Usuario)httpContext.Session["Usuario"];
             var listaMenu = usuario.oListaMenu;
 
             if (listaMenu == null || !listaMenu.Any())
                 return false;
-
-            string controladorValidar = _controlador;
-            string vistaValidar = _vista;
-
-            // Mapear vista si existe en el diccionario
-            string key = $"{controladorValidar}|{vistaValidar}";
-            if (mapeoVistas.TryGetValue(key, out string vistaMapeada))
-                vistaValidar = vistaMapeada;
-
-            bool tienePermiso;
 
             // Aplanar todos los submenús del usuario de una sola vez
             var todosLosSubmenus = listaMenu
@@ -141,24 +135,36 @@ namespace VentasWeb.Filters
                 .Where(sm => !string.IsNullOrEmpty(sm.Controlador))
                 .ToList();
 
-            if (vistaValidar == "*")
+            // OR lógico: el usuario pasa si tiene permiso a CUALQUIERA de las vistas
+            foreach (var vistaParam in _vistas)
             {
-                // Wildcard: basta con que el usuario tenga CUALQUIER submenú del controlador.
-                // El SP ya garantiza que solo devuelve submenús con permiso activo,
-                // así que no se necesita chequear sm.Activo aquí.
-                tienePermiso = todosLosSubmenus
-                    .Any(sm => sm.Controlador.Equals(controladorValidar, StringComparison.OrdinalIgnoreCase));
-            }
-            else
-            {
-                // Validar submenú específico por nombre (y controlador + Activo)
-                tienePermiso = todosLosSubmenus
-                    .Any(sm => sm.Controlador.Equals(controladorValidar, StringComparison.OrdinalIgnoreCase)
-                               && sm.Nombre.Equals(vistaValidar, StringComparison.OrdinalIgnoreCase)
-                               && sm.Activo);
+                string vistaValidar = vistaParam;
+
+                // Mapear vista si existe en el diccionario
+                string key = $"{_controlador}|{vistaValidar}";
+                if (mapeoVistas.TryGetValue(key, out string vistaMapeada))
+                    vistaValidar = vistaMapeada;
+
+                bool tieneEsta;
+
+                if (vistaValidar == "*")
+                {
+                    // Wildcard: basta con que tenga CUALQUIER submenú del controlador
+                    tieneEsta = todosLosSubmenus
+                        .Any(sm => sm.Controlador.Equals(_controlador, StringComparison.OrdinalIgnoreCase));
+                }
+                else
+                {
+                    tieneEsta = todosLosSubmenus
+                        .Any(sm => sm.Controlador.Equals(_controlador, StringComparison.OrdinalIgnoreCase)
+                                   && sm.Nombre.Equals(vistaValidar, StringComparison.OrdinalIgnoreCase)
+                                   && sm.Activo);
+                }
+
+                if (tieneEsta) return true;
             }
 
-            return tienePermiso;
+            return false;
         }
 
         protected override void HandleUnauthorizedRequest(AuthorizationContext filterContext)
@@ -178,7 +184,7 @@ namespace VentasWeb.Filters
                 string ip   = request.UserHostAddress ?? "IP desconocida";
                 string msg  = $"[ACCESO DENEGADO] {DateTime.Now:yyyy-MM-dd HH:mm:ss} | " +
                               $"Usuario: {user} | URL: {url} | IP: {ip} | " +
-                              $"Controlador: {_controlador} | Vista: {_vista}";
+                              $"Controlador: {_controlador} | Vista(s): {string.Join("|", _vistas)}";
 
                 System.Diagnostics.Trace.TraceWarning(msg);
             }

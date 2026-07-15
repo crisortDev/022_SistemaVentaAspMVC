@@ -3,6 +3,7 @@ using CapaModelo;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Web.Mvc;
 using VentasWeb.Filters;
 
@@ -14,6 +15,25 @@ namespace VentasWeb.Controllers
     /// </summary>
     public partial class CompraController : BaseController
     {
+        // ============================================================
+        //  DEBUG TEMPORAL — eliminar después de verificar el fix
+        // ============================================================
+
+        [HttpGet]
+        public JsonResult DebugMiMenu()
+        {
+            var u = UsuarioActual;
+            if (u == null)
+                return Json(new { error = "sin sesion" }, JsonRequestBehavior.AllowGet);
+
+            var subs = (u.oListaMenu ?? new List<CapaModelo.Menu>())
+                .SelectMany(m => m.oSubMenu ?? System.Linq.Enumerable.Empty<SubMenu>())
+                .Select(sm => new { sm.Controlador, sm.Nombre, sm.Activo })
+                .ToList();
+
+            return Json(new { correo = u.Correo, submenus = subs }, JsonRequestBehavior.AllowGet);
+        }
+
         // ============================================================
         //  VISTA RECEPCION
         // ============================================================
@@ -166,7 +186,7 @@ namespace VentasWeb.Controllers
                 Convert.ToDateTime(fechafin),
                 idproveedor,
                 idtienda,
-                string.IsNullOrWhiteSpace(estado) ? "Pendiente" : estado
+                string.IsNullOrWhiteSpace(estado) ? "Todos" : estado
             );
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
         }
@@ -209,7 +229,7 @@ namespace VentasWeb.Controllers
         // ============================================================
 
         [HttpPost]
-        [AuthorizeRol("Compra", "Revision")]
+        [AuthorizeRol("Compra", "Recepcion", "Revision")]   // Recepcion = Repositor puede generar NC desde su vista
         public JsonResult GenerarNotaCredito(int idcompra, int idmotivoNC)
         {
             if (UsuarioActual == null)

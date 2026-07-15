@@ -151,7 +151,8 @@ function cargarLineasOC(idOC) {
 function recalcularTotal() {
     var total = 0;
     $('.txtRecibida').each(function () {
-        var cant   = parseInt($(this).val()) || 0;
+        // Bug fix: clamp a 0 — negativos son truthy en JS, parseInt(-5)||0 devuelve -5
+        var cant   = Math.max(0, parseInt($(this).val()) || 0);
         var precio = parseFloat($(this).data('precio')) || 0;
         var linea  = cant * precio;
         total += linea;
@@ -232,6 +233,16 @@ function guardarRecepcion() {
         }
     }
 
+    // ── Validar que no haya cantidades negativas ────────────────────────────
+    var hayNegativo = false;
+    $('.txtRecibida').each(function () {
+        if (parseFloat($(this).val()) < 0) { hayNegativo = true; return false; }
+    });
+    if (hayNegativo) {
+        Swal.fire({ title: 'Cantidad inválida', text: 'Las cantidades recibidas no pueden ser negativas.', icon: 'warning' });
+        return;
+    }
+
     _enviarRecepcion();
 }
 
@@ -255,7 +266,8 @@ function _enviarRecepcion() {
 
     $('.txtRecibida').each(function (i) {
         data['lineas[' + i + '].IdDetalleOC']      = parseInt($(this).data('id'))  || 0;
-        data['lineas[' + i + '].CantidadRecibida'] = parseInt($(this).val())       || 0;
+        // Clamp a 0: negativos son truthy, parseInt(-5)||0 = -5 sin Math.max
+        data['lineas[' + i + '].CantidadRecibida'] = Math.max(0, parseInt($(this).val()) || 0);
     });
 
     $.ajax({

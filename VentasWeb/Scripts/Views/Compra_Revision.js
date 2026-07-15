@@ -86,7 +86,7 @@ $(document).ready(function () {
 
     tablaRevision = $('#tbCompras').DataTable({
         "ajax": {
-            "url":      construirUrl(primerDia, hoy, 0, idTiendaIni, "Pendiente"),
+            "url":      construirUrl(primerDia, hoy, 0, idTiendaIni, ""),
             "type":     "GET",
             "datatype": "json"
         },
@@ -133,7 +133,7 @@ $(document).ready(function () {
 
                     // Botón OP: solo en compras Confirmadas sin Orden de Pago generada
                     var btnOP = "";
-                    if (row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0)) {
+                    if (row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0) && row.TotalCosto > 0) {
                         btnOP = "<button class='btn btn-primary btn-sm mr-1' title='Generar Orden de Pago' "
                               + "onclick='generarOrdenPago(" + row.IdCompra + ")'>"
                               + "<i class='fas fa-money-check-alt'></i></button>";
@@ -177,6 +177,11 @@ function construirUrl(fi, ff, prov, tienda, estado) {
 }
 
 // ── Buscar ────────────────────────────────────────────────────────────
+function buscarTodos() {
+    $("#cboEstado").val("");
+    buscar();
+}
+
 function buscar() {
     var fi     = $("#txtFechaInicio").val().trim();
     var ff     = $("#txtFechaFin").val().trim();
@@ -221,7 +226,7 @@ function confirmarCompra(id) {
                             title: "¡Confirmado!",
                             text:  res.mensaje || "Factura confirmada y stock actualizado.",
                             icon:  "success"
-                        }).then(function () { buscar(); });
+                        }).then(function () { buscarTodos(); });
                     } else {
                         Swal.fire({ title: "Error", text: res.mensaje, icon: "error" });
                     }
@@ -261,7 +266,7 @@ function confirmarAnulacion() {
                     title: "Anulada",
                     text:  res.mensaje || "Compra anulada correctamente.",
                     icon:  "success"
-                }).then(function () { buscar(); });
+                }).then(function () { buscarTodos(); });
             } else {
                 Swal.fire({ title: "Error", text: res.mensaje, icon: "error" });
             }
@@ -299,7 +304,7 @@ function confirmarGenerarNC() {
                     title: "NC Generada",
                     text:  res.mensaje || "Nota de Crédito generada correctamente.",
                     icon:  "success"
-                }).then(function () { buscar(); });
+                }).then(function () { buscarTodos(); });
             } else {
                 Swal.fire({ title: "Error", text: res.mensaje, icon: "error" });
             }
@@ -342,7 +347,7 @@ function generarOrdenPago(id) {
                             if (r.isConfirmed && res.idgenerado) {
                                 window.open($.MisUrls.url._OP_Documento + "?idordenpago=" + res.idgenerado, "_blank");
                             }
-                            buscar();
+                            buscarTodos();
                         });
                     } else {
                         Swal.fire({ title: "Error", text: res.mensaje, icon: "error" });
