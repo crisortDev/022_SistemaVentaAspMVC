@@ -418,7 +418,8 @@
         var AppSession = {
             esSuperAdmin:  @(Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"] ? "true" : "false"),
             idTienda:      @(Session["TiendaActiva"]  != null ? Session["TiendaActiva"].ToString()  : "0"),
-            cajaIdTienda:  @(Session["CajaIdTienda"]  != null ? Session["CajaIdTienda"].ToString()  : "0")
+            cajaIdTienda:  @(Session["CajaIdTienda"]  != null ? Session["CajaIdTienda"].ToString()  : "0"),
+            idRol:         @((Session["Usuario"] as CapaModelo.Usuario)?.IdRol ?? 0)
         };
         // Tienda operativa para cargar productos: caja activa > tienda de sesión > 1 (central)
         AppSession.tiendaOperativa = AppSession.cajaIdTienda > 0 ? AppSession.cajaIdTienda
@@ -549,9 +550,16 @@
 
         // ---- ORDEN PAGO ----
         $.MisUrls.urls({
-            _OP_Obtener:   '@Url.Action("Obtener",   "OrdenPago")',
-            _OP_Documento: '@Url.Action("Documento", "OrdenPago")',
-            _OP_Consultar: '@Url.Action("Consultar", "OrdenPago")'
+            _OP_Obtener:              '@Url.Action("Obtener",              "OrdenPago")',
+            _OP_Documento:            '@Url.Action("Documento",            "OrdenPago")',
+            _OP_Consultar:            '@Url.Action("Consultar",            "OrdenPago")',
+            _OP_ObtenerAprobacion:    '@Url.Action("ObtenerParaAprobacion","OrdenPago")',
+            _OP_Aprobar:              '@Url.Action("AprobarOP",            "OrdenPago")',
+            _OP_Rechazar:             '@Url.Action("RechazarOP",           "OrdenPago")',
+            _OP_ObtenerCXP:           '@Url.Action("ObtenerCXP",          "OrdenPago")',
+            _OP_CuentasPorPagar:      '@Url.Action("CuentasPorPagar",     "OrdenPago")',
+            _OP_RegistrarPago:        '@Url.Action("RegistrarPagoOP",     "OrdenPago")',
+            _OP_RegistrarPagoCuota:   '@Url.Action("RegistrarPagoCuota",  "OrdenPago")'
         });
 
         // ---- NOTA DE CRÉDITO ----

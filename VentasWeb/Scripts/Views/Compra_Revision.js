@@ -131,9 +131,10 @@ $(document).ready(function () {
                               + "<i class='fas fa-file-invoice-dollar'></i> NC</button>";
                     }
 
-                    // Botón OP: solo en compras Confirmadas sin Orden de Pago generada
+                    // Botón OP: solo Encargado (6) y SuperAdmin pueden generar
                     var btnOP = "";
-                    if (row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0) && row.TotalCosto > 0) {
+                    var puedeGenerarOP = AppSession.esSuperAdmin || AppSession.idRol === 6;
+                    if (puedeGenerarOP && row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0) && row.TotalCosto > 0) {
                         btnOP = "<button class='btn btn-primary btn-sm mr-1' title='Generar Orden de Pago' "
                               + "onclick='generarOrdenPago(" + row.IdCompra + ")'>"
                               + "<i class='fas fa-money-check-alt'></i></button>";
@@ -317,46 +318,67 @@ function confirmarGenerarNC() {
 
 // ── Generar Orden de Pago ─────────────────────────────────────────────
 function generarOrdenPago(id) {
-    Swal.fire({
-        title:              "¿Generar Orden de Pago?",
-        html:               "Se creará la Orden de Pago para la factura confirmada.<br>"
-                          + "<small class='text-muted'>Esta acción es irreversible.</small>",
-        icon:               "question",
-        showCancelButton:   true,
-        confirmButtonColor: "#007bff",
-        cancelButtonColor:  "#6c757d",
-        confirmButtonText:  "Sí, generar",
-        cancelButtonText:   "Cancelar"
-    }).then(function (result) {
-        if (result.isConfirmed) {
-            $.ajax({
-                url:  $.MisUrls.url._Compra_GenerarOP,
-                type: "POST",
-                data: { idcompra: id },
-                success: function (res) {
-                    if (res.resultado) {
-                        Swal.fire({
-                            title:             "¡Orden de Pago Generada!",
-                            html:              (res.mensaje || "Orden de Pago creada correctamente.")
-                                             + "<br><small class='text-muted'>ID de OP: #" + (res.idgenerado || "—") + "</small>",
-                            icon:              "success",
-                            showCancelButton:  true,
-                            confirmButtonText: "Ver Documento",
-                            cancelButtonText:  "Cerrar"
-                        }).then(function (r) {
-                            if (r.isConfirmed && res.idgenerado) {
-                                window.open($.MisUrls.url._OP_Documento + "?idordenpago=" + res.idgenerado, "_blank");
-                            }
-                            buscarTodos();
-                        });
-                    } else {
-                        Swal.fire({ title: "Error", text: res.mensaje, icon: "error" });
+    $("#hdnIdOP").val(id);
+    $("#cboModalidadOP").val("Contado");
+    $("#divCuotas").hide();
+    $("#txtNumeroCuotas").val("");
+    $("#modalGenerarOP").modal("show");
+}
+
+function _cambioModalidadOP() {
+    if ($("#cboModalidadOP").val() === "Credito") {
+        $("#divCuotas").show();
+        $("#txtNumeroCuotas").focus();
+    } else {
+        $("#divCuotas").hide();
+        $("#txtNumeroCuotas").val("");
+    }
+}
+
+function _confirmarGenerarOP() {
+    var id        = parseInt($("#hdnIdOP").val());
+    var modalidad = $("#cboModalidadOP").val();
+    var cuotas    = parseInt($("#txtNumeroCuotas").val()) || 0;
+
+    if (modalidad === "Credito") {
+        if (isNaN(cuotas) || cuotas < 2 || cuotas !== Math.floor(cuotas)) {
+            Swal.fire({ title: "Atención", text: "Ingrese un número entero de cuotas mínimo 2.", icon: "warning" });
+            return;
+        }
+    }
+
+    $("#modalGenerarOP").modal("hide");
+
+    $.ajax({
+        url:  $.MisUrls.url._Compra_GenerarOP,
+        type: "POST",
+        data: {
+            idcompra:      id,
+            modalidadPago: modalidad,
+            numeroCuotas:  modalidad === "Credito" ? cuotas : null
+        },
+        success: function (res) {
+            if (res.resultado) {
+                Swal.fire({
+                    title:             "¡Orden de Pago Generada!",
+                    html:              (res.mensaje || "Orden de Pago creada correctamente.")
+                                     + "<br><small class='text-muted'>Queda pendiente de aprobación del supervisor.</small>",
+                    icon:              "success",
+                    showCancelButton:  true,
+                    confirmButtonText: "Ver Documento",
+                    cancelButtonText:  "Cerrar"
+                }).then(function (r) {
+                    if (r.isConfirmed && res.idgenerado) {
+                        window.open($.MisUrls.url._OP_Documento + "?idordenpago=" + res.idgenerado, "_blank");
                     }
-                },
-                error: function () {
-                    Swal.fire({ title: "Error", text: "Error de comunicación con el servidor.", icon: "error" });
-                }
-            });
+                    buscarTodos();
+                });
+            } else {
+                Swal.fire({ title: "Error", text: res.mensaje, icon: "error" });
+            }
+        },
+        error: function () {
+            Swal.fire({ title: "Error", text: "Error de comunicación con el servidor.", icon: "error" });
         }
     });
 }

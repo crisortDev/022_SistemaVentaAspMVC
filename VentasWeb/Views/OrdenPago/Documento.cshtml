@@ -5,12 +5,17 @@
     var tienda    = Model.oTienda    ?? new CapaModelo.Tienda();
     var compra    = Model.oCompra;
 
-    bool tieneNC = compra != null && compra.MontoNotaCredito.HasValue && compra.MontoNotaCredito > 0;
-    decimal totalNeto = tieneNC ? Model.Monto : Model.Monto;   // Monto ya viene calculado desde el SP
+    bool tieneNC      = compra != null && compra.MontoNotaCredito.HasValue && compra.MontoNotaCredito > 0;
+    bool esCredito    = (Model.ModalidadPago ?? "Contado") == "Credito";
+    bool aprobada     = (Model.EstadoAprobacion ?? "") == "Aprobada";
 
     string badgeEstado = Model.Estado == "Pagada"  ? "badge-success"
                        : Model.Estado == "Anulada" ? "badge-danger"
-                       : "badge-warning";   // Pendiente
+                       : "badge-warning";
+
+    string badgeAprob = aprobada                              ? "badge-success"
+                      : Model.EstadoAprobacion == "Rechazada" ? "badge-danger"
+                      : "badge-warning";
 
     string emisor = Model.oUsuarioEmite != null
         ? (Model.oUsuarioEmite.Nombres + " " + Model.oUsuarioEmite.Apellidos).Trim()
@@ -120,6 +125,15 @@
         <div class="estado-bar">
             <span>Estado:</span>
             <span class="badge @badgeEstado">@(string.IsNullOrEmpty(Model.Estado) ? "—" : Model.Estado)</span>
+            <span class="badge @badgeAprob">@(string.IsNullOrEmpty(Model.EstadoAprobacion) ? "Pendiente" : Model.EstadoAprobacion)</span>
+            <span class="badge" style="background:#e0e7ff;color:#3730a3;">
+                <i class="fas @(esCredito ? "fa-credit-card" : "fa-money-bill-wave")"></i>
+                @(esCredito ? "Crédito" : "Contado")
+                @if (esCredito && Model.NumeroCuotas.HasValue)
+                {
+                    <text> — @Model.NumeroCuotas cuota@(Model.NumeroCuotas > 1 ? "s" : "")</text>
+                }
+            </span>
             @if (tieneNC)
             {
                 <span class="badge badge-nc"><i class="fas fa-file-invoice-dollar"></i> Nota de Crédito aplicada</span>

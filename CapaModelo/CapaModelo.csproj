@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BajaProducto.cs" />
+    <Compile Include="CuentaPorPagar.cs" />
     <Compile Include="MotivoBaja.cs" />
     <Compile Include="Persona.cs" />
     <Compile Include="ProductoTiendaBaja.cs" />

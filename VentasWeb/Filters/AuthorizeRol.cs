@@ -37,6 +37,8 @@ namespace VentasWeb.Filters
             { "Compra|Revision",                           "Revisión de Compras"        },
             { "Compra|OrdenPago",                          "Órdenes de Pago"            },
             { "OrdenPago|Consultar",                       "Órdenes de Pago"            },
+            { "OrdenPago|Aprobar",                         "Aprobar Orden de Pago"      },
+            { "OrdenPago|CuentasPorPagar",                 "Cuentas por Pagar"          },
             { "Tienda|Crear",                              "Tiendas"                    },
             { "Venta|Crear",                               "Registrar Venta Directa"    },
             { "Venta|Consultar",                           "Consultar Ventas"           },

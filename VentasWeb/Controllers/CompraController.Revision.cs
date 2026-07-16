@@ -248,12 +248,17 @@ namespace VentasWeb.Controllers
 
         [HttpPost]
         [AuthorizeRol("OrdenPago", "Consultar")]
-        public JsonResult GenerarOP(int idcompra)
+        public JsonResult GenerarOP(int idcompra, string modalidadPago = "Contado", int? numeroCuotas = null)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            var rpt = CD_OrdenPago.Instancia.Generar(idcompra, UsuarioActual.IdUsuario);
+            // Solo Encargado (IdRol 6) y SuperAdmin pueden generar Órdenes de Pago
+            if (!EsSuperAdmin && UsuarioActual.IdRol != ID_ROL_ENCARGADO)
+                return Json(new { resultado = false, mensaje = "Solo el Encargado puede generar Órdenes de Pago." });
+
+            var rpt = CD_OrdenPago.Instancia.Generar(
+                idcompra, UsuarioActual.IdUsuario, modalidadPago, numeroCuotas);
             return Json(new
             {
                 resultado  = rpt.resultado,

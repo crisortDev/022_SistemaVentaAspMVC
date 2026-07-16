@@ -1,0 +1,101 @@
+@{
+    ViewBag.Title = "Aprobar Órdenes de Pago";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Compras</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Aprobar Órdenes de Pago</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-money-check-alt"></i> Aprobar / Rechazar Órdenes de Pago
+            </div>
+            <div class="card-body p-2">
+
+                <div class="row align-items-end mb-2">
+                    <div class="col-sm-2">
+                        <label class="col-form-label col-form-label-sm">Fecha Inicio:</label>
+                        <input type="text" id="txtFechaInicio" class="form-control form-control-sm" autocomplete="off" />
+                    </div>
+                    <div class="col-sm-2">
+                        <label class="col-form-label col-form-label-sm">Fecha Fin:</label>
+                        <input type="text" id="txtFechaFin" class="form-control form-control-sm" autocomplete="off" />
+                    </div>
+                    <div class="col-sm-2">
+                        <label class="col-form-label col-form-label-sm">Estado:</label>
+                        <select class="form-control form-control-sm" id="cboEstadoAprob">
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Aprobada">Aprobada</option>
+                            <option value="Rechazada">Rechazada</option>
+                            <option value="Todos">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <button class="btn btn-primary btn-sm" onclick="buscar()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="tbOrdenesPago" class="table table-bordered table-hover table-sm" style="width:100%">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Acciones</th>
+                                <th>N° OP</th>
+                                <th>Factura</th>
+                                <th>Proveedor</th>
+                                <th>Monto</th>
+                                <th>Modalidad</th>
+                                <th>Cuotas</th>
+                                <th>Estado</th>
+                                <th>Emitida</th>
+                                <th>Emitido por</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal Rechazo *@
+<div class="modal fade" id="modalRechazo" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-times-circle"></i> Rechazar Orden de Pago</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnIdOPRechazo" value="0" />
+                <p class="text-muted small">Ingrese el motivo del rechazo. El operador podrá verlo para corregir y reemitir la OP.</p>
+                <div class="form-group mb-0">
+                    <label class="col-form-label col-form-label-sm">Motivo <span class="text-danger">*</span>:</label>
+                    <textarea class="form-control form-control-sm" id="txtMotivoRechazo"
+                              rows="3" maxlength="500" placeholder="Describa el motivo..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="confirmarRechazo()">
+                    <i class="fas fa-times-circle"></i> Rechazar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/OrdenPago_Aprobar.js?v=" + DateTime.Now.Ticks)"
+            type="text/javascript"></script>
+}

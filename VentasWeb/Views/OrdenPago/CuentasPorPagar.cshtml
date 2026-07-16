@@ -1,0 +1,71 @@
+@{
+    ViewBag.Title = "Cuentas por Pagar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Compras</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Cuentas por Pagar</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-coins"></i> Cuentas por Pagar — Crédito a Proveedores
+            </div>
+            <div class="card-body p-2">
+
+                <div class="row align-items-end mb-2">
+                    <div class="col-sm-3">
+                        <label class="col-form-label col-form-label-sm">Proveedor:</label>
+                        <select class="form-control form-control-sm" id="cboProveedor">
+                            <option value="0">-- Todos --</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <label class="col-form-label col-form-label-sm">Estado:</label>
+                        <select class="form-control form-control-sm" id="cboEstadoCXP">
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Vencida">Vencida</option>
+                            <option value="Pagada">Pagada</option>
+                            <option value="Todos">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <button class="btn btn-warning btn-sm" onclick="buscar()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="tbCXP" class="table table-bordered table-hover table-sm" style="width:100%">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Acciones</th>
+                                <th>N° OP</th>
+                                <th>Factura</th>
+                                <th>Proveedor</th>
+                                <th>Cuota</th>
+                                <th>Vencimiento</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                                <th>Fecha Pago</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/OrdenPago_CuentasPorPagar.js?v=" + DateTime.Now.Ticks)"
+            type="text/javascript"></script>
+}

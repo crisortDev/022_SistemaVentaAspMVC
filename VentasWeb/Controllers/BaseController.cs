@@ -14,6 +14,8 @@ namespace VentasWeb.Controllers
         // ── Constantes de IdRol ────────────────────────────────────
         protected const int ID_ROL_SUPERADMIN   = 14;
         protected const int ID_ROL_ADMINISTRADOR = 1;
+        protected const int ID_ROL_SUPERVISOR    = 11;
+        protected const int ID_ROL_ENCARGADO     = 6;
 
         // ── Propiedades de sesión ─────────────────────────────────
 

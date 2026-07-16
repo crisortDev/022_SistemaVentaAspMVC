@@ -23,10 +23,21 @@ namespace CapaModelo
         // ── Datos financieros ──────────────────────────────────
         public decimal Monto            { get; set; }
 
+        // ── Modalidad de pago ──────────────────────────────────
+        /// <summary>Contado | Credito</summary>
+        public string ModalidadPago     { get; set; }
+        public int?   NumeroCuotas      { get; set; }
+
+        // ── Aprobación supervisor ──────────────────────────────
+        /// <summary>Pendiente | Aprobada | Rechazada</summary>
+        public string   EstadoAprobacion     { get; set; }
+        public int?     IdUsuarioAprobador   { get; set; }
+        public Usuario  oUsuarioAprobador    { get; set; }
+        public DateTime? FechaAprobacion     { get; set; }
+        public string   MotivoRechazo        { get; set; }
+
         // ── Ciclo de vida ──────────────────────────────────────
-        /// <summary>
-        /// Pendiente | Pagada | Anulada
-        /// </summary>
+        /// <summary>Emitida | Pagada | Anulada</summary>
         public string   Estado          { get; set; }
         public DateTime FechaEmision    { get; set; }
         public string   FechaEmisionTexto { get; set; }

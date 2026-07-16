@@ -469,8 +469,8 @@ namespace VentasWeb.Controllers
                 {
                     cn.Open();
                     var cmd = new System.Data.SqlClient.SqlCommand(@"
-                        SELECT ISNULL(pt.Stock,  0) AS StockActual,
-                               ISNULL(p.StockMaximo, 0) AS StockMaximo
+                        SELECT ISNULL(pt.Stock,       0) AS StockActual,
+                               ISNULL(pt.StockMaximo, 0) AS StockMaximo
                         FROM dbo.PRODUCTO p
                         LEFT JOIN dbo.PRODUCTO_TIENDA pt
                                ON pt.IdProducto = p.IdProducto

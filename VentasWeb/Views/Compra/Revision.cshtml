@@ -180,6 +180,50 @@
     </div>
 </div>
 
+@* Modal Generar Orden de Pago *@
+<div class="modal fade" id="modalGenerarOP" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-money-check-alt"></i> Generar Orden de Pago</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnIdOP" value="0" />
+                <p class="text-muted small mb-3">
+                    Seleccione la modalidad de pago para esta Orden de Pago.
+                    Quedará <strong>pendiente de aprobación</strong> del supervisor.
+                </p>
+                <div class="form-group">
+                    <label class="col-form-label col-form-label-sm">
+                        Modalidad de Pago <span class="text-danger">*</span>:
+                    </label>
+                    <select class="form-control form-control-sm" id="cboModalidadOP"
+                            onchange="_cambioModalidadOP()">
+                        <option value="Contado">Contado</option>
+                        <option value="Credito">Crédito</option>
+                    </select>
+                </div>
+                <div class="form-group mb-0" id="divCuotas" style="display:none;">
+                    <label class="col-form-label col-form-label-sm">
+                        Número de Cuotas <span class="text-danger">*</span>:
+                        <small class="text-muted">(mínimo 2, número entero)</small>
+                    </label>
+                    <input type="number" class="form-control form-control-sm"
+                           id="txtNumeroCuotas" min="2" step="1"
+                           placeholder="Ej: 3, 6, 12..." />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="_confirmarGenerarOP()">
+                    <i class="fas fa-money-check-alt"></i> Generar OP
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts{
     <script src="@Url.Content("~/Scripts/Views/Compra_Revision.js?v=" + DateTime.Now.Ticks)"
             type="text/javascript"></script>
