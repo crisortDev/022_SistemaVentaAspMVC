@@ -82,38 +82,59 @@
                             <div class="card-body p-2">
                                 <h6 class="card-title mb-1 text-primary">Cobro</h6>
 
-                                <!-- Condición de venta -->
+                                <!-- Modalidad de pago -->
                                 <div class="form-group mb-1">
-                                    <label class="col-form-label col-form-label-sm font-weight-bold">Condición de Venta:</label>
-                                    <div class="d-flex" style="gap:16px;">
+                                    <label class="col-form-label col-form-label-sm font-weight-bold">Modalidad de Pago:</label>
+                                    <div class="d-flex flex-wrap" style="gap:10px;">
                                         <div class="custom-control custom-radio">
-                                            <input type="radio" id="rdoContado" name="condicion" class="custom-control-input" value="Contado" checked onchange="toggleCondicion()">
-                                            <label class="custom-control-label" for="rdoContado">Contado</label>
+                                            <input type="radio" id="rdoEfectivo" name="modalidadPago" class="custom-control-input" value="Efectivo" checked onchange="toggleModalidad()">
+                                            <label class="custom-control-label" for="rdoEfectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</label>
                                         </div>
                                         <div class="custom-control custom-radio">
-                                            <input type="radio" id="rdoCredito" name="condicion" class="custom-control-input" value="Crédito" onchange="toggleCondicion()">
-                                            <label class="custom-control-label" for="rdoCredito">Crédito</label>
+                                            <input type="radio" id="rdoTransferencia" name="modalidadPago" class="custom-control-input" value="Transferencia" onchange="toggleModalidad()">
+                                            <label class="custom-control-label" for="rdoTransferencia"><i class="fas fa-university"></i> Transferencia</label>
+                                        </div>
+                                        <div class="custom-control custom-radio">
+                                            <input type="radio" id="rdoCredito" name="modalidadPago" class="custom-control-input" value="Crédito" onchange="toggleModalidad()">
+                                            <label class="custom-control-label" for="rdoCredito"><i class="fas fa-calendar-alt"></i> Crédito</label>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Plazo (solo Crédito) -->
-                                <div class="form-group mb-1" id="divPlazo" style="display:none;">
-                                    <label class="col-form-label col-form-label-sm">Plazo de Crédito:</label>
-                                    <select class="form-control form-control-sm" id="cboPlazo">
-                                        <option value="30">30 días</option>
-                                        <option value="60">60 días</option>
-                                    </select>
+                                <!-- Nro. de transferencia (solo Transferencia) -->
+                                <div class="form-group mb-1" id="divTransferencia" style="display:none;">
+                                    <label class="col-form-label col-form-label-sm">Nro. de Transferencia / Comprobante: <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="txtNumeroTransferencia"
+                                           placeholder="Ingrese el número de transacción" maxlength="100">
                                 </div>
 
-                                <div class="form-group mb-1">
-                                    <label class="col-form-label col-form-label-sm">Forma de Cobro:</label>
-                                    <select class="form-control form-control-sm" id="cboFormaCobro">
-                                        <option value="0">-- Seleccionar --</option>
+                                <!-- Plan de cuotas (solo Crédito) -->
+                                <div class="form-group mb-1" id="divCuotas" style="display:none;">
+                                    <label class="col-form-label col-form-label-sm">Plan de Financiación:</label>
+                                    <select class="form-control form-control-sm" id="cboCuotas" onchange="calcularCuotas()">
+                                        <option value="">-- Seleccionar plan --</option>
+                                        <option value="3">3 cuotas (Recargo 5%)</option>
+                                        <option value="6">6 cuotas (Recargo 10%)</option>
+                                        <option value="12">12 cuotas (Recargo 20%)</option>
+                                        <option value="18">18 cuotas (Recargo 35%)</option>
                                     </select>
+                                    <!-- Calculadora de cuotas -->
+                                    <div id="divResumenCuotas" class="mt-1 p-2 border rounded bg-light" style="display:none;font-size:12px;">
+                                        <div class="row">
+                                            <div class="col-6">Total Venta: <strong id="lblTotalVenta">—</strong></div>
+                                            <div class="col-6">Recargo: <strong id="lblRecargo">—</strong></div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">Monto Financiado: <strong id="lblMontoFinanciado" class="text-primary">—</strong></div>
+                                            <div class="col-6">Valor de Cuota: <strong id="lblValorCuota" class="text-success">—</strong></div>
+                                        </div>
+                                        <div class="text-muted mt-1" id="lblAjusteCuota" style="display:none;">
+                                            <i class="fas fa-info-circle"></i> La última cuota absorbe el ajuste por redondeo.
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <!-- Importe/Cambio (solo Contado) -->
+                                <!-- Importe/Cambio (Efectivo y Transferencia) -->
                                 <div id="divImporte">
                                     <div class="row align-items-end">
                                         <div class="col-6">
@@ -129,7 +150,7 @@
 
                                 <!-- Aviso crédito -->
                                 <div id="divAvisoCredito" class="alert alert-info py-1 px-2 mt-1 mb-0" style="display:none;font-size:11px;">
-                                    <i class="fas fa-info-circle"></i> Factura a crédito: el pago se registra como pendiente. Se emitirá con fecha límite de pago.
+                                    <i class="fas fa-info-circle"></i> Venta a crédito: se generarán las cuotas automáticamente con fechas de vencimiento al último día hábil de cada mes.
                                 </div>
                             </div>
                         </div>

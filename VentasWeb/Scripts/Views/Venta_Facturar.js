@@ -1,16 +1,17 @@
 // Venta_Facturar.js  —  Facturar desde Pre-venta
+// Modalidades: Efectivo | Transferencia | Crédito (3/6/12/18 cuotas con recargo)
 var dtCliente = null;
 
+// Tabla de recargos por cuotas
+var RECARGOS = { 3: 5, 6: 10, 12: 20, 18: 35 };
+
 $(function () {
-    cargarFormasCobro(function () {
-        aplicarLogicaAperturaFondo();
-    });
     iniciarTablaCliente();
     verificarStockInsuficiente();
+    aplicarLogicaAperturaFondo();
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-// Redondea al múltiplo de 50 superior (moneda mínima Paraguay = 50 Gs)
 function r50(n) { return Math.ceil((n || 0) / 50) * 50; }
 
 function leerTotal() {
@@ -18,84 +19,109 @@ function leerTotal() {
     return r50(parseInt(txt) || 0);
 }
 
-// ── Lógica según monto de apertura de caja ─────────────────────────────────
-// Apertura = 0 → el cajero abrió sin efectivo; no puede dar vuelto.
-//   • Contado: cobro exacto en efectivo (importe = total, readonly).
-//   • Crédito: siempre disponible (no involucra efectivo ahora).
-// Apertura > 0 → todas las opciones habilitadas normalmente.
+function formatGs(n) { return Math.round(n || 0).toLocaleString('es-PY'); }
+function escapar(s)  { return (s || '').replace(/'/g, "\\'"); }
+
+// ── Lógica según apertura de caja ─────────────────────────────────────────
 function aplicarLogicaAperturaFondo() {
     var apertura = parseFloat($('#hdnMontoAperturaFondo').val()) || 0;
-
     if (apertura === 0) {
-        // Forzar Efectivo y Contado como punto de partida
-        $('#rdoContado').prop('checked', true);
-        toggleCondicion();
-
-        $('#cboFormaCobro option').filter(function () {
-            return $(this).text().trim().toLowerCase() === 'efectivo';
-        }).prop('selected', true);
-
+        // Sin fondo: cobro exacto en Efectivo
+        $('#rdoEfectivo').prop('checked', true);
+        toggleModalidad();
         var total = leerTotal();
         $('#txtImporteRecibido').val(total).prop('readonly', true);
         $('#txtCambio').val('0');
-
         $('#divImporte').prepend(
             '<div class="alert alert-info py-1 px-2 mb-2" id="alertaFondoCero" style="font-size:12px;">' +
             '<i class="fas fa-info-circle mr-1"></i>' +
-            '<strong>Caja sin fondo inicial</strong> — Contado: cobro exacto (sin vuelto). ' +
-            'Podés cambiar a <strong>Crédito</strong> si el cliente paga después.' +
+            '<strong>Caja sin fondo inicial</strong> — cobro exacto (sin vuelto). ' +
+            'Podés usar <strong>Transferencia</strong> o <strong>Crédito</strong> si corresponde.' +
             '</div>'
         );
-
-        // Cuando el cajero cambia la condición, actualizar el bloqueo del importe
-        $('input[name="condicion"]').off('change.fondo').on('change.fondo', function () {
-            var esCred = $(this).val() === 'Crédito';
-            if (esCred) {
-                // Crédito: liberar el campo (no se cobra ahora)
+        $('input[name="modalidadPago"]').off('change.fondo').on('change.fondo', function () {
+            var modal = $(this).val();
+            if (modal !== 'Efectivo') {
                 $('#txtImporteRecibido').prop('readonly', false).val(0);
-                $('#txtCambio').val('0');
                 $('#alertaFondoCero').remove();
             } else {
-                // Vuelve a Contado: restaurar monto exacto
                 var tot = leerTotal();
                 $('#txtImporteRecibido').val(tot).prop('readonly', true);
                 $('#txtCambio').val('0');
-                if ($('#alertaFondoCero').length === 0) {
+                if (!$('#alertaFondoCero').length) {
                     $('#divImporte').prepend(
                         '<div class="alert alert-info py-1 px-2 mb-2" id="alertaFondoCero" style="font-size:12px;">' +
                         '<i class="fas fa-info-circle mr-1"></i>' +
-                        '<strong>Caja sin fondo inicial</strong> — Contado: cobro exacto (sin vuelto). ' +
-                        'Podés cambiar a <strong>Crédito</strong> si el cliente paga después.' +
+                        '<strong>Caja sin fondo inicial</strong> — cobro exacto (sin vuelto).' +
                         '</div>'
                     );
                 }
             }
         });
     }
-    // Si apertura > 0: todas las opciones habilitadas (comportamiento normal)
 }
 
-// ── Formas de cobro ────────────────────────────────────────────────────────
-function cargarFormasCobro(callback) {
-    $.get($.MisUrls.url._Venta_FormasCobro, function (r) {
-        if (r && r.data) {
-            r.data.forEach(function (f) {
-                $('#cboFormaCobro').append($('<option>', { value: f.IdFormaCobro, text: f.Nombre }));
-            });
-            $('#cboFormaCobro option').filter(function () {
-                return $(this).text().trim().toLowerCase() === 'efectivo';
-            }).prop('selected', true);
-        }
-        if (typeof callback === 'function') callback();
-    });
-}
+// ── Toggle modalidad ───────────────────────────────────────────────────────
+function toggleModalidad() {
+    var modal = $('input[name="modalidadPago"]:checked').val() || 'Efectivo';
+    var esCredito      = modal === 'Crédito';
+    var esTransferencia = modal === 'Transferencia';
 
-function verificarStockInsuficiente() {
-    if ($('.table-warning').length > 0) {
-        $('#lblStockAlerta').removeClass('d-none');
+    $('#divTransferencia').toggle(esTransferencia);
+    $('#divCuotas').toggle(esCredito);
+    $('#divImporte').toggle(!esCredito);
+    $('#divAvisoCredito').toggle(esCredito);
+
+    if (!esTransferencia) $('#txtNumeroTransferencia').val('');
+    if (!esCredito) {
+        $('#cboCuotas').val('');
+        $('#divResumenCuotas').hide();
+        $('#txtImporteRecibido').val(0);
+        $('#txtCambio').val('0');
+    }
+    if (esCredito) {
+        $('#txtImporteRecibido').val(0);
+        $('#txtCambio').val('0');
     }
 }
 
+// ── Calculadora de cuotas ──────────────────────────────────────────────────
+function calcularCuotas() {
+    var cuotas = parseInt($('#cboCuotas').val()) || 0;
+    if (!cuotas) { $('#divResumenCuotas').hide(); return; }
+
+    var total    = leerTotal();
+    var recargo  = RECARGOS[cuotas] || 0;
+    // Monto financiado redondeado a 50 Gs
+    var financiado = Math.ceil(total * (1 + recargo / 100) / 50) * 50;
+    // Cuota base redondeada hacia abajo a 50 Gs
+    var valorCuota = Math.floor(financiado / cuotas / 50) * 50;
+    var ultimaCuota = financiado - valorCuota * (cuotas - 1);
+    var hayAjuste  = ultimaCuota !== valorCuota;
+
+    $('#lblTotalVenta').text('Gs. ' + formatGs(total));
+    $('#lblRecargo').text(recargo + '%  (+Gs. ' + formatGs(financiado - total) + ')');
+    $('#lblMontoFinanciado').text('Gs. ' + formatGs(financiado));
+    $('#lblValorCuota').text('Gs. ' + formatGs(valorCuota) + ' × ' + (cuotas - (hayAjuste ? 1 : 0)) +
+        (hayAjuste ? ' + Gs. ' + formatGs(ultimaCuota) + ' (última)' : ''));
+    $('#lblAjusteCuota').toggle(hayAjuste);
+    $('#divResumenCuotas').show();
+}
+
+// ── Calcular cambio (Efectivo / Transferencia) ─────────────────────────────
+function calcularCambio() {
+    var total    = leerTotal();
+    var recibido = parseFloat($('#txtImporteRecibido').val()) || 0;
+    var cambio   = recibido - total;
+    $('#txtCambio').val(formatGs(Math.max(0, cambio)));
+    if (recibido > 0 && recibido < total) {
+        $('#txtCambio').addClass('text-danger').removeClass('text-success');
+    } else {
+        $('#txtCambio').removeClass('text-danger').addClass('text-success');
+    }
+}
+
+// ── Tabla y selección de cliente ──────────────────────────────────────────
 function iniciarTablaCliente() {
     dtCliente = $('#tbCliente').DataTable({
         ajax: { url: $.MisUrls.url._Venta_ObtenerClientes, dataSrc: 'data', type: 'GET' },
@@ -104,7 +130,7 @@ function iniciarTablaCliente() {
                 data: null, orderable: false, searchable: false,
                 render: function (d) {
                     return '<button class="btn btn-primary btn-sm" onclick="seleccionarCliente(' +
-                        d.IdCliente + ',\'' + escapar(d.Nombre) + '\')">Elegir</button>';
+                        d.IdCliente + ',\'' + escapar(d.Nombre) + '\',' + (d.SaldoFavor || 0) + ')">Elegir</button>';
                 }
             },
             { data: 'NumeroDocumento' },
@@ -120,37 +146,34 @@ function cambiarCliente() {
     $('#modalCliente').modal('show');
 }
 
-function seleccionarCliente(id, nombre) {
+function seleccionarCliente(id, nombre, saldoFavor) {
     $('#hdnIdCliente').val(id);
     $('#lblNombreCliente').text(nombre);
     $('#modalCliente').modal('hide');
-}
 
-// ── Condición de pago ───────────────────────────────────────────────────────
-function toggleCondicion() {
-    var esCredito = $('input[name="condicion"]:checked').val() === 'Crédito';
-    $('#divPlazo').toggle(esCredito);
-    $('#divImporte').toggle(!esCredito);
-    $('#divAvisoCredito').toggle(esCredito);
-    if (esCredito) {
-        $('#txtImporteRecibido').val(0);
-        $('#txtCambio').val(0);
+    // Mostrar saldo a favor si existe
+    $('#alertaSaldoFavor').remove();
+    if (saldoFavor && saldoFavor > 0) {
+        var total = leerTotal();
+        var aplicado = Math.min(saldoFavor, total);
+        $('#divImporte').prepend(
+            '<div class="alert alert-success py-1 px-2 mb-2" id="alertaSaldoFavor" style="font-size:12px;">' +
+            '<i class="fas fa-gift mr-1"></i>' +
+            '<strong>Saldo a favor: Gs. ' + formatGs(saldoFavor) + '</strong> — ' +
+            'Se aplicarán automáticamente Gs. ' + formatGs(aplicado) +
+            ' al facturar. Total a cobrar: Gs. ' + formatGs(total - aplicado) + '.' +
+            '</div>'
+        );
     }
 }
 
-function calcularCambio() {
-    var total    = leerTotal();
-    var recibido = parseFloat($('#txtImporteRecibido').val()) || 0;
-    var cambio   = recibido - total;
-    $('#txtCambio').val(formatGs(Math.max(0, cambio)));
-    if (recibido > 0 && recibido < total) {
-        $('#txtCambio').addClass('text-danger').removeClass('text-success');
-    } else {
-        $('#txtCambio').removeClass('text-danger').addClass('text-success');
+function verificarStockInsuficiente() {
+    if ($('.table-warning').length > 0) {
+        $('#lblStockAlerta').removeClass('d-none');
     }
 }
 
-// ── Facturar ────────────────────────────────────────────────────────────────
+// ── Facturar ───────────────────────────────────────────────────────────────
 function facturar() {
     var idCliente  = parseInt($('#hdnIdCliente').val()) || 0;
     var nombreCli  = $('#lblNombreCliente').text().trim();
@@ -161,49 +184,66 @@ function facturar() {
         return;
     }
 
-    var formaCobro = parseInt($('#cboFormaCobro').val());
-    if (!formaCobro) { toastr.warning('Seleccione la forma de cobro.'); return; }
+    var modal = $('input[name="modalidadPago"]:checked').val() || 'Efectivo';
 
-    var condicion = $('input[name="condicion"]:checked').val() || 'Contado';
-    var esCredito = condicion === 'Crédito';
-    var recibido  = esCredito ? 0 : (parseFloat($('#txtImporteRecibido').val()) || 0);
-    var plazo     = esCredito ? parseInt($('#cboPlazo').val()) : null;
+    // Validaciones por modalidad
+    if (modal === 'Transferencia') {
+        var nroTransf = $('#txtNumeroTransferencia').val().trim();
+        if (!nroTransf) {
+            toastr.warning('Debe ingresar el número de transferencia o comprobante.');
+            $('#txtNumeroTransferencia').focus();
+            return;
+        }
+    }
 
-    // Solo validar importe si es Contado
-    if (!esCredito && recibido <= 0) {
+    if (modal === 'Crédito') {
+        var cuotas = parseInt($('#cboCuotas').val()) || 0;
+        if (!cuotas) {
+            toastr.warning('Seleccione el plan de financiación (cuotas).');
+            return;
+        }
+    }
+
+    var recibido = (modal !== 'Crédito') ? (parseFloat($('#txtImporteRecibido').val()) || 0) : 0;
+    if (modal !== 'Crédito' && recibido <= 0) {
         toastr.warning('Ingrese el importe recibido.');
         return;
     }
 
-    // Advertir stock insuficiente (no bloquear — el cajero decide)
+    // Advertir stock insuficiente
     if ($('.table-warning').length > 0) {
         Swal.fire({
-            icon: 'warning',
-            title: 'Stock insuficiente',
+            icon: 'warning', title: 'Stock insuficiente',
             html: 'Uno o más productos no tienen stock suficiente.<br><br>¿Querés continuar de todas formas?',
             showCancelButton: true,
             confirmButtonText: 'Sí, facturar igual',
             confirmButtonColor: '#e67e22',
             cancelButtonText: 'Cancelar'
         }).then(function (res) {
-            if (res.isConfirmed) enviarFacturacion(idCliente, formaCobro, recibido, condicion, plazo);
+            if (res.isConfirmed) enviarFacturacion(idCliente, modal, recibido);
         });
         return;
     }
 
-    enviarFacturacion(idCliente, formaCobro, recibido, condicion, plazo);
+    enviarFacturacion(idCliente, modal, recibido);
 }
 
-function enviarFacturacion(idCliente, formaCobro, recibido, condicion, plazo) {
+function enviarFacturacion(idCliente, modal, recibido) {
     $('#btnFacturar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Facturando...');
+
     var datos = {
         idOrdenVenta:    $('#hdnIdOrdenVenta').val(),
         idCliente:       idCliente,
-        idFormaCobro:    formaCobro,
-        importeRecibido: recibido,
-        condicion:       condicion || 'Contado'
+        modalidadPago:   modal,
+        importeRecibido: recibido
     };
-    if (plazo) datos.plazoCredito = plazo;
+
+    if (modal === 'Transferencia') {
+        datos.numeroTransferencia = $('#txtNumeroTransferencia').val().trim();
+    }
+    if (modal === 'Crédito') {
+        datos.numeroCuotas = parseInt($('#cboCuotas').val());
+    }
 
     $.ajax({
         url:    $.MisUrls.url._Venta_FacturarDesdeOV,
@@ -227,6 +267,3 @@ function enviarFacturacion(idCliente, formaCobro, recibido, condicion, plazo) {
         }
     });
 }
-
-function formatGs(n) { return Math.round(n || 0).toLocaleString('es-PY'); }
-function escapar(s) { return (s || '').replace(/'/g, "\\'"); }

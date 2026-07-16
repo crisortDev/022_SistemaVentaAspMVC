@@ -73,10 +73,18 @@ namespace VentasWeb.Controllers
             return View();
         }
 
-        /// <summary>Documento KuDE (factura electrónica Paraguay).</summary>
-        [AuthorizeRol("Venta", "*")]
+        /// <summary>
+        /// Documento KuDE (factura electrónica Paraguay).
+        /// Accesible a cualquier usuario autenticado con sesión válida:
+        ///   • El Cajero llega aquí tras facturar desde Pre-venta (OrdenVenta).
+        ///   • El Administrador/Supervisor desde Consultar Ventas (Venta).
+        /// La seguridad real la hace TienePermiso(idTienda) — nadie puede ver
+        /// el comprobante de otra sucursal — y VerificarSession (filtro global).
+        /// </summary>
         public ActionResult Documento(int idVenta = 0)
         {
+            if (UsuarioActual == null) return RedirectToAction("Index", "Login");
+
             Venta oVenta = CD_Venta.Instancia.ObtenerDetalleVenta_v2(idVenta);
             if (oVenta == null)
                 return HttpNotFound();
@@ -152,8 +160,10 @@ namespace VentasWeb.Controllers
         [AuthorizeRol("OrdenVenta", "Consultar Pre-ventas")]
         public JsonResult FacturarDesdeOV(
             int idOrdenVenta, int idCliente,
-            int idFormaCobro, decimal importeRecibido,
-            string condicion = "Contado", int? plazoCredito = null)
+            string modalidadPago = "Efectivo",
+            string numeroTransferencia = null,
+            int? numeroCuotas = null,
+            decimal importeRecibido = 0)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
@@ -171,12 +181,12 @@ namespace VentasWeb.Controllers
                 idOrdenVenta,
                 UsuarioActual.IdUsuario,
                 idCliente > 0 ? (int?)idCliente : null,
-                idFormaCobro,
+                modalidadPago,
+                numeroTransferencia,
+                numeroCuotas,
                 importeRecibido,
-                idCajaActual,       // vincula la venta a la caja del cajero
-                condicion,
-                plazoCredito,
-                UsuarioActual.IdRol);  // para la segregación de funciones
+                idCajaActual,
+                UsuarioActual.IdRol);
 
             return Json(new
             {
@@ -188,6 +198,30 @@ namespace VentasWeb.Controllers
                     ? Url.Action("Documento", "Venta", new { idVenta = r.idVenta })
                     : ""
             });
+        }
+
+        // ── JSON: Cuotas por cobrar ──────────────────────────────────────────
+
+        [HttpGet]
+        [AuthorizeRol("Venta", "Consultar Ventas")]
+        public JsonResult ObtenerCuotasVenta(int idcliente = 0, string estado = "Pendiente")
+        {
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
+            var lista = CD_Venta.Instancia.ObtenerCuotasVenta(idTienda, idcliente, estado);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [AuthorizeRol("Venta", "Consultar Ventas")]
+        public JsonResult CobrarCuota(int idcuotacobro, int idformacobro, decimal montorecibido)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            var r = CD_Venta.Instancia.CobrarCuotaVenta(
+                idcuotacobro, UsuarioActual.IdUsuario, idformacobro, montorecibido, CajaId);
+
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
 
         // ============================================================

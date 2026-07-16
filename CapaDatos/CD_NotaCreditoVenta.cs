@@ -137,8 +137,10 @@ namespace CapaDatos
                                                  ? dr["MotivoRechazo"].ToString() : "",
                                 NombreCliente    = dr["NombreCliente"].ToString(),
                                 NumeroDocumento  = dr["NumeroDocumento"].ToString(),
-                                NombreRegistro   = dr["NombreRegistro"].ToString(),
-                                NombreTienda     = dr["NombreTienda"].ToString()
+                                NombreRegistro       = dr["NombreRegistro"].ToString(),
+                                NombreTienda         = dr["NombreTienda"].ToString(),
+                                SaldoActualCliente   = dr["SaldoActualCliente"] != DBNull.Value
+                                                     ? Convert.ToDecimal(dr["SaldoActualCliente"]) : 0m
                             });
                         }
                     }

@@ -19,13 +19,21 @@ function iniciarTabla() {
                 data: null, orderable: false, searchable: false,
                 render: function (d) {
                     if (d.Estado !== 'Pendiente') return '—';
-                    return '<button class="btn btn-success btn-sm mr-1" title="Aprobar" onclick="abrirAprobacion(' + d.IdNCVenta + ',\'' + escapar(d.NumeroNCV) + '\',\'' + escapar(d.NumeroFactura) + '\',' + d.Monto + ',\'Aprobar\')"><i class="fas fa-check"></i></button>' +
-                           '<button class="btn btn-danger btn-sm" title="Rechazar" onclick="abrirAprobacion(' + d.IdNCVenta + ',\'' + escapar(d.NumeroNCV) + '\',\'' + escapar(d.NumeroFactura) + '\',' + d.Monto + ',\'Rechazar\')"><i class="fas fa-times"></i></button>';
+                    return '<button class="btn btn-success btn-sm mr-1" title="Aprobar" onclick="abrirAprobacion(' + d.IdNCVenta + ',\'' + escapar(d.NumeroNCV) + '\',\'' + escapar(d.NumeroFactura) + '\',\'' + escapar(d.NombreCliente) + '\',' + d.Monto + ',' + d.SaldoActualCliente + ',\'Aprobar\')"><i class="fas fa-check"></i></button>' +
+                           '<button class="btn btn-danger btn-sm" title="Rechazar" onclick="abrirAprobacion(' + d.IdNCVenta + ',\'' + escapar(d.NumeroNCV) + '\',\'' + escapar(d.NumeroFactura) + '\',\'' + escapar(d.NombreCliente) + '\',' + d.Monto + ',' + d.SaldoActualCliente + ',\'Rechazar\')"><i class="fas fa-times"></i></button>';
                 }
             },
             { data: 'NumeroNCV' },
             { data: 'NumeroFactura' },
-            { data: 'NombreCliente' },
+            {
+                data: null, render: function (d) {
+                    var saldo = d.SaldoActualCliente || 0;
+                    var badge = saldo > 0
+                        ? ' <span class="badge badge-info" title="Saldo a favor vigente"><i class="fas fa-wallet mr-1"></i>Gs. ' + formatGs(saldo) + '</span>'
+                        : '';
+                    return escaparHtml(d.NombreCliente) + badge;
+                }
+            },
             { data: 'MotivoNC' },
             { data: 'Monto', className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
             { data: 'NombreRegistro' },
@@ -123,7 +131,7 @@ function registrarNC() {
 }
 
 // ─── APROBAR / RECHAZAR ──────────────────────────────────────
-function abrirAprobacion(id, numero, factura, monto, accion) {
+function abrirAprobacion(id, numero, factura, cliente, monto, saldoActual, accion) {
     $('#hdnIdNCV').val(id);
     $('#hdnAccionNCV').val(accion);
     $('#lblNcvAprobacion').text(numero);
@@ -131,16 +139,28 @@ function abrirAprobacion(id, numero, factura, monto, accion) {
     $('#lblMontoAprobacion').text('Gs. ' + formatGs(monto));
     $('#txtMotivoRechazo').val('');
 
-    if (accion === 'Rechazar') {
-        $('#divMotivoRechazo').removeClass('d-none');
-        $('#modalAprobacionHeader').removeClass('bg-success').addClass('bg-danger');
-        $('#lblTituloAprobacion').html('<i class="fas fa-times mr-1"></i> Rechazar Nota de Crédito');
-        $('#btnConfirmarAprobacion').removeClass('btn-success').addClass('btn-danger');
-    } else {
+    // Mostrar info de saldo a favor solo al aprobar
+    if (accion === 'Aprobar') {
+        var saldoNuevo = (saldoActual || 0) + monto;
+        var infoSaldo = '<div class="alert alert-info mt-2 mb-0 py-2">' +
+            '<i class="fas fa-wallet mr-1"></i> ' +
+            '<strong>' + cliente + '</strong> recibirá <strong>Gs. ' + formatGs(monto) + '</strong> como saldo a favor.' +
+            (saldoActual > 0
+                ? ' Saldo actual: Gs. ' + formatGs(saldoActual) + ' → nuevo total: <strong>Gs. ' + formatGs(saldoNuevo) + '</strong>.'
+                : '') +
+            '<br><small class="text-muted">Se aplicará automáticamente en la próxima venta.</small>' +
+            '</div>';
+        $('#divInfoSaldoFavor').html(infoSaldo).removeClass('d-none');
         $('#divMotivoRechazo').addClass('d-none');
         $('#modalAprobacionHeader').removeClass('bg-danger').addClass('bg-success');
         $('#lblTituloAprobacion').html('<i class="fas fa-check mr-1"></i> Aprobar Nota de Crédito');
         $('#btnConfirmarAprobacion').removeClass('btn-danger').addClass('btn-success');
+    } else {
+        $('#divInfoSaldoFavor').addClass('d-none').html('');
+        $('#divMotivoRechazo').removeClass('d-none');
+        $('#modalAprobacionHeader').removeClass('bg-success').addClass('bg-danger');
+        $('#lblTituloAprobacion').html('<i class="fas fa-times mr-1"></i> Rechazar Nota de Crédito');
+        $('#btnConfirmarAprobacion').removeClass('btn-success').addClass('btn-danger');
     }
     $('#modalAprobacion').modal('show');
 }
@@ -170,3 +190,6 @@ function confirmarAprobacion() {
 function formatGs(n) { return Math.round(n || 0).toLocaleString('es-PY'); }
 function formatFecha(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
 function escapar(s) { return (s || '').replace(/'/g, "\\'"); }
+function escaparHtml(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}

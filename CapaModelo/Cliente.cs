@@ -21,5 +21,6 @@ namespace CapaModelo
         public string Referencia { get; set; }
         public bool Activo { get; set; }
         public string Geolocalizacion { get; set; }
+        public decimal SaldoFavor { get; set; }
     }
 }

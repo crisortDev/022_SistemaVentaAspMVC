@@ -87,12 +87,21 @@ namespace VentasWeb.Controllers
             if (usuario == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            // Debe tener caja abierta para vincular el cobro al turno
             int idCaja = CajaId;
             if (idCaja == 0)
                 return Json(new { resultado = false,
                     mensaje = "Debe tener una caja ABIERTA para registrar cobros. Abra una caja e intente de nuevo." });
 
+            // ── IDs negativos → cuota del nuevo sistema (CUOTA_COBRO_VENTA) ──
+            if (idCompCobro < 0)
+            {
+                int idCuotaCobro = -idCompCobro;
+                var rCuota = CD_Venta.Instancia.CobrarCuotaVenta(
+                    idCuotaCobro, usuario.IdUsuario, idFormaCobro, montoRecibido, idCaja);
+                return Json(new { resultado = rCuota.resultado, mensaje = rCuota.mensaje, idCompCobro = 0 });
+            }
+
+            // ── IDs positivos → comprobante del sistema antiguo (COMPROBANTE_COBRO) ──
             var (resultado, mensaje, idComp) = CD_ComprobanteCobro.Instancia.CobrarCuenta(
                 idCompCobro,
                 idCaja,

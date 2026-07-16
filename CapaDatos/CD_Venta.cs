@@ -108,8 +108,8 @@ namespace CapaDatos
         // ----------------------------------------------------------------
         public (bool resultado, string mensaje, int idVenta, string numeroFactura) FacturarDesdeOrdenVenta(
             int idOrdenVenta, int idUsuarioCajero, int? idCliente,
-            int idFormaCobro, decimal importeRecibido, int idCaja = 0,
-            string condicion = "Contado", int? plazoCredito = null, int idRolUsuario = 0)
+            string modalidadPago, string numeroTransferencia, int? numeroCuotas,
+            decimal importeRecibido, int idCaja = 0, int idRolUsuario = 0)
         {
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
@@ -122,13 +122,14 @@ namespace CapaDatos
                     cmd.Parameters.AddWithValue("@IdUsuarioCajero", idUsuarioCajero);
                     cmd.Parameters.AddWithValue("@IdCliente",
                         idCliente.HasValue ? (object)idCliente.Value : DBNull.Value);
-                    cmd.Parameters.AddWithValue("@IdFormaCobro", idFormaCobro);
+                    cmd.Parameters.AddWithValue("@ModalidadPago", modalidadPago ?? "Efectivo");
+                    cmd.Parameters.AddWithValue("@NumeroTransferencia",
+                        string.IsNullOrWhiteSpace(numeroTransferencia) ? (object)DBNull.Value : numeroTransferencia.Trim());
+                    cmd.Parameters.AddWithValue("@NumeroCuotas",
+                        numeroCuotas.HasValue ? (object)numeroCuotas.Value : DBNull.Value);
                     cmd.Parameters.AddWithValue("@ImporteRecibido", importeRecibido);
                     cmd.Parameters.AddWithValue("@IdCaja",
                         idCaja > 0 ? (object)idCaja : DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Condicion", condicion ?? "Contado");
-                    cmd.Parameters.AddWithValue("@PlazoCredito",
-                        plazoCredito.HasValue ? (object)plazoCredito.Value : DBNull.Value);
                     cmd.Parameters.AddWithValue("@IdRolUsuario", idRolUsuario);
 
                     cmd.Parameters.Add("@IdVentaGenerada", SqlDbType.Int).Direction = ParameterDirection.Output;
@@ -150,6 +151,87 @@ namespace CapaDatos
                 catch (Exception ex)
                 {
                     return (false, "Error al facturar pre-venta: " + ex.Message, 0, "");
+                }
+            }
+        }
+
+        // ----------------------------------------------------------------
+        //  CUOTAS DE VENTA (crédito en cuotas)
+        // ----------------------------------------------------------------
+        public List<CuotaCobro> ObtenerCuotasVenta(int idTienda = 0, int idCliente = 0, string estado = "Pendiente")
+        {
+            var lista = new List<CuotaCobro>();
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_ObtenerCuotasVenta", oConexion);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdTienda",  idTienda);
+                    cmd.Parameters.AddWithValue("@IdCliente", idCliente);
+                    cmd.Parameters.AddWithValue("@Estado",    estado ?? "");
+
+                    oConexion.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new CuotaCobro
+                            {
+                                IdCuotaCobro    = Convert.ToInt32(dr["IdCuotaCobro"]),
+                                IdVenta         = Convert.ToInt32(dr["IdVenta"]),
+                                NumeroFactura   = dr["NumeroFactura"]?.ToString() ?? "",
+                                NumeroCuota     = Convert.ToInt32(dr["NumeroCuota"]),
+                                TotalCuotas     = Convert.ToInt32(dr["TotalCuotas"]),
+                                MontoFinanciado = dr["MontoFinanciado"] != DBNull.Value ? Convert.ToDecimal(dr["MontoFinanciado"]) : 0,
+                                Monto           = Convert.ToDecimal(dr["Monto"]),
+                                FechaVencimiento = dr["FechaVencimiento"]?.ToString() ?? "",
+                                Estado          = dr["Estado"]?.ToString() ?? "",
+                                FechaPago       = dr["FechaPago"]?.ToString() ?? "",
+                                MontoRecibido   = dr["MontoRecibido"] != DBNull.Value ? (decimal?)Convert.ToDecimal(dr["MontoRecibido"]) : null,
+                                IdCliente       = dr["IdCliente"] != DBNull.Value ? Convert.ToInt32(dr["IdCliente"]) : 0,
+                                NombreCliente   = dr["NombreCliente"]?.ToString() ?? "",
+                                DocumentoCliente = dr["DocumentoCliente"]?.ToString() ?? "",
+                                IdTienda        = Convert.ToInt32(dr["IdTienda"]),
+                                NombreTienda    = dr["NombreTienda"]?.ToString() ?? "",
+                                DiasParaVencer  = dr["DiasParaVencer"] != DBNull.Value ? Convert.ToInt32(dr["DiasParaVencer"]) : 0
+                            });
+                        }
+                    }
+                }
+                catch { }
+            }
+            return lista;
+        }
+
+        public (bool resultado, string mensaje) CobrarCuotaVenta(
+            int idCuotaCobro, int idUsuario, int idFormaCobro, decimal montoRecibido, int idCaja = 0)
+        {
+            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    SqlCommand cmd = new SqlCommand("usp_CobrarCuotaVenta", oConexion);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdCuotaCobro",   idCuotaCobro);
+                    cmd.Parameters.AddWithValue("@IdUsuarioCobro", idUsuario);
+                    cmd.Parameters.AddWithValue("@IdFormaCobro",   idFormaCobro);
+                    cmd.Parameters.AddWithValue("@MontoRecibido",  montoRecibido);
+                    cmd.Parameters.AddWithValue("@IdCaja",
+                        idCaja > 0 ? (object)idCaja : DBNull.Value);
+                    cmd.Parameters.Add("@Resultado", SqlDbType.Bit).Direction    = ParameterDirection.Output;
+                    cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 400).Direction = ParameterDirection.Output;
+
+                    oConexion.Open();
+                    cmd.ExecuteNonQuery();
+
+                    bool ok  = Convert.ToBoolean(cmd.Parameters["@Resultado"].Value);
+                    string m = cmd.Parameters["@Mensaje"].Value?.ToString() ?? "";
+                    return (ok, m);
+                }
+                catch (Exception ex)
+                {
+                    return (false, "Error: " + ex.Message);
                 }
             }
         }

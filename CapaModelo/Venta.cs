@@ -42,6 +42,13 @@ namespace CapaModelo
         public string Condicion { get; set; }
         public int? PlazoCredito { get; set; }
         public string FechaVencimientoCredito { get; set; }
+        // Modalidad de pago (Efectivo | Transferencia | Crédito)
+        public string ModalidadPago { get; set; }
+        public string NumeroTransferencia { get; set; }
+        public int? NumeroCuotas { get; set; }
+        public decimal? MontoFinanciado { get; set; }
+        public decimal? RecargoCredito { get; set; }
+        public decimal SaldoFavorAplicado { get; set; }
         // Datos KuDE
         public string NombreCajero { get; set; }
         public string NombreEmisor { get; set; }
@@ -75,5 +82,26 @@ namespace CapaModelo
         public int IdFormaCobro { get; set; }
         public string Nombre { get; set; }
         public bool Activo { get; set; }
+    }
+
+    public class CuotaCobro
+    {
+        public int IdCuotaCobro { get; set; }
+        public int IdVenta { get; set; }
+        public string NumeroFactura { get; set; }
+        public int NumeroCuota { get; set; }
+        public int TotalCuotas { get; set; }
+        public decimal MontoFinanciado { get; set; }
+        public decimal Monto { get; set; }
+        public string FechaVencimiento { get; set; }
+        public string Estado { get; set; }             // Pendiente | Pagada | Vencida
+        public string FechaPago { get; set; }
+        public decimal? MontoRecibido { get; set; }
+        public int IdCliente { get; set; }
+        public string NombreCliente { get; set; }
+        public string DocumentoCliente { get; set; }
+        public int IdTienda { get; set; }
+        public string NombreTienda { get; set; }
+        public int DiasParaVencer { get; set; }
     }
 }

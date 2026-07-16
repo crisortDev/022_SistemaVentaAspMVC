@@ -22,5 +22,6 @@ namespace CapaModelo
         public string MotivoNC { get; set; }
         public string NombreRegistro { get; set; }
         public string NombreTienda { get; set; }
+        public decimal SaldoActualCliente { get; set; }
     }
 }
