@@ -5,6 +5,8 @@
     var proveedor = Model.oProveedor          ?? new CapaModelo.Proveedor();
     var tienda    = Model.oTienda             ?? new CapaModelo.Tienda();
     bool tieneNC  = Model.MontoNotaCredito.HasValue && Model.MontoNotaCredito > 0;
+    // Bruto = suma de líneas de detalle (COMPRA.TotalCosto ya viene descontada la NC)
+    decimal subtotalBruto = items.Sum(i => i.TotalCosto);
     string badgeEstado = Model.Estado == "Confirmada" ? "badge-success"
                        : Model.Estado == "Anulada"    ? "badge-danger"
                        : "badge-warning";
@@ -129,7 +131,20 @@
             }
             @if (tieneNC)
             {
-                <span class="badge badge-nc"><i class="fas fa-file-invoice-dollar"></i> NC aplicada: Gs. @string.Format("{0:N0}", Model.MontoNotaCredito).Replace(",", ".")</span>
+                string numNC = ViewBag.NumeroNC as string;
+                string estNC = ViewBag.EstadoNC as string;
+                <span class="badge badge-nc">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    NC aplicada: Gs. @string.Format("{0:N0}", Model.MontoNotaCredito).Replace(",", ".")
+                    @if (!string.IsNullOrEmpty(numNC))
+                    {
+                        <text> — N° @numNC</text>
+                    }
+                    @if (!string.IsNullOrEmpty(estNC))
+                    {
+                        <text> (@estNC)</text>
+                    }
+                </span>
             }
         </div>
 
@@ -214,26 +229,29 @@
         @* Totales *@
         <div class="totales-wrap">
             <div class="totales-box">
-                <div class="totales-row">
-                    <span>Subtotal</span>
-                    <span>Gs. @string.Format("{0:N0}", Model.TotalCosto).Replace(",",".")</span>
-                </div>
                 @if (tieneNC)
                 {
+                    // Bruto = suma de líneas; NC = monto aplicado; Neto = Bruto - NC
+                    decimal montoNC = Model.MontoNotaCredito ?? 0;
+                    decimal neto    = subtotalBruto - montoNC;
+                    <div class="totales-row">
+                        <span>Subtotal (bruto)</span>
+                        <span>Gs. @string.Format("{0:N0}", subtotalBruto).Replace(",",".")</span>
+                    </div>
                     <div class="totales-row nc-row">
                         <span><i class="fas fa-minus"></i> Nota de Crédito</span>
-                        <span>- Gs. @string.Format("{0:N0}", Model.MontoNotaCredito).Replace(",",".")</span>
+                        <span>- Gs. @string.Format("{0:N0}", montoNC).Replace(",",".")</span>
                     </div>
                     <div class="totales-row total-final">
-                        <span>Total Neto</span>
-                        <span>Gs. @string.Format("{0:N0}", Model.TotalCosto - (Model.MontoNotaCredito ?? 0)).Replace(",",".")</span>
+                        <span>Total Neto a Pagar</span>
+                        <span>Gs. @string.Format("{0:N0}", neto).Replace(",",".")</span>
                     </div>
                 }
                 else
                 {
                     <div class="totales-row total-final">
                         <span>Total</span>
-                        <span>Gs. @string.Format("{0:N0}", Model.TotalCosto).Replace(",",".")</span>
+                        <span>Gs. @string.Format("{0:N0}", subtotalBruto).Replace(",",".")</span>
                     </div>
                 }
             </div>

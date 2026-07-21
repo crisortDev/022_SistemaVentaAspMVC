@@ -126,14 +126,17 @@ function recargarOperaciones() {
                     trClass   = '';
                 }
 
+                var saldoNC = op.SaldoFavorAplicado || 0;
                 var monto = esCXC ? op.MontoRecibido : (op.Estado === 'Activa' ? op.Monto : 0);
+                // Efectivo real contado = Monto - NC aplicada
+                var montoNeto = esCXC ? op.MontoRecibido : (op.Estado === 'Activa' ? op.Monto - saldoNC : 0);
                 if (esCXC) {
                     totalCXC += monto;
                 } else if (op.Estado === 'Activa') {
                     if (esCredito) totalCredito += op.Monto;
-                    else           totalContado += monto;
+                    else           totalContado += montoNeto;  // neto, sin contar NC
                 }
-                total += monto;
+                total += montoNeto;
 
                 var btnReimprimir = op.IdVenta
                     ? '<a href="' + $.MisUrls.url._Venta_Documento + '?idVenta=' + op.IdVenta + '" target="_blank" class="btn btn-xs btn-outline-primary btn-sm" title="Reimprimir factura"><i class="fas fa-print"></i></a>'
@@ -145,10 +148,13 @@ function recargarOperaciones() {
                                   : op.FormaCobro;
                 var colRecibido   = esCXC   ? 'Gs. ' + formatGs(op.MontoRecibido)
                                   : esCredito ? '<em class="text-muted">Pend.</em>'
-                                  : 'Gs. ' + formatGs(op.MontoRecibido);
+                                  : 'Gs. ' + formatGs(op.Monto - saldoNC);
                 var colCambio     = (esCXC || !esCredito) ? 'Gs. ' + formatGs(op.MontoCambio) : '—';
+                var badgeNC       = (!esCXC && !esCredito && saldoNC > 0)
+                                  ? ' <span class="badge badge-success" title="Saldo por NC descontado: Gs. ' + formatGs(saldoNC) + '"><i class="fas fa-gift"></i> NC</span>'
+                                  : '';
                 var colMonto      = esCXC ? 'Gs. ' + formatGs(op.MontoRecibido)
-                                          : 'Gs. ' + formatGs(op.Monto);
+                                          : 'Gs. ' + formatGs(op.Monto) + badgeNC;
 
                 tbody.append(
                     '<tr ' + trClass + '>' +

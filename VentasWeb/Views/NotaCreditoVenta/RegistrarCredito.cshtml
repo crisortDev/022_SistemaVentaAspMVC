@@ -1,0 +1,141 @@
+@{
+    ViewBag.Title = "Solicitar Nota de Crédito por Cuotas";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int idVenta = ViewBag.IdVenta ?? 0;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index","NotaCreditoVenta")">Notas de Crédito Venta</a></li>
+        <li class="breadcrumb-item active">Solicitar NC por Cuotas</li>
+    </ol>
+</nav>
+
+<input type="hidden" id="hdnIdVenta" value="@idVenta" />
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-undo-alt mr-1"></i> Solicitar Nota de Crédito — Venta en Cuotas
+            </div>
+            <div class="card-body p-2">
+
+                <!-- Alerta de carga / error -->
+                <div id="divCargando" class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x text-warning"></i>
+                    <p class="mt-2 text-muted">Cargando datos de la venta...</p>
+                </div>
+                <div id="divError" class="alert alert-danger d-none"></div>
+
+                <!-- Info de la venta -->
+                <div id="divContenido" class="d-none">
+                    <div class="row mb-2">
+                        <div class="col-sm-12">
+                            <div class="alert alert-info py-2 mb-2" style="font-size:13px;">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <strong>Regla de negocio:</strong> Esta NC solo puede crearse mientras
+                                <strong>ninguna cuota haya sido pagada</strong>.
+                                El monto se deduce del saldo financiado y las cuotas se recalculan automáticamente al aprobar.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4">
+                            <div class="card border-secondary">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title text-secondary mb-1">Venta</h6>
+                                    <div><small class="text-muted">Factura:</small> <strong id="lblFactura">—</strong></div>
+                                    <div><small class="text-muted">Cliente:</small> <strong id="lblCliente">—</strong></div>
+                                    <div><small class="text-muted">Fecha:</small> <strong id="lblFechaVenta">—</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="card border-secondary">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title text-secondary mb-1">Cuotas originales</h6>
+                                    <div><small class="text-muted">Total venta:</small> <strong id="lblTotalVenta">—</strong></div>
+                                    <div><small class="text-muted">Recargo:</small> <strong id="lblRecargo">—</strong></div>
+                                    <div><small class="text-muted">Monto financiado:</small> <strong id="lblFinanciado">—</strong></div>
+                                    <div><small class="text-muted">Nº cuotas:</small> <strong id="lblCuotas">—</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="card border-warning">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title text-warning mb-1">NC calculada</h6>
+                                    <div><small class="text-muted">Monto NC:</small>
+                                        <strong id="lblMontoNC" class="text-warning">Gs. 0</strong></div>
+                                    <div><small class="text-muted">Nuevo total:</small>
+                                        <strong id="lblNuevoTotal" class="text-primary">—</strong></div>
+                                    <div><small class="text-muted">Nuevo financiado:</small>
+                                        <strong id="lblNuevoFinanciado" class="text-primary">—</strong></div>
+                                    <div id="divNuevaCuota" class="d-none">
+                                        <small class="text-muted">Nueva cuota:</small>
+                                        <strong id="lblNuevaCuota" class="text-success">—</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selección de productos -->
+                    <h6 class="font-weight-bold mb-2">
+                        <i class="fas fa-boxes mr-1 text-warning"></i>
+                        Seleccionar productos defectuosos a devolver:
+                    </h6>
+                    <div class="table-responsive-sm">
+                        <table class="table table-striped table-bordered table-sm" id="tbProductos">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px" class="text-center">
+                                        <input type="checkbox" id="chkTodos" title="Seleccionar todos" />
+                                    </th>
+                                    <th>Producto</th>
+                                    <th class="text-center" style="width:120px">Cant. vendida</th>
+                                    <th class="text-center" style="width:130px">Cant. a devolver</th>
+                                    <th class="text-right" style="width:130px">Precio unit.</th>
+                                    <th class="text-right" style="width:130px">Subtotal NC</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyProductos"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Motivo y observación -->
+                    <div class="row mt-3">
+                        <div class="col-sm-4">
+                            <label class="col-form-label col-form-label-sm font-weight-bold">
+                                Motivo: <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-control form-control-sm" id="cboMotivoNC">
+                                <option value="0">-- Seleccionar --</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-8">
+                            <label class="col-form-label col-form-label-sm font-weight-bold">Observación:</label>
+                            <textarea class="form-control form-control-sm" id="txtObservacion"
+                                      rows="2" maxlength="500"
+                                      placeholder="Describir brevemente el defecto del producto"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer bg-white border-warning d-flex justify-content-between align-items-center">
+                <a href="@Url.Action("Index","NotaCreditoVenta")" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+                <button id="btnRegistrar" class="btn btn-warning d-none" onclick="registrarNC()">
+                    <i class="fas fa-save"></i> Registrar Solicitud de NC
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/NotaCreditoVenta_RegistrarCredito.js?v=" + DateTime.Now.Ticks)" type="text/javascript"></script>
+}

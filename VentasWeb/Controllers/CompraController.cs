@@ -46,6 +46,14 @@ namespace VentasWeb.Controllers
             if (!TienePermiso(oCompra.oTienda?.IdTienda ?? 0))
                 return new HttpStatusCodeResult(403, "No tiene permiso para ver un comprobante de otra sucursal.");
 
+            // Pasar número de NC si existe (para mostrar en el documento)
+            var nc = CapaDatos.CD_NotaCredito.Instancia.ObtenerPorId_Compra(idcompra);
+            if (nc != null)
+            {
+                ViewBag.NumeroNC = nc.NumeroNC;
+                ViewBag.EstadoNC = nc.Estado;
+            }
+
             return View(oCompra);
         }
 

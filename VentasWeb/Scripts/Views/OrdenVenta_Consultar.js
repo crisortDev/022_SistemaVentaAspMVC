@@ -38,7 +38,17 @@ function iniciarTabla() {
             },
             { data: 'NumeroOV' },
             { data: 'NombreCliente', defaultContent: 'Sin cliente' },
-            { data: 'TotalEstimado', className: 'text-right', render: function (v) { return 'Gs. ' + formatGs(v); } },
+            {
+                data: null, className: 'text-right',
+                render: function (d) {
+                    var html = 'Gs. ' + formatGs(d.TotalEstimado);
+                    if (d.SaldoFavorCliente > 0) {
+                        html += '<br><span class="badge badge-success" title="Tiene Gs. ' + formatGs(d.SaldoFavorCliente) + ' a favor por nota de crédito">' +
+                                '<i class="fas fa-gift mr-1"></i>NC: Gs. ' + formatGs(d.SaldoFavorCliente) + '</span>';
+                    }
+                    return html;
+                }
+            },
             { data: 'NombreUsuario' },
             { data: 'NombreTienda' },
             { data: 'FechaRegistro' },

@@ -97,9 +97,18 @@ $(document).ready(function () {
                 "orderable":  false,
                 "searchable": false,
                 "render": function (data, type, row) {
-                    var btnDoc = "<button class='btn btn-info btn-sm mr-1' title='Ver documento' "
+                    // Ver Documento: deshabilitado si NC está Pendiente (esperando al proveedor)
+                    var btnDoc;
+                    if (row.EstadoNC === "Pendiente") {
+                        btnDoc = "<button class='btn btn-info btn-sm mr-1' disabled "
+                               + "title='NC Pendiente — Ver documento disponible una vez recibida la NC del proveedor' "
+                               + "style='opacity:0.45;cursor:not-allowed'>"
+                               + "<i class='fas fa-file-alt'></i></button>";
+                    } else {
+                        btnDoc = "<button class='btn btn-info btn-sm mr-1' title='Ver documento' "
                                + "onclick='verDocumento(" + row.IdCompra + ")'>"
                                + "<i class='fas fa-file-alt'></i></button>";
+                    }
 
                     var btnConf = "";
                     var btnAnul = "";
@@ -132,12 +141,21 @@ $(document).ready(function () {
                     }
 
                     // Botón OP: solo Encargado (6) y SuperAdmin pueden generar
+                    // Bloqueado además si la NC de compra está Pendiente (aún no fue recibida del proveedor)
                     var btnOP = "";
                     var puedeGenerarOP = AppSession.esSuperAdmin || AppSession.idRol === 6;
-                    if (puedeGenerarOP && row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0) && row.TotalCosto > 0) {
-                        btnOP = "<button class='btn btn-primary btn-sm mr-1' title='Generar Orden de Pago' "
-                              + "onclick='generarOrdenPago(" + row.IdCompra + ")'>"
-                              + "<i class='fas fa-money-check-alt'></i></button>";
+                    var ncPendiente = row.EstadoNC === "Pendiente";
+                    if (puedeGenerarOP && row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0) && (row.TotalCosto > 0 || row.MontoNotaCredito > 0)) {
+                        if (ncPendiente) {
+                            btnOP = "<button class='btn btn-primary btn-sm mr-1' disabled "
+                                  + "title='Espere la NC del proveedor (NC Pendiente) antes de generar la Orden de Pago' "
+                                  + "style='opacity:0.45;cursor:not-allowed'>"
+                                  + "<i class='fas fa-money-check-alt'></i></button>";
+                        } else {
+                            btnOP = "<button class='btn btn-primary btn-sm mr-1' title='Generar Orden de Pago' "
+                                  + "onclick='generarOrdenPago(" + row.IdCompra + ")'>"
+                                  + "<i class='fas fa-money-check-alt'></i></button>";
+                        }
                     }
 
                     return btnDoc + btnConf + btnAnul + btnNC + btnOP;
@@ -152,7 +170,19 @@ $(document).ready(function () {
             { "data": "NumeroOrden",   "defaultContent": "—" },
             {
                 "data": "TotalCosto",
-                "render": function (d) { return "Gs. " + formatGs(d); },
+                "render": function (d, t, row) {
+                    if (row.MontoNotaCredito && row.MontoNotaCredito > 0) {
+                        if (d > 0) {
+                            var neto = d - row.MontoNotaCredito;
+                            return "<span title='Bruto: Gs. " + formatGs(d) + "'>Gs. " + formatGs(neto) + "</span>"
+                                 + " <small class='text-warning'>(NC - Gs. " + formatGs(row.MontoNotaCredito) + ")</small>";
+                        }
+                        // TotalCosto=0: dato previo sin total almacenado; muestra solo la NC
+                        return "<span class='text-muted'>—</span>"
+                             + " <small class='text-warning'>(NC: Gs. " + formatGs(row.MontoNotaCredito) + ")</small>";
+                    }
+                    return "Gs. " + formatGs(d);
+                },
                 "className": "text-right"
             },
             {

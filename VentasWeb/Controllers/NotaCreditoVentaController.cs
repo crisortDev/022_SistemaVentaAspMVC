@@ -1,4 +1,6 @@
 using CapaDatos;
+using CapaModelo;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Web.Mvc;
@@ -31,15 +33,15 @@ namespace VentasWeb.Controllers
         [HttpGet]
         [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
         public JsonResult Obtener(
-            string fechainicio = "", string fechafin = "", string estado = "")
+            string fechainicio = "", string fechafin = "", string estado = "", int idtienda = 0)
         {
-            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
-
+            // Todas las sucursales pueden ver todas las NCs (para imprimir y consultar).
+            // El filtro de tienda es opcional: si se pasa un valor lo aplica, si no muestra todo.
             DateTime fi = ParseFecha(fechainicio, DateTime.Today.AddDays(-30));
             DateTime ff = ParseFecha(fechafin,   DateTime.Today);
 
             var lista = CD_NotaCreditoVenta.Instancia.ObtenerListaNotaCreditoVenta(
-                idTienda, estado, fi, ff);
+                idtienda, estado, fi, ff);
 
             return Json(new { data = lista ?? new List<CapaModelo.NotaCreditoVenta>() },
                         JsonRequestBehavior.AllowGet);
@@ -111,6 +113,151 @@ namespace VentasWeb.Controllers
         {
             var lista = CD_MotivoNotaCredito.Instancia.Obtener();
             return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        // ============================================================
+        //  REGISTRAR NC POR CUOTAS — formulario con selección de productos
+        // ============================================================
+
+        [HttpGet]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
+        public ActionResult RegistrarCredito(int idVenta)
+        {
+            ViewBag.IdVenta = idVenta;
+            return View();
+        }
+
+        // ============================================================
+        //  JSON — OBTENER PRODUCTOS DE VENTA PARA NC
+        // ============================================================
+
+        [HttpGet]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
+        public JsonResult ObtenerProductosVenta(int idVenta)
+        {
+            var r = CD_NotaCreditoVenta.Instancia.ObtenerProductosVentaParaNC(idVenta);
+            if (!r.resultado)
+                return Json(new { resultado = false, mensaje = r.mensaje }, JsonRequestBehavior.AllowGet);
+
+            return Json(new
+            {
+                resultado    = true,
+                infoVenta    = r.infoVenta,
+                productos    = r.productos
+            }, JsonRequestBehavior.AllowGet);
+        }
+
+        // ============================================================
+        //  JSON — REGISTRAR NC CRÉDITO (POST desde RegistrarCredito.cshtml)
+        // ============================================================
+
+        [HttpPost]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
+        public JsonResult RegistrarCredito(
+            int idVenta, int idMotivoNC, string observacion, string productosJson)
+        {
+            if (UsuarioActual == null)
+                return Json(new { resultado = false, mensaje = "Sesión expirada." });
+
+            List<NotaCreditoVentaDetalle> detalle;
+            try
+            {
+                detalle = JsonConvert.DeserializeObject<List<NotaCreditoVentaDetalle>>(productosJson ?? "[]")
+                          ?? new List<NotaCreditoVentaDetalle>();
+            }
+            catch
+            {
+                return Json(new { resultado = false, mensaje = "Error al leer el detalle de productos." });
+            }
+
+            if (detalle.Count == 0)
+                return Json(new { resultado = false, mensaje = "Debe seleccionar al menos un producto." });
+
+            var r = CD_NotaCreditoVenta.Instancia.RegistrarNCVentaCredito(
+                idVenta, idMotivoNC, observacion, UsuarioActual.IdUsuario, detalle);
+
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje, idGenerado = r.idGenerado });
+        }
+
+        // ============================================================
+        //  JSON — OBTENER DETALLE DE UNA NCV (para modal de aprobación)
+        // ============================================================
+
+        [HttpGet]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
+        public JsonResult ObtenerDetalleNCV(int idNCVenta)
+        {
+            var lista = CD_NotaCreditoVenta.Instancia.ObtenerDetalleNCV(idNCVenta);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        // ============================================================
+        //  PDF — IMPRIMIR NOTA DE CRÉDITO DE VENTA
+        // ============================================================
+
+        [HttpGet]
+        [AuthorizeRol("NotaCreditoVenta", "Nota de Crédito Venta")]
+        public ActionResult ImprimirNCV(int idNCVenta)
+        {
+            try
+            {
+                var r = CD_NotaCreditoVenta.Instancia.ObtenerNCVParaImprimir(idNCVenta);
+                if (!r.resultado || r.cabecera == null)
+                    return Content("Error: " + r.mensaje);
+
+                string tmpJson = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                   "ncv_" + Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                   "ncv_" + Guid.NewGuid().ToString("N") + ".pdf");
+
+                var jo = new Newtonsoft.Json.Linq.JObject();
+                jo["Cabecera"]      = Newtonsoft.Json.Linq.JObject.FromObject(r.cabecera);
+                jo["Productos"]     = Newtonsoft.Json.Linq.JArray.FromObject(r.productos);
+                jo["NombreEmpresa"] = GetNombreEmpresa();
+                jo["LogoPath"]      = GetLogoPath();
+                jo["NombreUsuario"] = GetNombreUsuario();
+                jo["ReporteId"]     = GetReporteId();
+
+                System.IO.File.WriteAllText(tmpJson,
+                    jo.ToString(Newtonsoft.Json.Formatting.None),
+                    new System.Text.UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_nc_venta_pdf.py");
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName               = FindPythonExe(),
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = System.Diagnostics.Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                    {
+                        string err = proc.StandardError.ReadToEnd();
+                        throw new Exception("Error en script PDF: " + err);
+                    }
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new Exception("El script no generó el PDF.");
+
+                byte[] bytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string nombreArchivo = "NCV_" + r.cabecera.NumeroNCV.Replace("/", "-") + ".pdf";
+                return File(bytes, "application/pdf", nombreArchivo);
+            }
+            catch (Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
         }
     }
 }

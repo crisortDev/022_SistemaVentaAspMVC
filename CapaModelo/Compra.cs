@@ -84,5 +84,11 @@ namespace CapaModelo
         /// Se usa en la vista Revisión para mostrar/ocultar el botón "Generar OP".
         /// </summary>
         public int IdOrdenPago { get; set; }
+
+        /// <summary>
+        /// Estado de la Nota de Crédito de Compra asociada (Pendiente/Recibida/Rechazada/vacío).
+        /// Si EstadoNC = 'Pendiente', el botón OP y Ver Documento se deshabilitan.
+        /// </summary>
+        public string EstadoNC { get; set; }
     }
 }

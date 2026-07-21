@@ -15,6 +15,7 @@
 <input type="hidden" id="hdnIdOrdenVenta" value="@Model.IdOrdenVenta" />
 <input type="hidden" id="hdnProximaFactura" value="@(dt?.ProximoNumeroFactura)" />
 <input type="hidden" id="hdnMontoAperturaFondo" value="@(ViewBag.MontoAperturaFondo ?? 0)" />
+<input type="hidden" id="hdnSaldoFavorCliente" value="@Model.SaldoFavorCliente" />
 
 <div class="row">
     <div class="col-sm-12">
@@ -219,6 +220,21 @@
                                 <td class="text-right small">Gs. @Model.Exento0.ToString("N0")</td>
                                 <td></td>
                             </tr>
+                            @if (Model.SaldoFavorCliente > 0 && Model.TotalEstimado >= Model.SaldoFavorCliente)
+                            {
+                                <tr class="table-success font-weight-bold" id="trSaldoFavorFact">
+                                    <td colspan="5" class="text-right text-success">
+                                        <i class="fas fa-gift mr-1"></i>Saldo por nota de crédito aplicado:
+                                    </td>
+                                    <td class="text-right text-success">- Gs. @Model.SaldoFavorCliente.ToString("N0")</td>
+                                    <td></td>
+                                </tr>
+                                <tr class="table-info font-weight-bold" id="trTotalACobrar">
+                                    <td colspan="5" class="text-right">TOTAL A COBRAR (CONTADO):</td>
+                                    <td class="text-right h6 mb-0">Gs. @((Model.TotalEstimado - Model.SaldoFavorCliente).ToString("N0"))</td>
+                                    <td></td>
+                                </tr>
+                            }
                         </tfoot>
                     </table>
                 </div>

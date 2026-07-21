@@ -94,6 +94,13 @@ function initDataTable() {
                           + 'onclick=\'verNC(' + JSON.stringify(d) + ')\''
                           + '><i class="fas fa-eye"></i></button>';
 
+                    // Imprimir NC — visible solo cuando la NC fue Recibida (tiene número oficial)
+                    if (d.Estado === 'Recibida') {
+                        btns += '<a class="btn btn-secondary btn-sm mr-1" title="Imprimir NC" '
+                              + 'href="' + $.MisUrls.url._NC_Imprimir + '?idnc=' + d.IdNC + '" '
+                              + 'target="_blank"><i class="fas fa-print"></i></a>';
+                    }
+
                     // Acciones solo para Pendiente
                     if (d.Estado === 'Pendiente') {
                         btns += '<button class="btn btn-success btn-sm mr-1" title="Registrar NC del proveedor" '
@@ -200,6 +207,10 @@ function confirmarRecepcion() {
     var fechaemision     = $.trim($('#txtFechaEmision').val());
     var observacion      = $.trim($('#txtObservacionConfirmar').val());
 
+    if (!observacion) {
+        Swal.fire('Validación', 'La Observación es obligatoria.', 'warning');
+        $('#txtObservacionConfirmar').focus(); return;
+    }
     if (!numeronc) {
         Swal.fire('Validación', 'Ingrese el Número de Nota de Crédito.', 'warning'); return;
     }

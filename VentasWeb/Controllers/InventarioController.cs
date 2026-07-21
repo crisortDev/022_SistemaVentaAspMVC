@@ -35,6 +35,13 @@ namespace VentasWeb.Controllers
         // GET: Inventario/Stock
         public ActionResult Stock()
         {
+            int  tienda = TiendaActiva;
+            // Si el usuario no tiene tienda asignada (IdTienda null → 0) tratarlo
+            // como global: puede ver todas las sucursales (no tiene sentido bloquearlo
+            // en "Tienda #0" que no existe).
+            bool globalView = EsAdminGlobal || tienda == 0;
+            ViewBag.TiendaActiva  = tienda;
+            ViewBag.EsAdminGlobal = globalView;
             return View();
         }
 

@@ -66,6 +66,9 @@ $(function () {
                     } else if (dias === 0) {
                         badge = '<br><span class="badge badge-danger" style="font-size:10px;">'
                               + '<i class="fas fa-exclamation-triangle mr-1"></i>Vence HOY</span>';
+                    } else if (dias <= 3) {
+                        badge = '<br><span class="badge badge-danger" style="font-size:10px;">'
+                              + '<i class="fas fa-exclamation-triangle mr-1"></i>En ' + dias + 'd</span>';
                     } else if (dias <= 7) {
                         badge = '<br><span class="badge badge-warning text-dark" style="font-size:10px;">'
                               + '<i class="fas fa-clock mr-1"></i>En ' + dias + 'd</span>';
@@ -111,6 +114,11 @@ $(function () {
                 orderable: false,
                 className: 'text-center',
                 render: function (d) {
+                    // Solo Supervisor(11), Encargado(6), Admin(1), SuperAdmin(14) pueden cobrar
+                    var rolesPermitidos = [1, 6, 11, 14];
+                    if (!AppSession.esSuperAdmin && rolesPermitidos.indexOf(AppSession.idRol) === -1) {
+                        return '<span class="text-muted small">—</span>';
+                    }
                     return '<button class="btn btn-success btn-sm px-2" '
                          + 'onclick="abrirModalCobrar(' + d.IdComprobanteCobro
                          + ',\'' + escapar(d.NumeroFactura) + '\''

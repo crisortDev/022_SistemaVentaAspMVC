@@ -109,8 +109,9 @@ namespace CapaDatos
                                 AlertaVencimiento = dr["AlertaVencimiento"].ToString(),
                                 NombreTienda      = dr["NombreTienda"].ToString(),
                                 NombreUsuario     = dr["NombreUsuario"].ToString(),
-                                NombreCliente     = dr["NombreCliente"].ToString(),
-                                DocumentoCliente  = dr["DocumentoCliente"].ToString()
+                                NombreCliente       = dr["NombreCliente"].ToString(),
+                                DocumentoCliente    = dr["DocumentoCliente"].ToString(),
+                                SaldoFavorCliente   = dr["SaldoFavorCliente"] != DBNull.Value ? Convert.ToDecimal(dr["SaldoFavorCliente"]) : 0m
                             });
                         }
                     }
@@ -164,6 +165,7 @@ namespace CapaDatos
                                 DireccionCliente     = dr["DireccionCliente"].ToString(),
                                 TelefonoCliente      = dr["TelefonoCliente"].ToString(),
                                 TipoDocumentoCliente = dr["TipoDocumentoCliente"].ToString(),
+                                SaldoFavorCliente    = dr["SaldoFavorCliente"] != DBNull.Value ? Convert.ToDecimal(dr["SaldoFavorCliente"]) : 0m,
                                 oDetalle             = new List<DetalleOrdenVenta>()
                             };
                         }

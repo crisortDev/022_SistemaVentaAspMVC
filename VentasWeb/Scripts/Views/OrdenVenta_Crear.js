@@ -2,6 +2,7 @@
 var dtCliente = null;
 var dtProducto = null;
 var itemsDetalle = [];
+var saldoFavorCliente = 0;   // saldo a favor del cliente seleccionado
 
 $(function () {
     iniciarTablaCliente();
@@ -24,7 +25,7 @@ function iniciarTablaCliente() {
                 data: null, orderable: false, searchable: false,
                 render: function (d) {
                     return '<button class="btn btn-info btn-sm" onclick="seleccionarCliente(' +
-                        d.IdCliente + ',\'' + escapar(d.NumeroDocumento) + '\',\'' + escapar(d.Nombre) + '\')">Elegir</button>';
+                        d.IdCliente + ',\'' + escapar(d.NumeroDocumento) + '\',\'' + escapar(d.Nombre) + '\',' + (d.SaldoFavor || 0) + ')">Elegir</button>';
                 }
             },
             { data: 'NumeroDocumento' },
@@ -40,11 +41,26 @@ function buscarCliente() {
     $('#modalCliente').modal('show');
 }
 
-function seleccionarCliente(id, doc, nombre) {
+function seleccionarCliente(id, doc, nombre, saldoFavor) {
     $('#hdnIdCliente').val(id);
     $('#txtDocumentoCliente').val(doc);
     $('#txtNombreCliente').val(nombre);
     $('#modalCliente').modal('hide');
+
+    // Guardar saldo y recalcular totales con el descuento
+    saldoFavorCliente = saldoFavor || 0;
+    actualizarTotales();
+
+    // Alerta informativa debajo del campo cliente
+    $('#alertaSaldoFavorOV').remove();
+    if (saldoFavorCliente > 0) {
+        var alerta = '<div class="alert alert-success py-1 px-2 mt-1" id="alertaSaldoFavorOV" style="font-size:12px;">' +
+            '<i class="fas fa-gift mr-1"></i>' +
+            '<strong>Este cliente tiene Gs. ' + formatGs(saldoFavorCliente) + ' a favor por nota de crédito</strong> ' +
+            '— se descuenta al facturar <strong>solo si paga al contado</strong>. Si paga en cuotas, el saldo queda para futuras compras.' +
+            '</div>';
+        $('#txtNombreCliente').closest('.row').after(alerta);
+    }
 }
 
 function iniciarTablaProducto() {
@@ -239,11 +255,36 @@ function actualizarTotales() {
     // Redondear el total al múltiplo de 50 superior
     var totalRedondeado = r50(totalGs);
 
+    // Saldo a favor: solo se aplica si el total >= saldo (todo o nada)
+    var saldoAplicado = (saldoFavorCliente > 0 && totalRedondeado >= saldoFavorCliente)
+        ? saldoFavorCliente
+        : 0;
+    var totalAPagar = totalRedondeado - saldoAplicado;
+
     $('#tfCantidad').text(totalCant);
     $('#tfTotal').text('Gs. ' + formatGs(totalRedondeado));
     $('#tfIva10').text(formatGs(iva10));
     $('#tfIva5').text(formatGs(iva5));
-    $('#tfTotalFinal').text('Gs. ' + formatGs(totalRedondeado));
+
+    if (saldoAplicado > 0) {
+        $('#trSaldoFavor').removeClass('d-none');
+        $('#tfSaldoAplicado').html(
+            '- Gs. ' + formatGs(saldoAplicado) +
+            ' <small class="text-muted font-weight-normal">(solo si paga al contado)</small>'
+        );
+        $('#tfTotalFinal').text('Gs. ' + formatGs(totalAPagar));
+    } else {
+        $('#trSaldoFavor').addClass('d-none');
+        $('#tfTotalFinal').text('Gs. ' + formatGs(totalRedondeado));
+        // Mostrar aviso si hay saldo pero el total no alcanza para aplicarlo al contado
+        if (saldoFavorCliente > 0 && totalRedondeado < saldoFavorCliente) {
+            $('#trSaldoFavor').removeClass('d-none');
+            $('#tfSaldoAplicado').html(
+                '<span class="text-warning"><i class="fas fa-exclamation-triangle mr-1"></i>' +
+                'Necesita Gs. ' + formatGs(saldoFavorCliente - totalRedondeado) + ' más para usar el saldo por NC al contado</span>'
+            );
+        }
+    }
 }
 
 function guardarPreVenta() {
@@ -263,6 +304,11 @@ function guardarPreVenta() {
         return;
     }
 
+    ejecutarGuardadoPreVenta();
+}
+
+function ejecutarGuardadoPreVenta() {
+    var fecVenc = $('#txtFechaVencimiento').val().trim();
     var xml = '<Detalle>';
     itemsDetalle.forEach(function (item) {
         xml += '<Item><IdProducto>' + item.id + '</IdProducto><Cantidad>' + item.cantidad +

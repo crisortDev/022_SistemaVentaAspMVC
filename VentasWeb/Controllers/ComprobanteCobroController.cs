@@ -87,6 +87,11 @@ namespace VentasWeb.Controllers
             if (usuario == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
+            // Solo Supervisor(11), Encargado(6), Admin(1), SuperAdmin(14) pueden cobrar
+            int[] rolesPermitidos = { 1, 6, 11, 14 };
+            if (!EsAdminGlobal && System.Array.IndexOf(rolesPermitidos, usuario.IdRol) < 0)
+                return Json(new { resultado = false, mensaje = "No tiene permiso para registrar cobros. Debe ser Supervisor, Encargado o Administrador." });
+
             int idCaja = CajaId;
             if (idCaja == 0)
                 return Json(new { resultado = false,

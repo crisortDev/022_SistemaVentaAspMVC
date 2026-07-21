@@ -613,6 +613,7 @@ function guardarOrden() {
 
     if (idProveedor <= 0) { Swal.fire({ title: "Atención", text: "Debe seleccionar un proveedor.", icon: "warning" }); return; }
     if (idTienda    <= 0) { Swal.fire({ title: "Atención", text: "Debe seleccionar una tienda.",    icon: "warning" }); return; }
+    if (!observacion)     { Swal.fire({ title: "Atención", text: "La Observación es obligatoria.", icon: "warning" }); $("#txtObservacion").focus(); return; }
 
     // ── Bloquear si el proveedor tiene deuda pendiente ────────────────
     if (_proveedorConDeuda) {

@@ -60,7 +60,8 @@ namespace CapaDatos
                             Calle = dr["Calle"].ToString(),
                             NumeroCasa = dr["NumeroCasa"].ToString(),
                             Referencia = dr["Referencia"].ToString(),
-                            Geolocalizacion = dr["Geolocalizacion"] == DBNull.Value ? null : dr["Geolocalizacion"].ToString()  // Agregado
+                            Geolocalizacion = dr["Geolocalizacion"] == DBNull.Value ? null : dr["Geolocalizacion"].ToString(),
+                            SaldoFavor      = dr["SaldoFavor"] != DBNull.Value ? Convert.ToDecimal(dr["SaldoFavor"]) : 0m
                         });
 
                     }

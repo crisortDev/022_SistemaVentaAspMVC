@@ -567,7 +567,8 @@
             _NC_Index:             '@Url.Action("Index",             "NotaCredito")',
             _NC_Obtener:           '@Url.Action("Obtener",           "NotaCredito")',
             _NC_ConfirmarRecepcion:'@Url.Action("ConfirmarRecepcion","NotaCredito")',
-            _NC_Rechazar:          '@Url.Action("Rechazar",          "NotaCredito")'
+            _NC_Rechazar:          '@Url.Action("Rechazar",          "NotaCredito")',
+            _NC_Imprimir:          '@Url.Action("ImprimirNC",        "NotaCredito")'
         });
 
         // ---- REPORTE GERENCIA COMPRAS ----
@@ -620,11 +621,15 @@
 
         // ---- NOTA DE CRÉDITO VENTA ----
         $.MisUrls.urls({
-            _NCV_Index:          '@Url.Action("Index",          "NotaCreditoVenta")',
-            _NCV_Obtener:        '@Url.Action("Obtener",        "NotaCreditoVenta")',
-            _NCV_Registrar:      '@Url.Action("Registrar",      "NotaCreditoVenta")',
-            _NCV_AprobarRechazar:'@Url.Action("AprobarRechazar","NotaCreditoVenta")',
-            _NCV_Motivos:        '@Url.Action("ObtenerMotivos", "NotaCreditoVenta")'
+            _NCV_Index:            '@Url.Action("Index",               "NotaCreditoVenta")',
+            _NCV_Obtener:          '@Url.Action("Obtener",             "NotaCreditoVenta")',
+            _NCV_Registrar:        '@Url.Action("Registrar",           "NotaCreditoVenta")',
+            _NCV_AprobarRechazar:  '@Url.Action("AprobarRechazar",     "NotaCreditoVenta")',
+            _NCV_Motivos:          '@Url.Action("ObtenerMotivos",      "NotaCreditoVenta")',
+            _NCV_RegistrarCredito: '@Url.Action("RegistrarCredito",    "NotaCreditoVenta")',
+            _NCV_ObtenerProductos: '@Url.Action("ObtenerProductosVenta","NotaCreditoVenta")',
+            _NCV_ObtenerDetalle:   '@Url.Action("ObtenerDetalleNCV",   "NotaCreditoVenta")',
+            _NCV_Imprimir:         '@Url.Action("ImprimirNCV",         "NotaCreditoVenta")'
         });
 
         // ---- CAJA VENTA ----

@@ -70,7 +70,7 @@ $(document).ready(function () {
                     var btns = `<button class='btn btn-info btn-sm' onclick='verDocumento(${row.IdOrdenCompra})'>
                                     <i class='far fa-clipboard'></i> Ver
                                 </button>`;
-                    if (row.Estado === "Pendiente" || row.Estado === "Rechazada") {
+                    if ((row.Estado === "Pendiente" || row.Estado === "Rechazada") && AppSession.idRol !== 7) {
                         btns += ` <button class='btn btn-dark btn-sm' onclick='anularOrden(${row.IdOrdenCompra})'>
                                     <i class='fas fa-ban'></i> Anular
                                   </button>`;

@@ -157,6 +157,11 @@ function confirmarRechazo() {
         Swal.fire({title: "Mensaje", text: "Debe seleccionar un motivo de rechazo", icon: "warning"});
         return;
     }
+    if (!observacion) {
+        Swal.fire({title: "Atención", text: "La Observación es obligatoria.", icon: "warning"});
+        $("#txtMotivoRechazo").focus();
+        return;
+    }
 
     $.ajax({
         url: $.MisUrls.url._OC_Rechazar,

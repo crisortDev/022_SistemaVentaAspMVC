@@ -1,13 +1,16 @@
 // Venta_Facturar.js  —  Facturar desde Pre-venta
 // Modalidades: Efectivo | Transferencia | Crédito (3/6/12/18 cuotas con recargo)
 var dtCliente = null;
+var saldoFavorCliente = 0;   // saldo por NC del cliente de la OV
 
 // Tabla de recargos por cuotas
 var RECARGOS = { 3: 5, 6: 10, 12: 20, 18: 35 };
 
 $(function () {
+    saldoFavorCliente = parseFloat($('#hdnSaldoFavorCliente').val()) || 0;
     iniciarTablaCliente();
     verificarStockInsuficiente();
+    if (saldoFavorCliente > 0) mostrarAlertaSaldo(saldoFavorCliente);
     aplicarLogicaAperturaFondo();
 });
 
@@ -17,6 +20,37 @@ function r50(n) { return Math.ceil((n || 0) / 50) * 50; }
 function leerTotal() {
     var txt = $('.table-primary td:eq(1)').text().replace(/[^0-9]/g, '');
     return r50(parseInt(txt) || 0);
+}
+
+// Total efectivo a cobrar luego de aplicar NC (todo o nada)
+function leerTotalACobrar() {
+    var total = leerTotal();
+    var saldoAplicado = (saldoFavorCliente > 0 && total >= saldoFavorCliente) ? saldoFavorCliente : 0;
+    return total - saldoAplicado;
+}
+
+// Muestra/actualiza la alerta de saldo por NC en el panel de cobro
+function mostrarAlertaSaldo(saldo) {
+    $('#alertaSaldoFavor').remove();
+    if (!saldo || saldo <= 0) return;
+    var total = leerTotal();
+    if (total >= saldo) {
+        $('#divImporte').prepend(
+            '<div class="alert alert-success py-1 px-2 mb-2" id="alertaSaldoFavor" style="font-size:12px;">' +
+            '<i class="fas fa-gift mr-1"></i>' +
+            '<strong>Saldo por NC: Gs. ' + formatGs(saldo) + '</strong> — ' +
+            'Se descuenta automáticamente al facturar. Total a cobrar: <strong>Gs. ' + formatGs(total - saldo) + '</strong>.' +
+            '</div>'
+        );
+    } else {
+        $('#divImporte').prepend(
+            '<div class="alert alert-warning py-1 px-2 mb-2" id="alertaSaldoFavor" style="font-size:12px;">' +
+            '<i class="fas fa-exclamation-triangle mr-1"></i>' +
+            'El cliente tiene <strong>Gs. ' + formatGs(saldo) + '</strong> por NC pero el total ' +
+            '(Gs. ' + formatGs(total) + ') es menor — no se aplicará el descuento.' +
+            '</div>'
+        );
+    }
 }
 
 function formatGs(n) { return Math.round(n || 0).toLocaleString('es-PY'); }
@@ -29,7 +63,7 @@ function aplicarLogicaAperturaFondo() {
         // Sin fondo: cobro exacto en Efectivo
         $('#rdoEfectivo').prop('checked', true);
         toggleModalidad();
-        var total = leerTotal();
+        var total = leerTotalACobrar();
         $('#txtImporteRecibido').val(total).prop('readonly', true);
         $('#txtCambio').val('0');
         $('#divImporte').prepend(
@@ -45,7 +79,7 @@ function aplicarLogicaAperturaFondo() {
                 $('#txtImporteRecibido').prop('readonly', false).val(0);
                 $('#alertaFondoCero').remove();
             } else {
-                var tot = leerTotal();
+                var tot = leerTotalACobrar();
                 $('#txtImporteRecibido').val(tot).prop('readonly', true);
                 $('#txtCambio').val('0');
                 if (!$('#alertaFondoCero').length) {
@@ -83,6 +117,15 @@ function toggleModalidad() {
         $('#txtImporteRecibido').val(0);
         $('#txtCambio').val('0');
     }
+
+    // Filas NC: solo visibles para Efectivo / Transferencia
+    if (esCredito) {
+        $('#trSaldoFavorFact, #trTotalACobrar').hide();
+        $('#alertaSaldoFavor').remove();
+    } else {
+        $('#trSaldoFavorFact, #trTotalACobrar').show();
+        if (saldoFavorCliente > 0) mostrarAlertaSaldo(saldoFavorCliente);
+    }
 }
 
 // ── Calculadora de cuotas ──────────────────────────────────────────────────
@@ -110,7 +153,7 @@ function calcularCuotas() {
 
 // ── Calcular cambio (Efectivo / Transferencia) ─────────────────────────────
 function calcularCambio() {
-    var total    = leerTotal();
+    var total    = leerTotalACobrar();   // descuenta NC si corresponde
     var recibido = parseFloat($('#txtImporteRecibido').val()) || 0;
     var cambio   = recibido - total;
     $('#txtCambio').val(formatGs(Math.max(0, cambio)));
@@ -146,25 +189,12 @@ function cambiarCliente() {
     $('#modalCliente').modal('show');
 }
 
-function seleccionarCliente(id, nombre, saldoFavor) {
+function seleccionarCliente(id, nombre, saldo) {
     $('#hdnIdCliente').val(id);
     $('#lblNombreCliente').text(nombre);
     $('#modalCliente').modal('hide');
-
-    // Mostrar saldo a favor si existe
-    $('#alertaSaldoFavor').remove();
-    if (saldoFavor && saldoFavor > 0) {
-        var total = leerTotal();
-        var aplicado = Math.min(saldoFavor, total);
-        $('#divImporte').prepend(
-            '<div class="alert alert-success py-1 px-2 mb-2" id="alertaSaldoFavor" style="font-size:12px;">' +
-            '<i class="fas fa-gift mr-1"></i>' +
-            '<strong>Saldo a favor: Gs. ' + formatGs(saldoFavor) + '</strong> — ' +
-            'Se aplicarán automáticamente Gs. ' + formatGs(aplicado) +
-            ' al facturar. Total a cobrar: Gs. ' + formatGs(total - aplicado) + '.' +
-            '</div>'
-        );
-    }
+    saldoFavorCliente = saldo || 0;
+    mostrarAlertaSaldo(saldoFavorCliente);
 }
 
 function verificarStockInsuficiente() {

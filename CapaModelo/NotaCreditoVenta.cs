@@ -23,5 +23,13 @@ namespace CapaModelo
         public string NombreRegistro { get; set; }
         public string NombreTienda { get; set; }
         public decimal SaldoActualCliente { get; set; }
+
+        // Campos extra para impresión
+        public string DocumentoCliente { get; set; }
+        public string NombreAprobacion { get; set; }
+        public string FechaVenta { get; set; }
+        public string ModalidadPago { get; set; }
+        public decimal TotalCosto { get; set; }
+        public int NumeroCuotas { get; set; }
     }
 }

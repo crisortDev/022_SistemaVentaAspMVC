@@ -23,6 +23,7 @@ namespace CapaModelo
         public string NombreUsuario { get; set; }
         public string NombreCliente { get; set; }
         public string DocumentoCliente { get; set; }
+        public decimal SaldoFavorCliente { get; set; }
         public string DireccionCliente { get; set; }
         public string TelefonoCliente { get; set; }
         public string TipoDocumentoCliente { get; set; }

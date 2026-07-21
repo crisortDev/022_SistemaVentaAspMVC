@@ -44,9 +44,14 @@ namespace CapaModelo
         public string UsuarioRegistro  { get; set; }
 
         // ── Relaciones para la vista ─────────────────────────────────────
-        public string MotivoNC   { get; set; }
-        public string Proveedor  { get; set; }
+        public string MotivoNC     { get; set; }
+        public string Proveedor    { get; set; }
         public string RucProveedor { get; set; }
-        public string Tienda     { get; set; }
+        public string Tienda       { get; set; }
+
+        // ── Campos extra para impresión PDF ─────────────────────────────
+        public string  NumeroCompra    { get; set; }
+        public string  DireccionTienda { get; set; }
+        public string  RucTienda       { get; set; }
     }
 }

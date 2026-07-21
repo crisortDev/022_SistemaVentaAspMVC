@@ -1,6 +1,8 @@
 @{
     ViewBag.Title = "Stock por Tienda";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    int    tiendaActiva  = ViewBag.TiendaActiva  ?? 0;
+    bool   esAdminGlobal = ViewBag.EsAdminGlobal ?? false;
 }
 
 <nav aria-label="breadcrumb">
@@ -19,13 +21,25 @@
     </div>
     <div class="card-body">
 
+        @* Hidden: contexto de sesión para el JS *@
+        <input type="hidden" id="hdnTiendaActiva"  value="@tiendaActiva" />
+        <input type="hidden" id="hdnEsAdminGlobal" value="@(esAdminGlobal ? "1" : "0")" />
+
         @* Filtros *@
         <div class="row mb-3">
             <div class="col-sm-3">
                 <label class="col-form-label col-form-label-sm">Tienda</label>
-                <select id="cboTienda" class="form-control form-control-sm">
-                    <option value="0">-- Todas las tiendas --</option>
-                </select>
+                @if (esAdminGlobal) {
+                    <select id="cboTienda" class="form-control form-control-sm">
+                        <option value="0">-- Todas las tiendas --</option>
+                    </select>
+                } else {
+                    <!-- Usuario de sucursal: solo ve su tienda, combo bloqueado -->
+                    <select id="cboTienda" class="form-control form-control-sm" disabled>
+                        <option value="@tiendaActiva" selected>Cargando...</option>
+                    </select>
+                    <input type="hidden" name="cboTienda" value="@tiendaActiva" />
+                }
             </div>
             <div class="col-sm-3">
                 <label class="col-form-label col-form-label-sm">Categoría</label>

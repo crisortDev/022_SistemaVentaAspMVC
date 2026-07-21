@@ -366,7 +366,8 @@ namespace CapaDatos
                                 NumeroOrden      = dr["NumeroOrden"]?.ToString(),
                                 MontoNotaCredito = LeerDecimal(dr, "MontoNotaCredito"),
                                 NecesitaNC       = LeerBool(dr, "NecesitaNC"),
-                                IdOrdenPago      = LeerInt(dr, "IdOrdenPago")
+                                IdOrdenPago      = LeerInt(dr, "IdOrdenPago"),
+                                EstadoNC         = LeerStr(dr, "EstadoNC")
                             });
                         }
                     }
@@ -397,6 +398,12 @@ namespace CapaDatos
         {
             try { return dr[columna] != DBNull.Value ? Convert.ToInt32(dr[columna]) : 0; }
             catch { return 0; }
+        }
+
+        private static string LeerStr(SqlDataReader dr, string columna)
+        {
+            try { return dr[columna] != DBNull.Value ? dr[columna].ToString() : ""; }
+            catch { return ""; }
         }
     }
 }

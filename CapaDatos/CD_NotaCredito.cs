@@ -191,6 +191,115 @@ namespace CapaDatos
         }
 
         // ════════════════════════════════════════════════════════════════
+        //  OBTENER NC COMPLETA PARA IMPRESIÓN (PDF)
+        // ════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Devuelve todos los datos de una NC de Compra para generar el PDF.
+        /// Llama a usp_ObtenerNCCompraParaImprimir.
+        /// </summary>
+        public (bool resultado, string mensaje, NotaCredito nc) ObtenerNCCompraParaImprimir(int idNC)
+        {
+            try
+            {
+                using (var cn = new SqlConnection(Conexion.CN))
+                {
+                    cn.Open();
+                    var cmd = new SqlCommand("usp_ObtenerNCCompraParaImprimir", cn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdNC", idNC);
+
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            var nc = new NotaCredito
+                            {
+                                IdNC              = LeerInt(dr,     "IdNC"),
+                                IdCompra          = LeerInt(dr,     "IdCompra"),
+                                NumeroNC          = LeerStr(dr,     "NumeroNC"),
+                                NumeroTimbrado    = LeerStr(dr,     "NumeroTimbrado"),
+                                FechaVencTimbrado = LeerStr(dr,     "FechaVencTimbrado"),
+                                FechaEmision      = LeerStr(dr,     "FechaEmision"),
+                                MontoNC           = LeerDecimal(dr, "MontoNC"),
+                                Estado            = LeerStr(dr,     "Estado"),
+                                Observacion       = LeerStr(dr,     "Observacion"),
+                                FechaRegistro     = LeerStr(dr,     "FechaRegistro"),
+                                FechaConfirmacion = LeerStr(dr,     "FechaConfirmacion"),
+                                MotivoNC          = LeerStr(dr,     "MotivoNC"),
+                                NumeroFactura     = LeerStr(dr,     "NumeroFactura"),
+                                Proveedor         = LeerStr(dr,     "NombreProveedor"),
+                                RucProveedor      = LeerStr(dr,     "RucProveedor"),
+                                Tienda            = LeerStr(dr,     "NombreTienda"),
+                                UsuarioRegistro   = LeerStr(dr,     "UsuarioRegistro"),
+                                // Extra fields stored in Observacion for PDF
+                                NumeroCompra      = LeerStr(dr,     "NumeroCompra"),
+                                FechaFactura      = LeerStr(dr,     "FechaFactura"),
+                                MontoFactura      = LeerDecimal(dr, "TotalFactura"),
+                                DireccionTienda   = LeerStr(dr,     "DireccionTienda"),
+                                RucTienda         = LeerStr(dr,     "RucTienda")
+                            };
+                            return (true, "OK", nc);
+                        }
+                    }
+                    return (false, "NC no encontrada.", null);
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, "Error: " + ex.Message, null);
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        //  OBTENER NC POR IDCOMPRA (para Documento de Compra)
+        // ════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Devuelve la NC asociada a una compra, o null si no existe.
+        /// Usado en Documento.cshtml para mostrar el NumeroNC e EstadoNC.
+        /// </summary>
+        public NotaCredito ObtenerPorId_Compra(int idCompra)
+        {
+            try
+            {
+                using (var cn = new SqlConnection(Conexion.CN))
+                {
+                    cn.Open();
+                    var cmd = new SqlCommand(
+                        @"SELECT nc.IdNC, nc.IdCompra,
+                                 c.NumeroFactura, c.FechaFactura,
+                                 c.MontoNotaCredito AS MontoFactura,
+                                 nc.NumeroNC, nc.NumeroTimbrado,
+                                 nc.FechaVencTimbrado, nc.FechaEmision,
+                                 nc.Monto AS MontoNC, nc.Estado, nc.Observacion,
+                                 nc.FechaRegistro, nc.FechaConfirmacion,
+                                 0 AS DiasTranscurridos, 0 AS EsMorosa,
+                                 ISNULL(u.Nombres + ' ' + u.Apellidos, '') AS UsuarioRegistro,
+                                 mn.Descripcion AS MotivoNC,
+                                 p.RazonSocial  AS Proveedor,
+                                 p.RUC          AS RucProveedor,
+                                 t.Nombre       AS Tienda
+                          FROM   dbo.NOTA_CREDITO nc
+                          JOIN   dbo.COMPRA        c  ON c.IdCompra    = nc.IdCompra
+                          JOIN   dbo.PROVEEDOR     p  ON p.IdProveedor = c.IdProveedor
+                          JOIN   dbo.TIENDA        t  ON t.IdTienda    = c.IdTienda
+                          LEFT JOIN dbo.USUARIO    u  ON u.IdUsuario   = nc.IdUsuarioRegistro
+                          LEFT JOIN dbo.MOTIVO_NC  mn ON mn.IdMotivoNC = nc.IdMotivoNC
+                          WHERE  nc.IdCompra = @IdCompra", cn);
+                    cmd.Parameters.AddWithValue("@IdCompra", idCompra);
+
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read()) return MapearNC(dr);
+                    }
+                }
+            }
+            catch { /* log si se desea */ }
+            return null;
+        }
+
+        // ════════════════════════════════════════════════════════════════
         //  HELPER PRIVADO — MAPEAR DATAREADER → MODELO
         // ════════════════════════════════════════════════════════════════
 

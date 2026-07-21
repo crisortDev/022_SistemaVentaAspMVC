@@ -48,6 +48,7 @@
     <Compile Include="BajaProducto.cs" />
     <Compile Include="CuentaPorPagar.cs" />
     <Compile Include="MotivoBaja.cs" />
+    <Compile Include="NotaCreditoVentaDetalle.cs" />
     <Compile Include="Persona.cs" />
     <Compile Include="ProductoTiendaBaja.cs" />
     <Compile Include="ReporteBaja.cs" />

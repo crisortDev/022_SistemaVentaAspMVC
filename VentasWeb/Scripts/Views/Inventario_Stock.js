@@ -12,12 +12,27 @@ $(document).ready(function () {
 
 // ── Cargar combo Tiendas ──────────────────────────────────
 function cargarTiendas() {
+    var tiendaActiva  = parseInt($('#hdnTiendaActiva').val())  || 0;
+    var esAdminGlobal = $('#hdnEsAdminGlobal').val() === '1';
+
     $.get($.MisUrls.url._Inv_ObtenerTiendas, function (data) {
-        var opts = '<option value="0">-- Todas las tiendas --</option>';
-        (data.data || []).forEach(function (t) {
-            if (t.Activo) opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
-        });
-        $('#cboTienda').html(opts);
+        var tiendas = (data.data || []).filter(function (t) { return t.Activo; });
+
+        if (esAdminGlobal) {
+            // Admin global: ver todas, seleccionar "Todas" por defecto
+            var opts = '<option value="0">-- Todas las tiendas --</option>';
+            tiendas.forEach(function (t) {
+                opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
+            });
+            $('#cboTienda').html(opts);
+        } else {
+            // Usuario de sucursal: bloquear en su propia tienda
+            var tiendaUser = tiendas.find(function (t) { return t.IdTienda === tiendaActiva; });
+            var nombre = tiendaUser ? tiendaUser.Nombre : ('Tienda #' + tiendaActiva);
+            $('#cboTienda').html('<option value="' + tiendaActiva + '" selected>' + nombre + '</option>');
+            // El select ya viene disabled desde Razor, pero por si acaso:
+            $('#cboTienda').prop('disabled', true);
+        }
     });
 }
 

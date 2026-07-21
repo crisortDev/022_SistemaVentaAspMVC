@@ -29,6 +29,15 @@
                         <input type="text" class="form-control form-control-sm datepicker" id="txtFechaFin" autocomplete="off">
                     </div>
                     <div class="col-sm-2">
+                        <label class="col-form-label col-form-label-sm">Sucursal:</label>
+                        <select class="form-control form-control-sm" id="cboTiendaNCV">
+                            <option value="0">-- Todas --</option>
+                            @foreach (var t in tiendas) {
+                                <option value="@t.IdTienda">@t.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
                         <label class="col-form-label col-form-label-sm">Estado:</label>
                         <select class="form-control form-control-sm" id="cboEstado">
                             <option value="">-- Todos --</option>
@@ -37,13 +46,13 @@
                             <option value="Rechazada">Rechazada</option>
                         </select>
                     </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-2">
                         <label class="col-form-label col-form-label-sm invisible">.</label>
                         <button type="button" class="btn btn-warning btn-sm btn-block" onclick="buscarNCV()">
                             <i class="fas fa-search"></i> Buscar
                         </button>
                     </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-2">
                         <label class="col-form-label col-form-label-sm invisible">.</label>
                         <button type="button" class="btn btn-outline-warning btn-sm btn-block" onclick="abrirModalRegistrar()">
                             <i class="fas fa-plus-circle"></i> Nueva Nota de Crédito
@@ -75,49 +84,83 @@
     </div>
 </div>
 
-<!-- MODAL REGISTRAR NC -->
+<!-- MODAL REGISTRAR NC (unificado: detecta contado vs crédito) -->
 <div class="modal fade" id="modalRegistrar" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark py-2">
                 <h5 class="modal-title"><i class="fas fa-plus-circle mr-1"></i> Nueva Nota de Crédito de Venta</h5>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="col-form-label col-form-label-sm">Nº Factura Venta: <span class="text-danger">*</span></label>
+
+                <!-- Búsqueda de factura (siempre visible) -->
+                <div class="form-group mb-2">
+                    <label class="col-form-label col-form-label-sm">Nº Factura: <span class="text-danger">*</span></label>
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control form-control-sm" id="txtBuscarFactura" placeholder="001-001-0000001">
+                        <input type="text" class="form-control form-control-sm" id="txtBuscarFactura"
+                               placeholder="001-001-0000001"
+                               onkeypress="if(event.key==='Enter') buscarVentaParaNC()">
                         <div class="input-group-append">
                             <button class="btn btn-warning btn-sm" type="button" onclick="buscarVentaParaNC()">
                                 <i class="fas fa-search"></i>
                             </button>
                         </div>
                     </div>
-                    <div id="infoVentaNC" class="mt-1 d-none">
-                        <small class="text-muted">Cliente: <strong id="lblClienteNC"></strong> | Total: <strong id="lblTotalNC"></strong></small>
-                        <input type="hidden" id="hdnIdVentaNC" value="0" />
+                </div>
+
+                <!-- Spinner mientras busca -->
+                <div id="divBuscandoNC" class="text-center py-2 d-none">
+                    <i class="fas fa-spinner fa-spin text-warning"></i>
+                    <small class="text-muted ml-1">Buscando...</small>
+                </div>
+
+                <!-- INFO VENTA encontrada (siempre visible si se encontró) -->
+                <div id="infoVentaNC" class="d-none mb-2">
+                    <div class="alert py-1 px-2 mb-0" id="alertVentaNC" style="font-size:12px;">
+                        <span id="lblInfoVentaNC"></span>
+                    </div>
+                    <input type="hidden" id="hdnIdVentaNC" value="0" />
+                </div>
+
+                <!-- SECCIÓN CONTADO: monto manual + motivo + obs -->
+                <div id="divNCContado" class="d-none">
+                    <div class="form-group mb-2">
+                        <label class="col-form-label col-form-label-sm">Motivo: <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-sm" id="cboMotivoNC">
+                            <option value="0">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-2">
+                        <label class="col-form-label col-form-label-sm">Monto (Gs.): <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" id="txtMontoNC" value="0" min="1">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="col-form-label col-form-label-sm">Observación:</label>
+                        <textarea class="form-control form-control-sm" id="txtObservacionNC" rows="2" maxlength="500"></textarea>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="col-form-label col-form-label-sm">Motivo: <span class="text-danger">*</span></label>
-                    <select class="form-control form-control-sm" id="cboMotivoNC">
-                        <option value="0">-- Seleccionar --</option>
-                    </select>
+
+                <!-- SECCIÓN CRÉDITO: redirige a selección de productos -->
+                <div id="divNCCredito" class="d-none">
+                    <div class="alert alert-info py-2 px-3 mb-0" style="font-size:12px;">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Esta es una <strong>venta en cuotas</strong>. Para crear la NC, necesitás seleccionar
+                        los productos defectuosos y las cantidades a devolver.
+                        Las cuotas se recalcularán automáticamente al aprobar la NC.
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="col-form-label col-form-label-sm">Monto (Gs.): <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control form-control-sm" id="txtMontoNC" value="0" min="1">
-                </div>
-                <div class="form-group">
-                    <label class="col-form-label col-form-label-sm">Observación:</label>
-                    <textarea class="form-control form-control-sm" id="txtObservacionNC" rows="2" maxlength="500"></textarea>
-                </div>
+
             </div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-warning btn-sm" onclick="registrarNC()">
-                    <i class="fas fa-save"></i> Registrar
+                <!-- Botón contado -->
+                <button type="button" class="btn btn-warning btn-sm d-none" id="btnRegistrarNC" onclick="registrarNC()">
+                    <i class="fas fa-save"></i> Registrar NC
+                </button>
+                <!-- Botón crédito -->
+                <button type="button" class="btn btn-warning btn-sm d-none" id="btnIrProductos" onclick="irASeleccionProductos()">
+                    <i class="fas fa-boxes mr-1"></i> Seleccionar productos <i class="fas fa-arrow-right ml-1"></i>
                 </button>
             </div>
         </div>
@@ -126,7 +169,7 @@
 
 <!-- MODAL APROBAR/RECHAZAR -->
 <div class="modal fade" id="modalAprobacion" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header py-2" id="modalAprobacionHeader">
                 <h5 class="modal-title" id="lblTituloAprobacion">Aprobar / Rechazar NC</h5>
@@ -135,8 +178,8 @@
             <div class="modal-body">
                 <input type="hidden" id="hdnIdNCV" value="0" />
                 <input type="hidden" id="hdnAccionNCV" value="" />
-                <p>NCV: <strong id="lblNcvAprobacion"></strong></p>
-                <p>Venta: <strong id="lblVentaAprobacion"></strong> | Monto: <strong id="lblMontoAprobacion"></strong></p>
+                <p class="mb-1">NCV: <strong id="lblNcvAprobacion"></strong></p>
+                <p class="mb-2">Factura: <strong id="lblVentaAprobacion"></strong> | Monto NC: <strong id="lblMontoAprobacion"></strong></p>
                 <div id="divInfoSaldoFavor" class="d-none"></div>
                 <div class="form-group d-none" id="divMotivoRechazo">
                     <label class="col-form-label col-form-label-sm">Motivo de Rechazo: <span class="text-danger">*</span></label>

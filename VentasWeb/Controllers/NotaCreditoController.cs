@@ -122,5 +122,75 @@ namespace VentasWeb.Controllers
             var rpt = CD_NotaCredito.Instancia.Rechazar(idnc, observacion, UsuarioActual.IdUsuario);
             return Json(new { resultado = rpt.resultado, mensaje = rpt.mensaje });
         }
+
+        // ============================================================
+        //  PDF: IMPRIMIR NOTA DE CRÉDITO DE COMPRA
+        // ============================================================
+
+        [HttpGet]
+        [AuthorizeRol("NotaCredito", "Index")]
+        public ActionResult ImprimirNC(int idnc)
+        {
+            try
+            {
+                var r = CD_NotaCredito.Instancia.ObtenerNCCompraParaImprimir(idnc);
+                if (!r.resultado || r.nc == null)
+                    return Content("Error: " + r.mensaje);
+
+                string tmpJson = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                   "nc_" + System.Guid.NewGuid().ToString("N") + ".json");
+                string tmpPdf  = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                   "nc_" + System.Guid.NewGuid().ToString("N") + ".pdf");
+
+                var jo = new Newtonsoft.Json.Linq.JObject();
+                jo["Cabecera"]      = Newtonsoft.Json.Linq.JObject.FromObject(r.nc);
+                jo["NombreEmpresa"] = GetNombreEmpresa();
+                jo["LogoPath"]      = GetLogoPath();
+                jo["NombreUsuario"] = GetNombreUsuario();
+                jo["ReporteId"]     = GetReporteId();
+
+                System.IO.File.WriteAllText(tmpJson,
+                    jo.ToString(Newtonsoft.Json.Formatting.None),
+                    new System.Text.UTF8Encoding(false));
+
+                string scriptPath = Server.MapPath("~/Scripts/PDF/generar_nc_compra_pdf.py");
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName               = FindPythonExe(),
+                    Arguments              = $"\"{scriptPath}\" \"{tmpJson}\" \"{tmpPdf}\"",
+                    UseShellExecute        = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    CreateNoWindow         = true
+                };
+
+                using (var proc = System.Diagnostics.Process.Start(psi))
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode != 0)
+                    {
+                        string err = proc.StandardError.ReadToEnd();
+                        throw new System.Exception("Error en script PDF: " + err);
+                    }
+                }
+
+                if (!System.IO.File.Exists(tmpPdf))
+                    throw new System.Exception("El script no generó el PDF.");
+
+                byte[] bytes = System.IO.File.ReadAllBytes(tmpPdf);
+                try { System.IO.File.Delete(tmpJson); } catch { }
+                try { System.IO.File.Delete(tmpPdf);  } catch { }
+
+                string numeroNC = string.IsNullOrWhiteSpace(r.nc.NumeroNC)
+                                ? "NC" + idnc
+                                : r.nc.NumeroNC.Replace("/", "-");
+                return File(bytes, "application/pdf", "NC_" + numeroNC + ".pdf");
+            }
+            catch (System.Exception ex)
+            {
+                return Content("Error al generar PDF: " + ex.Message);
+            }
+        }
     }
 }
