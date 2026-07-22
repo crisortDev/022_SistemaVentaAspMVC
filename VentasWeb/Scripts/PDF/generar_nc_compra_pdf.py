@@ -118,9 +118,8 @@ def main(json_path, pdf_path):
     nombre_usuario = data.get('NombreUsuario', '')
     reporte_id     = data.get('ReporteId', '')
 
-    def make_canvas(filename):
-        return _Canvas(filename, nombre_empresa=nombre_empresa,
-                       logo_path=logo_path, pagesize=PAGE)
+    cb = _Canvas('Nota de Crédito de Compra', nombre_empresa, '', '',
+                 nombre_usuario, reporte_id, logo_path)
 
     doc = SimpleDocTemplate(
         pdf_path,
@@ -234,7 +233,7 @@ def main(json_path, pdf_path):
         ST_FOOT
     ))
 
-    doc.build(story, canvasmaker=make_canvas)
+    doc.build(story, onFirstPage=cb, onLaterPages=cb)
     print("OK: PDF generado en", pdf_path)
 
 # ── Entry point ───────────────────────────────────────────────────────────────

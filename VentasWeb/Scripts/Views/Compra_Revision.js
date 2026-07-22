@@ -145,7 +145,7 @@ $(document).ready(function () {
                     var btnOP = "";
                     var puedeGenerarOP = AppSession.esSuperAdmin || AppSession.idRol === 6;
                     var ncPendiente = row.EstadoNC === "Pendiente";
-                    if (puedeGenerarOP && row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0) && (row.TotalCosto > 0 || row.MontoNotaCredito > 0)) {
+                    if (puedeGenerarOP && row.Estado === "Confirmada" && (!row.IdOrdenPago || row.IdOrdenPago === 0) && row.TotalCosto > 0) {
                         if (ncPendiente) {
                             btnOP = "<button class='btn btn-primary btn-sm mr-1' disabled "
                                   + "title='Espere la NC del proveedor (NC Pendiente) antes de generar la Orden de Pago' "
@@ -173,8 +173,11 @@ $(document).ready(function () {
                 "render": function (d, t, row) {
                     if (row.MontoNotaCredito && row.MontoNotaCredito > 0) {
                         if (d > 0) {
-                            var neto = d - row.MontoNotaCredito;
-                            return "<span title='Bruto: Gs. " + formatGs(d) + "'>Gs. " + formatGs(neto) + "</span>"
+                            // TotalCosto = CantidadRecibida × Precio = lo que se debe pagar.
+                            // MontoNotaCredito cubre lo NO recibido → ya excluido de TotalCosto.
+                            // NO restar NC de nuevo: el neto correcto es TotalCosto.
+                            var bruto = d + row.MontoNotaCredito; // pedido × precio (informativo)
+                            return "<span title='Subtotal bruto pedido: Gs. " + formatGs(bruto) + "'>Gs. " + formatGs(d) + "</span>"
                                  + " <small class='text-warning'>(NC - Gs. " + formatGs(row.MontoNotaCredito) + ")</small>";
                         }
                         // TotalCosto=0: dato previo sin total almacenado; muestra solo la NC

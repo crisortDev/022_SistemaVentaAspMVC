@@ -37,7 +37,7 @@ namespace VentasWeb
                       "~/Content/Plugins/Bootstrap-Duallistbox/css/bootstrap-duallistbox.min.css"
                       ));
 
-            bundles.Add(new StyleBundle("~/Content/PluginsJS").Include(
+            bundles.Add(new ScriptBundle("~/Content/PluginsJS").Include(
                      "~/Content/Plugins/datatables/js/jquery.dataTables.min.js",
                      "~/Content/Plugins/datatables/js/dataTables.responsive.min.js",
                      "~/Content/Plugins/fontawesome-free-5.15.2/js/all.min.js",
