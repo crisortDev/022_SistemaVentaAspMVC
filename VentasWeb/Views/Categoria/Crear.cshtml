@@ -30,7 +30,7 @@
                         <th>Descripción</th>
                         <th style="width:110px">% Ganancia</th>
                         <th style="width:90px">Unidad</th>
-                        <th style="width:110px">Desc. Máx.</th>
+                        <th style="width:110px">% Descuento</th>
                         <th style="width:90px">Estado</th>
                         <th style="width:130px">Acciones</th>
                     </tr>
@@ -69,7 +69,7 @@
                     <div class="col-sm-7"><p class="form-control-plaintext ver-text" id="verUnidadMedida"></p></div>
                 </div>
                 <div class="form-group row mb-2">
-                    <label class="col-sm-5 col-form-label font-weight-bold text-muted small">Desc. Máx. Permitido</label>
+                    <label class="col-sm-5 col-form-label font-weight-bold text-muted small">% Descuento</label>
                     <div class="col-sm-7">
                         <p class="form-control-plaintext ver-text">
                             <span id="verDescuentoMax"></span>
@@ -160,7 +160,7 @@
 
                     <div class="form-group">
                         <label for="txtDescuentoMax" class="font-weight-bold">
-                            % Descuento Máximo Permitido
+                            % Descuento
                             <small class="text-muted font-weight-normal">(opcional)</small>
                         </label>
                         <div class="input-group input-group-sm">
@@ -171,7 +171,7 @@
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
-                        <small class="text-muted">Al superar este % en una venta, el sistema emite advertencia.</small>
+                        <small class="text-muted">Se aplica automáticamente al agregar productos de esta categoría en la pre-venta.</small>
                     </div>
 
                     <div class="form-group">

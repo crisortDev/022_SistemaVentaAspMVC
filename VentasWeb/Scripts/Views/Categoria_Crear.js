@@ -73,7 +73,7 @@ $(document).ready(function () {
                     var val = parseFloat(data) || 0;
                     return val > 0
                         ? '<span class="badge badge-warning">' + val.toFixed(2) + ' %</span>'
-                        : '<span class="badge badge-secondary">Sin límite</span>';
+                        : '<span class="text-muted">—</span>';
                 }
             },
             {

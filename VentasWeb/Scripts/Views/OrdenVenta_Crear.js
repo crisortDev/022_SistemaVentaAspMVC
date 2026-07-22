@@ -127,12 +127,13 @@ function agregarProducto(id, codigo, nombre, precio, iva, stock, cpp, unidadMedi
         toastr.warning('"' + nombre + '" no tiene stock disponible y no puede agregarse a la pre-venta.');
         return;
     }
+    var descFijo = parseFloat(descuentoMax) || 0;
     itemsDetalle.push({
         id: id, codigo: codigo, nombre: nombre, precio: precio, iva: iva,
-        stock: stock, cantidad: 1, descuento: 0,
+        stock: stock, cantidad: 1, descuento: descFijo,
         cpp: cpp || 0,
         unidadMedida: unidadMedida || 'Unidad',
-        descuentoMax: descuentoMax || 0
+        descuentoMax: descFijo
     });
     renderizarDetalle();
     if (dtProducto) dtProducto.draw(false);
@@ -201,11 +202,9 @@ function renderizarDetalle() {
               '<small class="text-muted">' + label + '</small>' +
             '</td>' +
             '<td class="text-center">' +
-              '<div class="input-group input-group-sm" style="width:90px;margin:auto">' +
-              '<input type="number" class="form-control form-control-sm text-center" value="' + desc + '" ' +
-              'min="0" max="100" step="1" placeholder="0" onchange="actualizarDescuento(' + idx + ',this.value)">' +
-              '<div class="input-group-append"><span class="input-group-text" style="padding:2px 4px">%</span></div>' +
-              '</div>' +
+              (item.descuentoMax > 0
+                ? '<span class="badge badge-info" title="Descuento fijo de categoría">' + desc + '%</span>'
+                : '<span class="text-muted small">—</span>') +
             '</td>' +
             precioCell +
             '<td class="text-center">' + item.iva + '%</td>' +
