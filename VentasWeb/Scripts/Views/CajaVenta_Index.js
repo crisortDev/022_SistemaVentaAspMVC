@@ -212,7 +212,8 @@ function calcularDiferencia() {
 function cerrarCaja() {
     var idCaja   = parseInt($('#hdnIdCaja').val()) || 0;
     var contado  = parseFloat($('#txtMontoContado').val()) || 0;
-    var obs      = $('#txtObservacionCierre').val();
+    var obs      = $('#txtObservacionCierre').val().trim();
+    if (!obs) { toastr.warning('La Observación es obligatoria para cerrar la caja.'); $('#txtObservacionCierre').focus(); return; }
 
     Swal.fire({
         title: '¿Cerrar caja?',

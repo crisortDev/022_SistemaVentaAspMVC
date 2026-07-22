@@ -61,6 +61,11 @@ namespace CapaModelo
         public Tienda oTienda { get; set; }
         public Cliente oCliente { get; set; }
         public List<DetalleVenta> oListaDetalleVenta { get; set; }
+        // ── Campos auxiliares para módulo de Garantías (no persisten) ──
+        public int  CuotasPendientes  { get; set; }
+        public int  CuotasPagadas     { get; set; }
+        public bool TieneItemsActivos { get; set; }
+        public bool PuedeGarantia     { get; set; }
     }
 
     public class DatosTributarios
@@ -93,6 +98,8 @@ namespace CapaModelo
         public int TotalCuotas { get; set; }
         public decimal MontoFinanciado { get; set; }
         public decimal Monto { get; set; }
+        /// <summary>Monto original antes de ajuste por garantía (NULL si no fue ajustada).</summary>
+        public decimal? MontoOriginal { get; set; }
         public string FechaVencimiento { get; set; }
         public string Estado { get; set; }             // Pendiente | Pagada | Vencida
         public string FechaPago { get; set; }

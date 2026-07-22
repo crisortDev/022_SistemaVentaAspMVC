@@ -60,6 +60,11 @@ namespace VentasWeb.Filters
             { "ComprobanteCobro|Index",                    "Comprobantes de Cobro"      },
             { "ComprobanteCobro|Obtener",                  "Comprobantes de Cobro"      },
             { "NotaCreditoVenta|Index",                    "Nota de Crédito Venta"      },
+            // ── Módulo Garantías ──────────────────────────────────────
+            { "Garantia|Index",                            "Garantías"                  },
+            { "Garantia|ObtenerVentas",                    "Garantías"                  },
+            { "Garantia|ObtenerDetalle",                   "Garantías"                  },
+            { "Garantia|ProcesarGarantia",                 "Garantías"                  },
             { "NotaCreditoVenta|Registrar",                "Nota de Crédito Venta"      },
             { "NotaCreditoVenta|AprobarRechazar",          "Nota de Crédito Venta"      },
             // ── Módulo Caja de Ventas ─────────────────────────────

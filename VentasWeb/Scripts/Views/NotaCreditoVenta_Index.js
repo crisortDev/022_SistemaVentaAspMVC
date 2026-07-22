@@ -207,6 +207,8 @@ function registrarNC() {
     if (!motivo) { toastr.warning('Seleccione el motivo.'); return; }
     var monto = parseFloat($('#txtMontoNC').val()) || 0;
     if (monto <= 0) { toastr.warning('El monto debe ser mayor a cero.'); return; }
+    var obs = $('#txtObservacionNC').val().trim();
+    if (!obs) { toastr.warning('La Observación es obligatoria.'); $('#txtObservacionNC').focus(); return; }
 
     $.ajax({
         url: $.MisUrls.url._NCV_Registrar,

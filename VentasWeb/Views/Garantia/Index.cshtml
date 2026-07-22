@@ -1,0 +1,231 @@
+@{
+    ViewBag.Title = "Gestión de Garantías";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Ventas</a></li>
+        <li class="breadcrumb-item active">Garantías</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-shield-alt"></i>
+                Gestión de Garantías — Devolución / Reposición de Productos
+            </div>
+            <div class="card-body p-2">
+
+                @* ── Alerta informativa ── *@
+                <div class="alert alert-info alert-sm py-1 px-2 mb-2" role="alert">
+                    <i class="fas fa-info-circle"></i>
+                    Buscá la venta por <strong>número de factura</strong> o por <strong>CI/RUC del cliente</strong>.
+                    Luego seleccioná el producto fallado para gestionar la garantía.
+                </div>
+
+                @* ── Buscador ── *@
+                <div class="row align-items-end mb-2">
+                    <div class="col-sm-4">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">N° de Factura:</label>
+                            <input type="text" id="txtFactura" class="form-control form-control-sm"
+                                   placeholder="Ej: 001-001-0000123" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group mb-0">
+                            <label class="col-form-label col-form-label-sm">CI / RUC del cliente:</label>
+                            <input type="text" id="txtDocumento" class="form-control form-control-sm"
+                                   placeholder="Ej: 1234567" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-sm btn-warning btn-block"
+                                onclick="buscarVentas()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-block"
+                                onclick="limpiarBusqueda()">
+                            <i class="fas fa-times"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="mt-1 mb-2">
+
+                @* ── Tabla de ventas encontradas ── *@
+                <div id="divResultados" style="display:none;">
+                    <table id="tbVentas"
+                           class="table table-striped table-bordered nowrap compact"
+                           style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Acciones</th>
+                                <th>N° Factura</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Modalidad</th>
+                                <th>Cuotas</th>
+                                <th>Total (Gs.)</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyVentas"></tbody>
+                    </table>
+                </div>
+
+                <div id="divSinResultados" class="text-center text-muted py-4" style="display:none;">
+                    <i class="fas fa-search fa-2x mb-2 d-block"></i>
+                    No se encontraron ventas. Verificá el número de factura o el documento del cliente.
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Modal: seleccionar ítem y procesar garantía ── *@
+<div class="modal fade" id="modalGarantia" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Procesar Garantía — <span id="spanFacturaModal"></span>
+                </h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnIdVenta" value="0" />
+                <input type="hidden" id="hdnModalidad" value="" />
+
+                @* Info de la venta *@
+                <div class="row mb-3" id="divInfoVenta">
+                    <div class="col-sm-4">
+                        <small class="text-muted">Cliente</small>
+                        <div id="infoCliente" class="font-weight-bold"></div>
+                    </div>
+                    <div class="col-sm-4">
+                        <small class="text-muted">Modalidad de pago</small>
+                        <div id="infoModalidad"></div>
+                    </div>
+                    <div class="col-sm-4">
+                        <small class="text-muted">Cuotas (pagas / pendientes)</small>
+                        <div id="infoCuotas"></div>
+                    </div>
+                </div>
+
+                @* Tabla de ítems *@
+                <p class="mb-1"><strong>Seleccioná el producto fallado:</strong></p>
+                <table class="table table-sm table-bordered" id="tbItems">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th style="width:5%"></th>
+                            <th>Producto</th>
+                            <th class="text-center">Cantidad</th>
+                            <th class="text-right">Precio Unit.</th>
+                            <th class="text-right">Total</th>
+                            <th class="text-center">Stock</th>
+                            <th class="text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyItems">
+                        <tr><td colspan="7" class="text-center text-muted">Cargando...</td></tr>
+                    </tbody>
+                </table>
+
+                @* Verificación de stock y motivo *@
+                <div id="divAccion" style="display:none;">
+                    <hr>
+                    <div class="row mb-2">
+                        <div class="col-sm-4">
+                            <div class="form-group mb-0">
+                                <label class="col-form-label col-form-label-sm">
+                                    Cantidad a garantizar <span class="text-danger">*</span>:
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="txtCantidadGarantia" class="form-control form-control-sm"
+                                           min="1" value="1" onchange="cambiarCantidad()" oninput="cambiarCantidad()">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text" id="spanMaxCantidad">/ 0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group mb-0">
+                                <label class="col-form-label col-form-label-sm">
+                                    Motivo <span class="text-danger">*</span>:
+                                </label>
+                                <select class="form-control form-control-sm" id="cboMotivoNC">
+                                    <option value="0">-- Seleccione --</option>
+                                    @if (ViewBag.MotivosNC != null)
+                                    {
+                                        foreach (var m in ViewBag.MotivosNC)
+                                        {
+                                            <option value="@m.IdMotivoNotaCredito">@m.Descripcion</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="col-form-label col-form-label-sm">
+                                ¿Hay stock disponible del mismo producto?
+                            </label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="radioStock"
+                                           id="radioSiStock" value="1" onchange="cambioOpcionStock()">
+                                    <label class="form-check-label text-success" for="radioSiStock">
+                                        <i class="fas fa-check-circle"></i> Sí — Reemplazar
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="radioStock"
+                                           id="radioNoStock" value="0" onchange="cambioOpcionStock()">
+                                    <label class="form-check-label text-danger" for="radioNoStock">
+                                        <i class="fas fa-times-circle"></i> No — Emitir NC
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Panel informativo según opción elegida *@
+                    <div id="panelReemplazo" class="alert alert-success mt-2 py-2 px-3" style="display:none;">
+                        <i class="fas fa-exchange-alt"></i>
+                        <strong>Reposición desde stock:</strong>
+                        Se descuenta 1 unidad del inventario y se marca el ítem como <em>Cambiado</em>.
+                        Las cuotas y el saldo del cliente <strong>no se modifican</strong>.
+                    </div>
+                    <div id="panelNC" class="alert alert-warning mt-2 py-2 px-3" style="display:none;">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <strong>Nota de Crédito (NCG-):</strong>
+                        <span id="spanResumenNC"></span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" id="btnProcesar"
+                        onclick="confirmarGarantia()" style="display:none;">
+                    <i class="fas fa-shield-alt"></i> Confirmar Garantía
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script src="@Url.Content("~/Scripts/Views/Garantia_Index.js?v=" + DateTime.Now.Ticks)"
+            type="text/javascript"></script>
+}

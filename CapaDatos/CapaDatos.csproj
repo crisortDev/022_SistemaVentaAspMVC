@@ -83,6 +83,7 @@
     <Compile Include="CD_OrdenVenta.cs" />
     <Compile Include="CD_ComprobanteCobro.cs" />
     <Compile Include="CD_NotaCreditoVenta.cs" />
+    <Compile Include="CD_Garantia.cs" />
     <Compile Include="ReporteRentabilidad.cs" />
   </ItemGroup>
   <ItemGroup>

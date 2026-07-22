@@ -632,6 +632,14 @@
             _NCV_Imprimir:         '@Url.Action("ImprimirNCV",         "NotaCreditoVenta")'
         });
 
+        // ---- GARANTIAS ----
+        $.MisUrls.urls({
+            _Garantia_Index:          '@Url.Action("Index",            "Garantia")',
+            _Garantia_ObtenerVentas:  '@Url.Action("ObtenerVentas",   "Garantia")',
+            _Garantia_ObtenerDetalle: '@Url.Action("ObtenerDetalle",  "Garantia")',
+            _Garantia_Procesar:       '@Url.Action("ProcesarGarantia","Garantia")'
+        });
+
         // ---- CAJA VENTA ----
         $.MisUrls.urls({
             _CajaVenta_Index:               '@Url.Action("Index",               "CajaVenta")',

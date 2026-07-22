@@ -144,6 +144,7 @@ function registrarNC() {
     var obs     = $('#txtObservacion').val().trim();
 
     if (!motivo) { toastr.warning('Seleccione el motivo de la nota de crédito.'); return; }
+    if (!obs) { toastr.warning('La Observación es obligatoria.'); $('#txtObservacion').focus(); return; }
 
     var detalle = [];
     var hayError = false;

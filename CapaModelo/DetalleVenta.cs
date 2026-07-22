@@ -19,5 +19,11 @@ namespace CapaModelo
         public decimal PorcentajeDescuento { get; set; }
         /// <summary>Unidad de medida del producto (ej: Unidad, Metro).</summary>
         public string UnidadMedida { get; set; }
+        /// <summary>Estado de la línea: OK | GARANTIA_PARCIAL | CAMBIADO | DEVUELTO_NC</summary>
+        public string EstadoLinea         { get; set; }
+        public int    CantidadGarantizada { get; set; }
+        public int    CantidadDisponible  { get; set; }
+        /// <summary>Stock disponible del producto en la tienda (solo para pantalla de garantía).</summary>
+        public decimal StockDisponible    { get; set; }
     }
 }

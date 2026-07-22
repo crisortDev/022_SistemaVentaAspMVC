@@ -284,6 +284,7 @@ function confirmarCobro() {
         toastr.warning('El monto recibido (Gs. ' + formatGs(montoRec) + ') es menor al total (Gs. ' + formatGs(_montoTotal) + ').');
         return;
     }
+    if (!obs.trim()) { toastr.warning('La Observación es obligatoria.'); $('#txtObservacion').focus(); return; }
 
     Swal.fire({
         title: '¿Confirmar cobro?',

@@ -298,6 +298,11 @@ function guardarPreVenta() {
             .then(function () { buscarCliente(); });
         return;
     }
+    var obs = $('#txtObservacion').val().trim();
+    if (!obs) {
+        Swal.fire({ icon: 'warning', title: 'Atención', text: 'La Observación es obligatoria.', confirmButtonColor: '#0984e3' });
+        $('#txtObservacion').focus(); return;
+    }
     var fecVenc = $('#txtFechaVencimiento').val().trim();
     if (!fecVenc) {
         Swal.fire({ icon: 'warning', title: 'Atención', text: 'Ingrese la fecha de vencimiento.', confirmButtonColor: '#0984e3' });

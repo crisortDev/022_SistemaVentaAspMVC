@@ -144,6 +144,7 @@
     <Compile Include="Controllers\OrdenVentaController.cs" />
     <Compile Include="Controllers\ComprobanteCobroController.cs" />
     <Compile Include="Controllers\NotaCreditoVentaController.cs" />
+    <Compile Include="Controllers\GarantiaController.cs" />
     <Compile Include="Controllers\CajaVentaController.cs" />
     <Compile Include="Controllers\ParametrosTributariosController.cs" />
     <Compile Include="Controllers\PuntoCajaController.cs" />
@@ -2049,6 +2050,7 @@
     <Content Include="Scripts\Views\OrdenVenta_Consultar.js" />
     <Content Include="Scripts\Views\ComprobanteCobro_Index.js" />
     <Content Include="Scripts\Views\NotaCreditoVenta_Index.js" />
+    <Content Include="Scripts\Views\Garantia_Index.js" />
     <Content Include="Scripts\Views\CajaVenta_Index.js" />
     <Content Include="Scripts\Views\CajaVenta_Reporte.js" />
     <Content Include="Scripts\Views\ParametrosTributarios_Index.js" />
@@ -2128,6 +2130,7 @@
     <Content Include="Views\Venta\Facturar.cshtml" />
     <Content Include="Views\ComprobanteCobro\Index.cshtml" />
     <Content Include="Views\NotaCreditoVenta\Index.cshtml" />
+    <Content Include="Views\Garantia\Index.cshtml" />
     <Content Include="Views\CajaVenta\Index.cshtml" />
     <Content Include="Views\CajaVenta\Reporte.cshtml" />
     <Content Include="Views\CajaVenta\ComprobanteApertura.cshtml" />
