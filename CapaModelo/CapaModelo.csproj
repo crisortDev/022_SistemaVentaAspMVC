@@ -64,6 +64,7 @@
     <Compile Include="DetalleCompra.cs" />
     <Compile Include="DetalleOrdenCompra.cs" />
     <Compile Include="DetalleVenta.cs" />
+    <Compile Include="GarantiaItem.cs" />
     <Compile Include="OrdenCompra.cs" />
     <Compile Include="Menu.cs" />
     <Compile Include="Permisos.cs" />

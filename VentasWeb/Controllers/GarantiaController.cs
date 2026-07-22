@@ -1,6 +1,7 @@
 using CapaDatos;
 using CapaModelo;
 using System;
+using System.Collections.Generic;
 using System.Web.Mvc;
 using VentasWeb.Filters;
 
@@ -47,26 +48,40 @@ namespace VentasWeb.Controllers
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        //  JSON: procesar garantía (reemplazo o NC + cuotas)
+        //  JSON: procesar garantía masiva (múltiples ítems)
         // ══════════════════════════════════════════════════════════════════════
         [HttpPost]
         [AuthorizeRol("Garantia", "Index")]
-        public JsonResult ProcesarGarantia(
-            int idventa, int iddetalleventa,
-            int idmotivonc, bool haystock, int cantidadgarantia = 0)
+        public JsonResult ProcesarGarantia(int idventa, int idmotivonc, string itemsjson)
         {
             if (UsuarioActual == null)
                 return Json(new { resultado = false, mensaje = "Sesión expirada." });
 
-            var (ok, msg, montoNC, saldo) = CD_Garantia.Instancia.ProcesarGarantia(
-                idventa, iddetalleventa, idmotivonc, haystock, UsuarioActual.IdUsuario, cantidadgarantia);
+            List<GarantiaItem> items;
+            try
+            {
+                items = Newtonsoft.Json.JsonConvert.DeserializeObject<List<GarantiaItem>>(itemsjson ?? "[]");
+            }
+            catch
+            {
+                return Json(new { resultado = false, mensaje = "Error al leer los ítems seleccionados." });
+            }
+
+            if (items == null || items.Count == 0)
+                return Json(new { resultado = false, mensaje = "Seleccioná al menos un producto." });
+
+            var (ok, msg, montoNC, numeroNC, reemplazos, saldo) =
+                CD_Garantia.Instancia.ProcesarGarantiaMasiva(
+                    idventa, idmotivonc, UsuarioActual.IdUsuario, items);
 
             return Json(new
             {
-                resultado      = ok,
-                mensaje        = msg,
-                montoNC        = montoNC,
-                saldoGenerado  = saldo
+                resultado     = ok,
+                mensaje       = msg,
+                montoNC       = montoNC,
+                numeroNC      = numeroNC,
+                reemplazos    = reemplazos,
+                saldoGenerado = saldo
             });
         }
     }

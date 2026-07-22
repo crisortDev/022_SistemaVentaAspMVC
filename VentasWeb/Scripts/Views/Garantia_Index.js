@@ -1,14 +1,8 @@
 // ══════════════════════════════════════════════════════════════════════════════
-//  Garantia_Index.js
-//  Gestión de Garantías — búsqueda de venta, selección de ítem, procesamiento
+//  Garantia_Index.js  —  Garantía multi-producto
 // ══════════════════════════════════════════════════════════════════════════════
 
-var _idDetalleSeleccionado   = 0;
-var _importeItemSeleccionado = 0;
-var _precioUnitarioItem      = 0;
-var _cantidadDisponible      = 0;
-var _stockItemSeleccionado   = 0;
-var _totalVenta              = 0;
+var _itemsDisponibles = [];
 
 function formatGs(valor) {
     return (Math.round(valor) || 0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
@@ -18,16 +12,27 @@ function formatGs(valor) {
 $(document).ready(function () {
     activarMenu("Ventas");
 
-    // Permitir buscar con Enter
     $("#txtFactura, #txtDocumento").on("keypress", function (e) {
         if (e.which === 13) buscarVentas();
     });
+
+    // Checkbox "seleccionar todos"
+    $(document).on("change", "#chkTodos", function () {
+        var checked = $(this).prop("checked");
+        $("#tbodyItems .chkItem").each(function () {
+            $(this).prop("checked", checked);
+        });
+        actualizarResumen();
+    });
+
+    $(document).on("change", ".chkItem", actualizarResumen);
+    $(document).on("input",  ".txtCantGar", actualizarResumen);
 });
 
 // ── Buscar ventas ──────────────────────────────────────────────────────────
 function buscarVentas() {
-    var factura    = $("#txtFactura").val().trim();
-    var documento  = $("#txtDocumento").val().trim();
+    var factura   = $("#txtFactura").val().trim();
+    var documento = $("#txtDocumento").val().trim();
 
     if (!factura && !documento) {
         Swal.fire({ title: "Atención", text: "Ingresá un número de factura o el CI/RUC del cliente.", icon: "warning" });
@@ -35,7 +40,6 @@ function buscarVentas() {
     }
 
     $.LoadingOverlay("show");
-
     $.ajax({
         url:  $.MisUrls.url._Garantia_ObtenerVentas,
         type: "GET",
@@ -74,9 +78,9 @@ function renderizarVentas(lista) {
 
     $.each(lista, function (i, v) {
         var badgeEstado;
-        if (v.Estado === "Cobrado")               badgeEstado = '<span class="badge badge-success">Cobrado</span>';
-        else if (v.Estado === "CobradoParcial")    badgeEstado = '<span class="badge badge-warning">Cobrado Parcial</span>';
-        else                                       badgeEstado = '<span class="badge badge-secondary">' + v.Estado + '</span>';
+        if      (v.Estado === "Cobrado")        badgeEstado = '<span class="badge badge-success">Cobrado</span>';
+        else if (v.Estado === "CobradoParcial") badgeEstado = '<span class="badge badge-warning">Cobrado Parcial</span>';
+        else                                    badgeEstado = '<span class="badge badge-secondary">' + v.Estado + '</span>';
 
         var cuotasInfo = v.ModalidadPago === "Crédito"
             ? (v.CuotasPagadas + " pag. / " + v.CuotasPendientes + " pend.")
@@ -99,7 +103,7 @@ function renderizarVentas(lista) {
             "<tr>" +
             "<td>" + btnGarantia + "</td>" +
             "<td>" + (v.NumeroFactura || "—") + "</td>" +
-            "<td>" + (v.FechaRegistro   || "—") + "</td>" +
+            "<td>" + (v.FechaRegistro || "—") + "</td>" +
             "<td>" + (v.oCliente ? v.oCliente.Nombre : "—") + "</td>" +
             "<td>" + (v.ModalidadPago || "—") + "</td>" +
             "<td class='text-center'>" + cuotasInfo + "</td>" +
@@ -110,13 +114,9 @@ function renderizarVentas(lista) {
     });
 }
 
-// ── Abrir modal de garantía ────────────────────────────────────────────────
+// ── Abrir modal ────────────────────────────────────────────────────────────
 function abrirModalGarantia(venta) {
-    // Reset
-    _idDetalleSeleccionado   = 0;
-    _importeItemSeleccionado = 0;
-    _stockItemSeleccionado   = 0;
-    _totalVenta              = venta.TotalCosto || 0;
+    _itemsDisponibles = [];
 
     $("#hdnIdVenta").val(venta.IdVenta);
     $("#hdnModalidad").val(venta.ModalidadPago || "Efectivo");
@@ -129,65 +129,73 @@ function abrirModalGarantia(venta) {
         : "—";
     $("#infoCuotas").text(cuotasText);
 
-    // Reset acciones
     $("#divAccion").hide();
-    $("#panelReemplazo").hide();
-    $("#panelNC").hide();
+    $("#divResumenPrevia").hide();
     $("#btnProcesar").hide();
-    $("input[name='radioStock']").prop("checked", false);
+    $("#chkTodos").prop("checked", false);
     $("#cboMotivoNC").val(0);
 
-    // Cargar ítems
-    $("#tbodyItems").html('<tr><td colspan="7" class="text-center text-muted">Cargando...</td></tr>');
+    $("#tbodyItems").html('<tr><td colspan="8" class="text-center text-muted">Cargando...</td></tr>');
     $("#modalGarantia").modal("show");
 
     $.ajax({
         url:  $.MisUrls.url._Garantia_ObtenerDetalle,
         type: "GET",
         data: { idventa: venta.IdVenta },
-        success: function (res) { renderizarItems(res.data || []); },
-        error:   function ()    {
-            $("#tbodyItems").html('<tr><td colspan="7" class="text-center text-danger">Error al cargar.</td></tr>');
+        success: function (res) {
+            _itemsDisponibles = res.data || [];
+            renderizarItems(_itemsDisponibles);
+        },
+        error: function () {
+            $("#tbodyItems").html('<tr><td colspan="8" class="text-center text-danger">Error al cargar.</td></tr>');
         }
     });
 }
 
-// ── Renderizar ítems de la venta ───────────────────────────────────────────
+// ── Renderizar ítems con checkboxes ────────────────────────────────────────
 function renderizarItems(items) {
     var tbody = $("#tbodyItems").empty();
 
     if (!items || items.length === 0) {
-        tbody.html('<tr><td colspan="7" class="text-center text-muted">Sin ítems.</td></tr>');
+        tbody.html('<tr><td colspan="8" class="text-center text-muted">Sin ítems disponibles.</td></tr>');
         return;
     }
 
     $.each(items, function (i, it) {
-        var esActivo = it.EstadoLinea === "OK";
+        var cantDisp = it.CantidadDisponible > 0 ? it.CantidadDisponible : it.Cantidad;
 
         var badgeLinea;
         if      (it.EstadoLinea === "OK")               badgeLinea = '<span class="badge badge-success">OK</span>';
         else if (it.EstadoLinea === "GARANTIA_PARCIAL") badgeLinea = '<span class="badge badge-warning">Parcial (' + it.CantidadGarantizada + '/' + it.Cantidad + ')</span>';
-        else if (it.EstadoLinea === "CAMBIADO")         badgeLinea = '<span class="badge badge-info">Cambiado</span>';
-        else                                            badgeLinea = '<span class="badge badge-warning">Dev. NC</span>';
+        else                                            badgeLinea = '<span class="badge badge-secondary">' + it.EstadoLinea + '</span>';
 
         var stockCell = it.StockDisponible > 0
             ? '<span class="text-success font-weight-bold">' + it.StockDisponible + '</span>'
             : '<span class="text-danger font-weight-bold">0</span>';
 
-        var radio = esActivo
-            ? '<input type="radio" name="radioItem" value="' + it.IdDetalleVenta + '" '
-              + 'data-importe="' + it.ImporteTotal + '" data-stock="' + it.StockDisponible + '" '
-              + 'data-item="' + JSON.stringify(it).replace(/"/g, "&quot;") + '" '
-              + 'onchange="seleccionarItem(this)">'
-            : '';
+        // Icono indicador de acción automática
+        var accionIcon = it.StockDisponible > 0
+            ? ' <i class="fas fa-exchange-alt text-success" title="Con stock: se reemplazará"></i>'
+            : ' <i class="fas fa-file-invoice-dollar text-warning" title="Sin stock: se generará NC"></i>';
 
         tbody.append(
-            "<tr class='" + (esActivo ? "" : "table-secondary text-muted") + "'>" +
-            "<td class='text-center'>" + radio + "</td>" +
-            "<td>" + (it.NombreProducto || "—") + "</td>" +
+            "<tr>" +
+            "<td class='text-center'>" +
+              "<input type='checkbox' class='chkItem' " +
+              "data-id='" + it.IdDetalleVenta + "' " +
+              "data-precio='" + it.PrecioUnidad + "' " +
+              "data-stock='" + it.StockDisponible + "' " +
+              "data-max='" + cantDisp + "'>" +
+            "</td>" +
+            "<td>" + (it.NombreProducto || "—") + accionIcon + "</td>" +
             "<td class='text-center'>" + it.Cantidad + "</td>" +
+            "<td class='text-center'>" + cantDisp + "</td>" +
+            "<td class='text-center'>" +
+              "<input type='number' class='form-control form-control-sm txtCantGar' " +
+              "min='1' max='" + cantDisp + "' value='" + cantDisp + "' " +
+              "data-id='" + it.IdDetalleVenta + "' style='width:70px;display:inline-block;'>" +
+            "</td>" +
             "<td class='text-right'>Gs. " + formatGs(it.PrecioUnidad) + "</td>" +
-            "<td class='text-right'>Gs. " + formatGs(it.ImporteTotal) + "</td>" +
             "<td class='text-center'>" + stockCell + "</td>" +
             "<td class='text-center'>" + badgeLinea + "</td>" +
             "</tr>"
@@ -195,104 +203,79 @@ function renderizarItems(items) {
     });
 }
 
-// ── Seleccionar ítem ───────────────────────────────────────────────────────
-function seleccionarItem(radio) {
-    var item = JSON.parse($(radio).attr("data-item"));
-    _idDetalleSeleccionado   = item.IdDetalleVenta;
-    _importeItemSeleccionado = item.ImporteTotal;
-    _precioUnitarioItem      = item.PrecioUnidad;
-    _cantidadDisponible      = item.CantidadDisponible > 0 ? item.CantidadDisponible : item.Cantidad;
-    _stockItemSeleccionado   = item.StockDisponible;
+// ── Actualizar resumen previo ──────────────────────────────────────────────
+function actualizarResumen() {
+    var seleccionados = obtenerItemsSeleccionados();
 
-    // Configurar input de cantidad
-    $("#txtCantidadGarantia").val(_cantidadDisponible).attr("max", _cantidadDisponible);
-    $("#spanMaxCantidad").text("/ " + _cantidadDisponible);
-
-    // Premarcar stock según disponibilidad
-    if (item.StockDisponible > 0) {
-        $("#radioSiStock").prop("checked", true);
-    } else {
-        $("#radioNoStock").prop("checked", true);
+    if (seleccionados.length === 0) {
+        $("#divAccion").hide();
+        $("#divResumenPrevia").hide();
+        $("#btnProcesar").hide();
+        return;
     }
-    cambioOpcionStock();
 
     $("#divAccion").show();
-}
-
-// ── Cambio de cantidad a garantizar ───────────────────────────────────────
-function cambiarCantidad() {
-    var cant = parseInt($("#txtCantidadGarantia").val()) || 1;
-    if (cant < 1) cant = 1;
-    if (cant > _cantidadDisponible) cant = _cantidadDisponible;
-    $("#txtCantidadGarantia").val(cant);
-    _importeItemSeleccionado = _precioUnitarioItem * cant;
-    cambioOpcionStock();
-}
-
-// ── Cambio de opción: reemplazar vs NC ────────────────────────────────────
-function cambioOpcionStock() {
-    var hayStock = $("input[name='radioStock']:checked").val();
-    if (!hayStock) return;
-
-    if (hayStock === "1") {
-        // Reemplazo desde stock
-        $("#panelReemplazo").show();
-        $("#panelNC").hide();
-    } else {
-        // NC + ajuste cuotas
-        $("#panelReemplazo").hide();
-        actualizarResumenNC();
-        $("#panelNC").show();
-    }
     $("#btnProcesar").show();
+
+    var reemplazos = 0, sinStock = 0, montoNC = 0;
+
+    $.each(seleccionados, function (i, s) {
+        var chk    = $(".chkItem[data-id='" + s.IdDetalleVenta + "']");
+        var stock  = parseFloat(chk.data("stock"))  || 0;
+        var precio = parseFloat(chk.data("precio")) || 0;
+
+        if (stock >= s.CantidadGarantia) {
+            reemplazos++;
+        } else {
+            sinStock++;
+            montoNC += precio * s.CantidadGarantia;
+        }
+    });
+
+    var html = '<strong><i class="fas fa-info-circle"></i> Vista previa de la operación:</strong><br>';
+    if (reemplazos > 0)
+        html += '<span class="text-success"><i class="fas fa-exchange-alt"></i> '
+             + reemplazos + ' producto(s) se reemplazarán desde stock.</span><br>';
+    if (sinStock > 0)
+        html += '<span class="text-warning"><i class="fas fa-file-invoice-dollar"></i> '
+             + sinStock + ' producto(s) sin stock → NC por <strong>Gs. '
+             + formatGs(montoNC) + '</strong>.</span>';
+
+    $("#divResumenPrevia").html(html).show();
 }
 
-// ── Calcular y mostrar resumen de NC ──────────────────────────────────────
-function actualizarResumenNC() {
-    var importe  = _importeItemSeleccionado || 0;
-    var total    = _totalVenta || 1;
-    var porcent  = (importe / total * 100).toFixed(1);
-    var modalidad = $("#hdnModalidad").val();
-
-    var resumen = "Se emite NC por <strong>Gs. " + formatGs(importe) + "</strong> ";
-
-    if (modalidad === "Crédito") {
-        resumen += "(" + porcent + "% del total). "
-                + "Las cuotas <strong>pendientes</strong> se reducirán en un " + porcent + "%. "
-                + "Si hay cuotas ya pagas, el " + porcent + "% de lo pagado "
-                + "se acreditará como <strong>Saldo a Favor</strong> del cliente.";
-    } else {
-        resumen += ". El monto completo de Gs. " + formatGs(importe)
-                + " se acreditará como <strong>Saldo a Favor</strong> del cliente.";
-    }
-
-    $("#spanResumenNC").html(resumen);
+// ── Obtener ítems seleccionados ────────────────────────────────────────────
+function obtenerItemsSeleccionados() {
+    var items = [];
+    $("#tbodyItems .chkItem:checked").each(function () {
+        var id   = parseInt($(this).data("id"));
+        var max  = parseInt($(this).data("max")) || 1;
+        var cant = parseInt($(".txtCantGar[data-id='" + id + "']").val()) || 1;
+        if (cant < 1)   cant = 1;
+        if (cant > max) cant = max;
+        items.push({ IdDetalleVenta: id, CantidadGarantia: cant });
+    });
+    return items;
 }
 
-// ── Confirmar y procesar ───────────────────────────────────────────────────
+// ── Confirmar garantía ─────────────────────────────────────────────────────
 function confirmarGarantia() {
-    if (_idDetalleSeleccionado <= 0) {
-        Swal.fire({ title: "Atención", text: "Seleccioná el producto fallado.", icon: "warning" });
+    var items = obtenerItemsSeleccionados();
+    if (items.length === 0) {
+        Swal.fire({ title: "Atención", text: "Seleccioná al menos un producto.", icon: "warning" });
         return;
     }
-    var hayStock = $("input[name='radioStock']:checked").val();
-    if (!hayStock) {
-        Swal.fire({ title: "Atención", text: "Indicá si hay stock disponible.", icon: "warning" });
-        return;
-    }
+
     var idMotivo = parseInt($("#cboMotivoNC").val()) || 0;
     if (idMotivo <= 0) {
         Swal.fire({ title: "Atención", text: "Seleccioná el motivo.", icon: "warning" });
         return;
     }
 
-    var textoConfirm = hayStock === "1"
-        ? "Se reemplazará el producto desde stock. ¿Confirmás?"
-        : "Se emitirá una Nota de Crédito y se ajustarán las cuotas pendientes. ¿Confirmás?";
-
     Swal.fire({
         title: "¿Procesar garantía?",
-        html:  textoConfirm,
+        html:  "Se procesarán <strong>" + items.length + " producto(s)</strong>.<br>"
+             + "Los productos con stock serán reemplazados; los sin stock generarán una NC automática.",
         icon:  "question",
         showCancelButton:   true,
         confirmButtonColor: "#ffc107",
@@ -306,11 +289,9 @@ function confirmarGarantia() {
             url:  $.MisUrls.url._Garantia_Procesar,
             type: "POST",
             data: {
-                idventa:          parseInt($("#hdnIdVenta").val()),
-                iddetalleventa:   _idDetalleSeleccionado,
-                idmotivonc:       idMotivo,
-                haystock:         hayStock === "1",
-                cantidadgarantia: parseInt($("#txtCantidadGarantia").val()) || 0
+                idventa:    parseInt($("#hdnIdVenta").val()),
+                idmotivonc: idMotivo,
+                itemsjson:  JSON.stringify(items)
             },
             success: function (res) {
                 $.LoadingOverlay("hide");
@@ -318,8 +299,9 @@ function confirmarGarantia() {
 
                 if (res.resultado) {
                     var extra = "";
-                    if (res.montoNC       > 0) extra += "<br>NC emitida: <strong>Gs. " + formatGs(res.montoNC)      + "</strong>";
-                    if (res.saldoGenerado > 0) extra += "<br>Saldo a Favor acreditado: <strong>Gs. " + formatGs(res.saldoGenerado) + "</strong>";
+                    if (res.reemplazos    > 0) extra += "<br><i class='fas fa-exchange-alt text-success'></i> " + res.reemplazos + " producto(s) reemplazado(s) desde stock.";
+                    if (res.montoNC       > 0) extra += "<br><i class='fas fa-file-invoice-dollar text-warning'></i> NC <strong>" + res.numeroNC + "</strong> por Gs. " + formatGs(res.montoNC) + ".";
+                    if (res.saldoGenerado > 0) extra += "<br>Saldo a Favor acreditado: <strong>Gs. " + formatGs(res.saldoGenerado) + "</strong>.";
 
                     Swal.fire({
                         title: "¡Garantía procesada!",

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace CapaDatos
 {
@@ -114,7 +115,69 @@ namespace CapaDatos
             return lista;
         }
 
-        // ── Procesar la garantía (reemplazo o NC + ajuste cuotas) ─────────────
+        // ── Procesar garantía masiva (múltiples ítems en una sola operación) ────
+        public (bool resultado, string mensaje, decimal montoNC, string numeroNC, int reemplazos, decimal saldoGenerado)
+            ProcesarGarantiaMasiva(
+                int idVenta, int idMotivoNC, int idUsuario,
+                List<GarantiaItem> items)
+        {
+            using (var cn = new SqlConnection(Conexion.CN))
+            {
+                try
+                {
+                    // Construir DataTable para el TVP
+                    var tvp = new DataTable();
+                    tvp.Columns.Add("IdDetalleVenta",   typeof(int));
+                    tvp.Columns.Add("CantidadGarantia", typeof(int));
+                    foreach (var it in items)
+                        tvp.Rows.Add(it.IdDetalleVenta, it.CantidadGarantia);
+
+                    var cmd = new SqlCommand("usp_ProcesarGarantiaMasiva", cn)
+                    {
+                        CommandType = CommandType.StoredProcedure
+                    };
+                    cmd.Parameters.AddWithValue("@IdVenta",    idVenta);
+                    cmd.Parameters.AddWithValue("@IdMotivoNC", idMotivoNC);
+                    cmd.Parameters.AddWithValue("@IdUsuario",  idUsuario);
+
+                    var pItems = cmd.Parameters.AddWithValue("@Items", tvp);
+                    pItems.SqlDbType = SqlDbType.Structured;
+                    pItems.TypeName  = "dbo.TGarantiaItem";
+
+                    var pRes    = new SqlParameter("@Resultado",     SqlDbType.Bit)           { Direction = ParameterDirection.Output };
+                    var pMsg    = new SqlParameter("@Mensaje",       SqlDbType.NVarChar, 500) { Direction = ParameterDirection.Output };
+                    var pMonto  = new SqlParameter("@MontoNC",       SqlDbType.Decimal)       { Direction = ParameterDirection.Output, Precision = 18, Scale = 2 };
+                    var pNumNC  = new SqlParameter("@NumeroNC",      SqlDbType.VarChar, 20)   { Direction = ParameterDirection.Output };
+                    var pRemp   = new SqlParameter("@Reemplazos",    SqlDbType.Int)            { Direction = ParameterDirection.Output };
+                    var pSaldo  = new SqlParameter("@SaldoGenerado", SqlDbType.Decimal)       { Direction = ParameterDirection.Output, Precision = 18, Scale = 2 };
+
+                    cmd.Parameters.Add(pRes);
+                    cmd.Parameters.Add(pMsg);
+                    cmd.Parameters.Add(pMonto);
+                    cmd.Parameters.Add(pNumNC);
+                    cmd.Parameters.Add(pRemp);
+                    cmd.Parameters.Add(pSaldo);
+
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+
+                    bool    ok       = pRes.Value   != DBNull.Value && Convert.ToBoolean(pRes.Value);
+                    string  msg      = pMsg.Value?.ToString() ?? "";
+                    decimal monto    = pMonto.Value != DBNull.Value ? Convert.ToDecimal(pMonto.Value) : 0;
+                    string  numNC    = pNumNC.Value?.ToString() ?? "";
+                    int     reempl   = pRemp.Value  != DBNull.Value ? Convert.ToInt32(pRemp.Value) : 0;
+                    decimal saldo    = pSaldo.Value != DBNull.Value ? Convert.ToDecimal(pSaldo.Value) : 0;
+
+                    return (ok, msg, monto, numNC, reempl, saldo);
+                }
+                catch (Exception ex)
+                {
+                    return (false, "Error: " + ex.Message, 0, "", 0, 0);
+                }
+            }
+        }
+
+        // ── Procesar la garantía individual (legado — mantener compatibilidad) ──
         public (bool resultado, string mensaje, decimal montoNC, decimal saldoGenerado)
             ProcesarGarantia(
                 int idVenta, int idDetalleVenta,
