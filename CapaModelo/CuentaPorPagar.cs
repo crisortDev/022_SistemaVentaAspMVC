@@ -3,7 +3,7 @@ using System;
 namespace CapaModelo
 {
     /// <summary>
-    /// Cuota de una Orden de Pago en modalidad Crédito.
+    /// Pago (cuota o pago único) de una Orden de Pago.
     /// Mapea la tabla dbo.CUENTA_POR_PAGAR.
     /// </summary>
     public class CuentaPorPagar
@@ -16,6 +16,8 @@ namespace CapaModelo
         // ── Relaciones ─────────────────────────────────────────
         public int      IdOrdenPago     { get; set; }
         public string   NumeroOP        { get; set; }
+        /// <summary>Contado | Credito — heredado de ORDEN_PAGO.</summary>
+        public string   ModalidadPago   { get; set; }
         public int      IdCompra        { get; set; }
         public string   NumeroFactura   { get; set; }
         public string   NumeroCompra    { get; set; }

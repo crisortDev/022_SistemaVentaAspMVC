@@ -19,10 +19,14 @@
             <div class="col-sm-3">
                 <label class="col-form-label-sm font-weight-bold">Estado:</label>
                 <select id="ddlEstado" class="form-control form-control-sm">
-                    <option value="Pendiente" selected>Pendientes</option>
-                    <option value="Aprobado">Aprobados</option>
-                    <option value="Rechazado">Rechazados</option>
-                    <option value="">Todos</option>
+                    <option value="Solicitado" selected>Solicitados (mi aprobación pendiente)</option>
+                    <option value="AprobadoSolicitud">Aprobados — esperando despacho origen</option>
+                    <option value="Despachado">Despachados — en tránsito</option>
+                    <option value="EnRecepcion">En recepción — esperando aprobación final</option>
+                    <option value="Completado">Completados</option>
+                    <option value="RechazadoDestino">Rechazados por destino</option>
+                    <option value="RechazadoOrigen">Rechazados por origen</option>
+                    <option value="">Todos los activos</option>
                 </select>
             </div>
             <div class="col-sm-2">

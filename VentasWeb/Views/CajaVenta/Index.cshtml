@@ -252,9 +252,9 @@ else
                             <div class="font-weight-bold">Gs. @cajaActiva.MontoApertura.ToString("N0")</div>
                         </div>
                         <div class="col-4">
-                            <div class="text-muted small">Ventas contado + cobros crédito</div>
+                            <div class="text-muted small">Ventas contado + cobros del turno</div>
                             <div class="font-weight-bold text-primary" id="lblSistemaCierre">
-                                Gs. @saldoReal.ToString("N0")
+                                Gs. @((cajaActiva.TotalVentasContado + cajaActiva.TotalCobrosCXC).ToString("N0"))
                             </div>
                         </div>
                         <div class="col-4">

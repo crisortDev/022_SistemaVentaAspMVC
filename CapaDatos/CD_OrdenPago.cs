@@ -194,6 +194,7 @@ namespace CapaDatos
                                 NumeroCuota           = Convert.ToInt32(dr["NumeroCuota"]),
                                 TotalCuotas           = Convert.ToInt32(dr["TotalCuotas"]),
                                 NumeroOP              = dr["NumeroOP"].ToString(),
+                                ModalidadPago         = dr["ModalidadPago"].ToString(),
                                 NumeroFactura         = dr["NumeroFactura"].ToString(),
                                 NumeroCompra          = dr["NumeroCompra"].ToString(),
                                 Monto                 = Convert.ToDecimal(dr["Monto"]),

@@ -12,6 +12,14 @@ $(function () {
     verificarStockInsuficiente();
     if (saldoFavorCliente > 0) mostrarAlertaSaldo(saldoFavorCliente);
     aplicarLogicaAperturaFondo();
+
+    // Si hay NC aplicable y caja con fondo, pre-llenar importe recibido
+    var apertura = parseFloat($('#hdnMontoAperturaFondo').val()) || 0;
+    if (apertura > 0 && saldoFavorCliente > 0 && leerTotal() >= saldoFavorCliente) {
+        var totalACobrar = leerTotalACobrar();
+        $('#txtImporteRecibido').val(totalACobrar);
+        calcularCambio();
+    }
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -110,12 +118,28 @@ function toggleModalidad() {
     if (!esCredito) {
         $('#cboCuotas').val('');
         $('#divResumenCuotas').hide();
-        $('#txtImporteRecibido').val(0);
-        $('#txtCambio').val('0');
     }
     if (esCredito) {
-        $('#txtImporteRecibido').val(0);
+        $('#txtImporteRecibido').val(0).prop('readonly', false);
         $('#txtCambio').val('0');
+    }
+
+    // ── Transferencia: auto-fill importe exacto y bloquear campo ─────────
+    if (esTransferencia) {
+        var totTransf = leerTotalACobrar();
+        $('#txtImporteRecibido').val(totTransf).prop('readonly', true);
+        $('#txtCambio').val('0');
+    } else if (!esCredito) {
+        // Efectivo: desbloquear si la caja tiene fondo (sin fondo lo maneja aplicarLogicaAperturaFondo)
+        var apertura = parseFloat($('#hdnMontoAperturaFondo').val()) || 0;
+        if (apertura > 0) {
+            $('#txtImporteRecibido').prop('readonly', false);
+            // Si NC aplica, mantener el importe sugerido
+            if (saldoFavorCliente > 0 && leerTotal() >= saldoFavorCliente) {
+                $('#txtImporteRecibido').val(leerTotalACobrar());
+                calcularCambio();
+            }
+        }
     }
 
     // Filas NC: solo visibles para Efectivo / Transferencia

@@ -21,20 +21,62 @@ namespace CapaDatos
         }
 
         // =============================================
-        // TRASLADO
+        // TRASLADO — Flujo 5 pasos (Script 229)
         // =============================================
 
-        /// <summary>
-        /// Registra un traslado en estado Pendiente (NO mueve stock hasta que se apruebe).
-        /// Reemplaza al antiguo RegistrarTraslado que movía stock directo.
-        /// </summary>
-        public (bool resultado, string mensaje, int idTraslado) RegistrarTrasladoPendiente(
+        private Traslado MapTraslado(SqlDataReader dr)
+        {
+            return new Traslado
+            {
+                IdTraslado           = Convert.ToInt32(dr["IdTraslado"]),
+                Numero               = dr["Numero"]?.ToString(),
+                NombreProducto       = dr["NombreProducto"]?.ToString(),
+                CodigoProducto       = dr["CodigoProducto"]?.ToString(),
+                TiendaOrigen         = dr["TiendaOrigen"]?.ToString(),
+                TiendaDestino        = dr["TiendaDestino"]?.ToString(),
+                IdTiendaOrigen       = dr["IdTiendaOrigen"]  == DBNull.Value ? 0 : Convert.ToInt32(dr["IdTiendaOrigen"]),
+                IdTiendaDestino      = dr["IdTiendaDestino"] == DBNull.Value ? 0 : Convert.ToInt32(dr["IdTiendaDestino"]),
+                Cantidad             = dr["Cantidad"]  == DBNull.Value ? 0 : Convert.ToInt32(dr["Cantidad"]),
+                Observaciones        = dr["Observaciones"]?.ToString(),
+                Usuario              = dr["Usuario"]?.ToString(),
+                FechaTraslado        = dr["FechaTraslado"]?.ToString(),
+                EstadoAprobacion     = dr["EstadoAprobacion"]?.ToString(),
+                MotivoRechazo        = dr["MotivoRechazo"]?.ToString(),
+                // Paso 2
+                UsuarioAprobSolicitud = dr["UsuarioAprobSolicitud"]?.ToString(),
+                FechaAprobSolicitud  = dr["FechaAprobSolicitud"]?.ToString(),
+                // Paso 3
+                UsuarioAprueba       = dr["UsuarioAprueba"]?.ToString(),
+                FechaAprobacion      = dr["FechaAprobacion"]?.ToString(),
+                // Paso 4
+                UsuarioRecibe        = dr["UsuarioRecibe"]?.ToString(),
+                FechaRecepcion       = dr["FechaRecepcion"]?.ToString(),
+                // Paso 5
+                UsuarioAprobFinal    = dr["UsuarioAprobFinal"]?.ToString(),
+                FechaAprobFinal      = dr["FechaAprobFinal"]?.ToString()
+            };
+        }
+
+        private (bool resultado, string mensaje) EjecutarSpTraslado(string sp, Action<SqlCommand> addParams)
+        {
+            using (var cn = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand(sp, cn) { CommandType = CommandType.StoredProcedure })
+            {
+                addParams(cmd);
+                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                try   { cn.Open(); cmd.ExecuteNonQuery(); return ((bool)pR.Value, pM.Value?.ToString()); }
+                catch (Exception ex) { return (false, "Error: " + ex.Message); }
+            }
+        }
+
+        /// <summary>Paso 1 — Operador DESTINO registra la solicitud.</summary>
+        public (bool resultado, string mensaje, int idTraslado) RegistrarSolicitudTraslado(
             int idProducto, int idTiendaOrigen, int idTiendaDestino,
             int cantidad, string observaciones, int idUsuario)
         {
-            using (var oConexion = new SqlConnection(Conexion.CN))
-            using (var cmd = new SqlCommand("usp_RegistrarTrasladoPendiente", oConexion)
-            { CommandType = CommandType.StoredProcedure })
+            using (var cn = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_RegistrarSolicitudTraslado", cn) { CommandType = CommandType.StoredProcedure })
             {
                 cmd.Parameters.AddWithValue("@IdProducto",      idProducto);
                 cmd.Parameters.AddWithValue("@IdTiendaOrigen",  idTiendaOrigen);
@@ -42,139 +84,126 @@ namespace CapaDatos
                 cmd.Parameters.AddWithValue("@Cantidad",        cantidad);
                 cmd.Parameters.AddWithValue("@Observaciones",   observaciones ?? "");
                 cmd.Parameters.AddWithValue("@IdUsuario",       idUsuario);
-                var pR = cmd.Parameters.Add("@Resultado",   SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
-                var pM = cmd.Parameters.Add("@Mensaje",     SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
-                var pI = cmd.Parameters.Add("@IdTraslado",  SqlDbType.Int);           pI.Direction = ParameterDirection.Output;
+                var pR = cmd.Parameters.Add("@Resultado",  SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
+                var pM = cmd.Parameters.Add("@Mensaje",    SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
+                var pI = cmd.Parameters.Add("@IdTraslado", SqlDbType.Int);           pI.Direction = ParameterDirection.Output;
                 try
                 {
-                    oConexion.Open();
-                    cmd.ExecuteNonQuery();
+                    cn.Open(); cmd.ExecuteNonQuery();
                     return ((bool)pR.Value, pM.Value?.ToString(), pI.Value == DBNull.Value ? 0 : (int)pI.Value);
                 }
                 catch (Exception ex) { return (false, "Error: " + ex.Message, 0); }
             }
         }
 
-        /// <summary>
-        /// Aprueba un traslado pendiente y mueve el stock de origen a destino.
-        /// </summary>
-        public (bool resultado, string mensaje) AprobarTraslado(int idTraslado, int idUsuarioAprueba, bool esSuperAdmin)
+        /// <summary>Paso 2 — Supervisor DESTINO aprueba o rechaza la solicitud.</summary>
+        public (bool resultado, string mensaje) AprobarSolicitudTraslado(
+            int idTraslado, int idUsuario, bool aprobar, string motivoRechazo = null)
         {
-            using (var oConexion = new SqlConnection(Conexion.CN))
-            using (var cmd = new SqlCommand("usp_AprobarTraslado", oConexion)
-            { CommandType = CommandType.StoredProcedure })
+            return EjecutarSpTraslado("usp_AprobarSolicitudTraslado", cmd =>
             {
-                cmd.Parameters.AddWithValue("@IdTraslado",       idTraslado);
-                cmd.Parameters.AddWithValue("@IdUsuarioAprueba", idUsuarioAprueba);
-                cmd.Parameters.AddWithValue("@EsSuperAdmin",     esSuperAdmin);
-                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
-                var pM = cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
-                try { oConexion.Open(); cmd.ExecuteNonQuery(); return ((bool)pR.Value, pM.Value?.ToString()); }
-                catch (Exception ex) { return (false, "Error: " + ex.Message); }
-            }
+                cmd.Parameters.AddWithValue("@IdTraslado",    idTraslado);
+                cmd.Parameters.AddWithValue("@IdUsuario",     idUsuario);
+                cmd.Parameters.AddWithValue("@Aprobar",       aprobar ? 1 : 0);
+                cmd.Parameters.AddWithValue("@MotivoRechazo", (object)motivoRechazo ?? DBNull.Value);
+            });
         }
 
-        /// <summary>
-        /// Rechaza un traslado pendiente. No mueve stock.
-        /// </summary>
-        public (bool resultado, string mensaje) RechazarTraslado(int idTraslado, int idUsuarioAprueba, string motivoRechazo)
+        /// <summary>Paso 3 — Supervisor ORIGEN autoriza o rechaza el despacho.</summary>
+        public (bool resultado, string mensaje) AutorizarDespachoTraslado(
+            int idTraslado, int idUsuario, bool aprobar, string motivoRechazo = null)
         {
-            using (var oConexion = new SqlConnection(Conexion.CN))
-            using (var cmd = new SqlCommand("usp_RechazarTraslado", oConexion)
-            { CommandType = CommandType.StoredProcedure })
+            return EjecutarSpTraslado("usp_AutorizarDespachoTraslado", cmd =>
             {
-                cmd.Parameters.AddWithValue("@IdTraslado",       idTraslado);
-                cmd.Parameters.AddWithValue("@IdUsuarioAprueba", idUsuarioAprueba);
-                cmd.Parameters.AddWithValue("@MotivoRechazo",    motivoRechazo ?? "");
-                var pR = cmd.Parameters.Add("@Resultado", SqlDbType.Bit);          pR.Direction = ParameterDirection.Output;
-                var pM = cmd.Parameters.Add("@Mensaje",   SqlDbType.NVarChar, 300); pM.Direction = ParameterDirection.Output;
-                try { oConexion.Open(); cmd.ExecuteNonQuery(); return ((bool)pR.Value, pM.Value?.ToString()); }
-                catch (Exception ex) { return (false, "Error: " + ex.Message); }
-            }
+                cmd.Parameters.AddWithValue("@IdTraslado",    idTraslado);
+                cmd.Parameters.AddWithValue("@IdUsuario",     idUsuario);
+                cmd.Parameters.AddWithValue("@Aprobar",       aprobar ? 1 : 0);
+                cmd.Parameters.AddWithValue("@MotivoRechazo", (object)motivoRechazo ?? DBNull.Value);
+            });
         }
 
-        /// <summary>
-        /// Retorna el IdTiendaDestino de un traslado. 0 si no existe.
-        /// </summary>
-        public int ObtenerTiendaDestinoDeTraslado(int idTraslado)
+        /// <summary>Paso 4 — Operador DESTINO registra la llegada física de la mercadería.</summary>
+        public (bool resultado, string mensaje) RegistrarRecepcionTraslado(int idTraslado, int idUsuario)
         {
-            using (var oConexion = new SqlConnection(Conexion.CN))
-            using (var cmd = new SqlCommand("SELECT IdTiendaDestino FROM dbo.TRASLADO WHERE IdTraslado = @Id", oConexion))
+            return EjecutarSpTraslado("usp_RegistrarRecepcionTraslado", cmd =>
             {
-                cmd.Parameters.AddWithValue("@Id", idTraslado);
+                cmd.Parameters.AddWithValue("@IdTraslado", idTraslado);
+                cmd.Parameters.AddWithValue("@IdUsuario",  idUsuario);
+            });
+        }
+
+        /// <summary>Paso 5 — Supervisor DESTINO aprueba la recepción final → stock se mueve.</summary>
+        public (bool resultado, string mensaje) AprobarRecepcionFinalTraslado(int idTraslado, int idUsuario)
+        {
+            return EjecutarSpTraslado("usp_AprobarRecepcionFinalTraslado", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@IdTraslado", idTraslado);
+                cmd.Parameters.AddWithValue("@IdUsuario",  idUsuario);
+            });
+        }
+
+        /// <summary>Obtiene traslados filtrados por estado y tienda (sin restricción de fechas).</summary>
+        public List<Traslado> ObtenerTrasladosPorEstado(string estado = "", int idTienda = 0)
+        {
+            var lista = new List<Traslado>();
+            using (var cn = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerTrasladosPorEstado", cn) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@Estado",   estado   ?? "");
+                cmd.Parameters.AddWithValue("@IdTienda", idTienda);
                 try
                 {
-                    oConexion.Open();
-                    var val = cmd.ExecuteScalar();
-                    return val != null && val != DBNull.Value ? Convert.ToInt32(val) : 0;
-                }
-                catch { return 0; }
-            }
-        }
-
-        /// <summary>
-        /// Retorna el IdTiendaOrigen de un traslado. 0 si no existe.
-        /// Se usa para validar que el aprobador pertenece a la sucursal origen.
-        /// </summary>
-        public int ObtenerTiendaOrigenDeTraslado(int idTraslado)
-        {
-            using (var oConexion = new SqlConnection(Conexion.CN))
-            using (var cmd = new SqlCommand("SELECT IdTiendaOrigen FROM dbo.TRASLADO WHERE IdTraslado = @Id", oConexion))
-            {
-                cmd.Parameters.AddWithValue("@Id", idTraslado);
-                try
-                {
-                    oConexion.Open();
-                    var val = cmd.ExecuteScalar();
-                    return val != null && val != DBNull.Value ? Convert.ToInt32(val) : 0;
-                }
-                catch { return 0; }
-            }
-        }
-
-        public List<Traslado> ObtenerHistorialTraslados(DateTime fechaInicio, DateTime fechaFin, int idTienda, string estadoAprobacion = "")
-        {
-            List<Traslado> lista = new List<Traslado>();
-            using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
-            {
-                SqlCommand cmd = new SqlCommand("usp_ObtenerTrasladosHistorial", oConexion)
-                { CommandType = CommandType.StoredProcedure };
-
-                cmd.Parameters.AddWithValue("@FechaInicio",       fechaInicio.Date);
-                cmd.Parameters.AddWithValue("@FechaFin",          fechaFin.Date);
-                cmd.Parameters.AddWithValue("@IdTienda",          idTienda);
-                cmd.Parameters.AddWithValue("@EstadoAprobacion",  estadoAprobacion ?? "");
-
-                try
-                {
-                    oConexion.Open();
-                    SqlDataReader dr = cmd.ExecuteReader();
-                    while (dr.Read())
-                    {
-                        lista.Add(new Traslado
-                        {
-                            IdTraslado       = Convert.ToInt32(dr["IdTraslado"]),
-                            Numero           = dr["Numero"]?.ToString(),
-                            NombreProducto   = dr["NombreProducto"].ToString(),
-                            CodigoProducto   = dr["CodigoProducto"].ToString(),
-                            TiendaOrigen     = dr["TiendaOrigen"].ToString(),
-                            TiendaDestino    = dr["TiendaDestino"].ToString(),
-                            Cantidad         = Convert.ToInt32(dr["Cantidad"]),
-                            Observaciones    = dr["Observaciones"].ToString(),
-                            Usuario          = dr["Usuario"].ToString(),
-                            FechaTraslado    = dr["FechaTraslado"].ToString(),
-                            EstadoAprobacion = dr["EstadoAprobacion"]?.ToString(),
-                            UsuarioAprueba   = dr["UsuarioAprueba"]?.ToString(),
-                            FechaAprobacion  = dr["FechaAprobacion"]?.ToString(),
-                            MotivoRechazo    = dr["MotivoRechazo"]?.ToString(),
-                            IdTiendaDestino  = dr["IdTiendaDestino"] == DBNull.Value ? 0 : Convert.ToInt32(dr["IdTiendaDestino"])
-                        });
-                    }
+                    cn.Open();
+                    var dr = cmd.ExecuteReader();
+                    while (dr.Read()) lista.Add(MapTraslado(dr));
                     dr.Close();
                 }
                 catch { lista = new List<Traslado>(); }
             }
             return lista;
+        }
+
+        /// <summary>Historial de traslados con filtro de fecha y estado.</summary>
+        public List<Traslado> ObtenerHistorialTraslados(DateTime fechaInicio, DateTime fechaFin, int idTienda, string estadoAprobacion = "")
+        {
+            var lista = new List<Traslado>();
+            using (var cn = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand("usp_ObtenerTrasladosHistorial", cn) { CommandType = CommandType.StoredProcedure })
+            {
+                cmd.Parameters.AddWithValue("@FechaInicio",      fechaInicio.Date);
+                cmd.Parameters.AddWithValue("@FechaFin",         fechaFin.Date);
+                cmd.Parameters.AddWithValue("@IdTienda",         idTienda);
+                cmd.Parameters.AddWithValue("@EstadoAprobacion", estadoAprobacion ?? "");
+                try
+                {
+                    cn.Open();
+                    var dr = cmd.ExecuteReader();
+                    while (dr.Read()) lista.Add(MapTraslado(dr));
+                    dr.Close();
+                }
+                catch { lista = new List<Traslado>(); }
+            }
+            return lista;
+        }
+
+        /// <summary>Retorna IdTiendaOrigen o IdTiendaDestino de un traslado (para validaciones en controller).</summary>
+        public (int idOrigen, int idDestino) ObtenerTiendasDeTraslado(int idTraslado)
+        {
+            using (var cn = new SqlConnection(Conexion.CN))
+            using (var cmd = new SqlCommand(
+                "SELECT IdTiendaOrigen, IdTiendaDestino FROM dbo.TRASLADO WHERE IdTraslado = @Id", cn))
+            {
+                cmd.Parameters.AddWithValue("@Id", idTraslado);
+                try
+                {
+                    cn.Open();
+                    var dr = cmd.ExecuteReader();
+                    if (dr.Read())
+                        return (Convert.ToInt32(dr["IdTiendaOrigen"]), Convert.ToInt32(dr["IdTiendaDestino"]));
+                    return (0, 0);
+                }
+                catch { return (0, 0); }
+            }
         }
 
         // =============================================

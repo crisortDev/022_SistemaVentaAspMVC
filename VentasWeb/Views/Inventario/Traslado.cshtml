@@ -13,51 +13,41 @@
     </ol>
 </nav>
 
-<!-- Filtro de sucursal origen -->
-<div class="card border-0 shadow-sm mb-3">
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PASO 1: Solicitar mercadería a otra sucursal            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="card border-warning shadow-sm mb-3">
+    <div class="card-header bg-warning text-dark">
+        <i class="fas fa-paper-plane mr-2"></i>
+        <strong>Paso 1 — Solicitar mercadería a otra sucursal</strong>
+        <small class="ml-2 text-dark-50">(tu sucursal recibirá los productos)</small>
+    </div>
     <div class="card-body py-2">
         <div class="row align-items-end">
             <div class="col-sm-4">
-                <label class="col-form-label-sm font-weight-bold">Sucursal Origen:</label>
-                @if (esSuperAdmin)
-                {
-                    <select id="cboTiendaOrigen" class="form-control form-control-sm">
-                        <option value="">-- Seleccione sucursal --</option>
-                    </select>
-                }
-                else
-                {
-                    <select id="cboTiendaOrigen" class="form-control form-control-sm" disabled>
-                        <option value="">Cargando...</option>
-                    </select>
-                }
+                <label class="col-form-label-sm font-weight-bold">Solicitar a sucursal:</label>
+                <select id="cboTiendaOrigen" class="form-control form-control-sm">
+                    <option value="">-- Seleccione sucursal origen --</option>
+                </select>
             </div>
             <div class="col-sm-4 mt-2 mt-sm-0">
                 <span class="text-muted small" id="lblTotalProductos"></span>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Tabla de productos -->
-<div class="card border-warning shadow-sm mb-3">
-    <div class="card-header bg-warning text-dark d-flex align-items-center">
-        <i class="fas fa-exchange-alt mr-2"></i>
-        <span>Productos — seleccioná uno para registrar el traslado</span>
-    </div>
-    <div class="card-body p-2">
         <div id="divSinTienda" class="text-center text-muted py-4">
             <i class="fas fa-store fa-2x mb-2 d-block"></i>
-            Seleccioná una sucursal para ver los productos disponibles.
+            Seleccioná la sucursal a la que querés solicitar productos.
         </div>
-        <div id="divTabla" style="display:none">
+        <div id="divTabla" style="display:none" class="mt-2">
             <table id="tblProductos" class="table table-sm table-bordered table-hover w-100">
                 <thead class="thead-light">
                     <tr>
                         <th>Código</th>
                         <th>Producto</th>
                         <th>Categoría</th>
-                        <th class="text-center">Acciones</th>
+                        <th class="text-center">Stock disponible</th>
+                        <th class="text-center">Acción</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -66,11 +56,45 @@
     </div>
 </div>
 
-<!-- Historial de traslados -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PASO 4: Mercadería despachada en camino a mi sucursal   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="card border-primary shadow-sm mb-3">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-truck mr-2"></i><strong>Paso 4 — Mercadería en camino a mi sucursal</strong></span>
+        <button class="btn btn-sm btn-light" onclick="cargarDespachados()">
+            <i class="fas fa-sync-alt mr-1"></i> Actualizar
+        </button>
+    </div>
+    <div class="card-body p-2">
+        <div id="divSinDespachados" class="text-center text-muted py-3" style="display:none;">
+            <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+            No hay mercadería en camino actualmente.
+        </div>
+        <table id="tblDespachados" class="table table-sm table-bordered table-hover w-100" style="display:none">
+            <thead class="thead-light">
+                <tr>
+                    <th>N°</th>
+                    <th>Fecha Solicitud</th>
+                    <th>Producto</th>
+                    <th class="text-center">Cant.</th>
+                    <th>Sucursal Origen</th>
+                    <th>Despachado por</th>
+                    <th class="text-center">Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyDespachados"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- Historial                                              -->
+<!-- ═══════════════════════════════════════════════════════ -->
 <div class="card border-info shadow-sm">
     <div class="card-header bg-info text-white d-flex align-items-center">
         <i class="far fa-list-alt mr-2"></i>
-        <span>Historial de Traslados</span>
+        <span>Historial de Traslados de mi sucursal</span>
     </div>
     <div class="card-body p-2">
         <div class="row mb-2 align-items-end">
@@ -81,12 +105,6 @@
             <div class="col-sm-3">
                 <label class="col-form-label-sm">Fecha Hasta</label>
                 <input type="text" id="txtFechaFin" class="form-control form-control-sm" />
-            </div>
-            <div class="col-sm-3">
-                <label class="col-form-label-sm">Sucursal</label>
-                <select id="cboFiltroTienda" class="form-control form-control-sm">
-                    <option value="0">-- Todas --</option>
-                </select>
             </div>
             <div class="col-sm-3">
                 <button onclick="buscarHistorial()" class="btn btn-info btn-sm btn-block mt-sm-0 mt-2">
@@ -100,12 +118,10 @@
                     <th>N°</th>
                     <th>Fecha</th>
                     <th>Producto</th>
-                    <th>Código</th>
                     <th>Origen</th>
                     <th>Destino</th>
-                    <th class="text-center">Cantidad</th>
-                    <th>Usuario</th>
-                    <th>Observaciones</th>
+                    <th class="text-center">Cant.</th>
+                    <th>Solicitó</th>
                     <th class="text-center">Estado</th>
                 </tr>
             </thead>
@@ -114,30 +130,32 @@
     </div>
 </div>
 
-<!-- Modal: Registrar Traslado -->
-<div class="modal fade" id="modalTraslado" tabindex="-1" role="dialog" aria-modal="true">
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- Modal: Solicitar traslado                              -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalSolicitud" tabindex="-1" role="dialog" aria-modal="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark py-2">
                 <h6 class="modal-title">
-                    <i class="fas fa-exchange-alt mr-1"></i>
-                    Trasladar — <span id="lblProductoTraslado" class="font-weight-bold"></span>
+                    <i class="fas fa-paper-plane mr-1"></i>
+                    Solicitar — <span id="lblProductoSolicitud" class="font-weight-bold"></span>
                 </h6>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="hIdProducto" />
-                <input type="hidden" id="hIdProductoTienda" />
-                <input type="hidden" id="hStockActual" />
                 <input type="hidden" id="hIdTiendaOrigen" />
 
-                <div class="form-group">
-                    <label class="col-form-label-sm font-weight-bold">
-                        Sucursal Destino <span class="text-danger">*</span>
-                    </label>
-                    <select id="cboTiendaDestino" class="form-control form-control-sm">
-                        <option value="">-- Seleccione --</option>
-                    </select>
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-muted small">Solicitar a:</div>
+                        <div class="font-weight-bold" id="lblOrigenModal">—</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Tu sucursal (recibirá):</div>
+                        <div class="font-weight-bold text-primary" id="lblDestinoModal">—</div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -146,6 +164,7 @@
                     </label>
                     <input type="number" id="txtCantidad" class="form-control form-control-sm"
                            min="1" value="1" />
+                    <small class="text-muted" id="lblStockDisponible"></small>
                 </div>
 
                 <div class="form-group mb-0">
@@ -154,13 +173,13 @@
                     </label>
                     <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2"
                               maxlength="500"
-                              placeholder="Ej: Reposición solicitada por encargado de sucursal"></textarea>
+                              placeholder="Ej: Reposición urgente para temporada alta"></textarea>
                 </div>
             </div>
             <div class="modal-footer py-2">
                 <button class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button class="btn btn-sm btn-warning" id="btnConfirmarTraslado">
-                    <i class="fas fa-check mr-1"></i> Confirmar traslado
+                <button class="btn btn-sm btn-warning" id="btnEnviarSolicitud">
+                    <i class="fas fa-paper-plane mr-1"></i> Enviar Solicitud
                 </button>
             </div>
         </div>

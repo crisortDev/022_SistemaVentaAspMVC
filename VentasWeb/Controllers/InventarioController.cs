@@ -46,95 +46,123 @@ namespace VentasWeb.Controllers
         }
 
         // =============================================
-        // ENDPOINTS TRASLADO
+        // ENDPOINTS TRASLADO — Flujo 5 pasos (Script 229)
         // =============================================
 
+        /// <summary>Paso 1 — Operador DESTINO registra solicitud de traslado.</summary>
         [HttpPost]
-        public JsonResult RegistrarTraslado(int idProducto, int idTiendaOrigen, int idTiendaDestino,
-            int cantidad, string observaciones)
+        public JsonResult RegistrarSolicitudTraslado(int idProducto, int idTiendaOrigen, int cantidad, string observaciones)
         {
-            try
-            {
-                if (UsuarioActual == null)
-                    return Json(new { resultado = false, mensaje = "Sesión expirada." });
-
-                // Validar permiso sobre tienda origen
-                if (!TienePermiso(idTiendaOrigen))
-                    return Json(new { resultado = false, mensaje = "No tiene permisos para trasladar desde esta sucursal." });
-
-                // El traslado queda PENDIENTE — no mueve stock hasta que lo apruebe el encargado destino
-                var r = CD_Inventario.Instancia.RegistrarTrasladoPendiente(
-                    idProducto, idTiendaOrigen, idTiendaDestino, cantidad, observaciones, UsuarioActual.IdUsuario);
-
-                return Json(new { resultado = r.resultado, mensaje = r.mensaje });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { resultado = false, mensaje = ex.Message });
-            }
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            int idTiendaDestino = TiendaActiva;
+            if (idTiendaDestino == 0 && !EsAdminGlobal)
+                return Json(new { resultado = false, mensaje = "No tiene sucursal asignada." });
+            var r = CD_Inventario.Instancia.RegistrarSolicitudTraslado(
+                idProducto, idTiendaOrigen, idTiendaDestino, cantidad, observaciones, UsuarioActual.IdUsuario);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
 
+        /// <summary>Paso 2 — Supervisor DESTINO aprueba la solicitud.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult AprobarSolicitudTraslado(int idTraslado)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var (_, idDestino) = CD_Inventario.Instancia.ObtenerTiendasDeTraslado(idTraslado);
+            if (!EsAdminGlobal && !TienePermiso(idDestino))
+                return Json(new { resultado = false, mensaje = "Solo puede aprobar solicitudes destinadas a su sucursal." });
+            var r = CD_Inventario.Instancia.AprobarSolicitudTraslado(idTraslado, UsuarioActual.IdUsuario, true);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        /// <summary>Paso 2 — Supervisor DESTINO rechaza la solicitud.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult RechazarSolicitudTraslado(int idTraslado, string motivoRechazo)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var (_, idDestino) = CD_Inventario.Instancia.ObtenerTiendasDeTraslado(idTraslado);
+            if (!EsAdminGlobal && !TienePermiso(idDestino))
+                return Json(new { resultado = false, mensaje = "Solo puede rechazar solicitudes destinadas a su sucursal." });
+            var r = CD_Inventario.Instancia.AprobarSolicitudTraslado(idTraslado, UsuarioActual.IdUsuario, false, motivoRechazo);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        /// <summary>Paso 3 — Supervisor ORIGEN autoriza el despacho.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult AutorizarDespachoTraslado(int idTraslado)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var (idOrigen, _) = CD_Inventario.Instancia.ObtenerTiendasDeTraslado(idTraslado);
+            if (!EsAdminGlobal && !TienePermiso(idOrigen))
+                return Json(new { resultado = false, mensaje = "Solo puede autorizar despachos de su propia sucursal." });
+            var r = CD_Inventario.Instancia.AutorizarDespachoTraslado(idTraslado, UsuarioActual.IdUsuario, true);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        /// <summary>Paso 3 — Supervisor ORIGEN rechaza el despacho.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult RechazarDespachoTraslado(int idTraslado, string motivoRechazo)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var (idOrigen, _) = CD_Inventario.Instancia.ObtenerTiendasDeTraslado(idTraslado);
+            if (!EsAdminGlobal && !TienePermiso(idOrigen))
+                return Json(new { resultado = false, mensaje = "Solo puede rechazar despachos de su propia sucursal." });
+            var r = CD_Inventario.Instancia.AutorizarDespachoTraslado(idTraslado, UsuarioActual.IdUsuario, false, motivoRechazo);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        /// <summary>Paso 4 — Operador DESTINO registra la llegada física de la mercadería.</summary>
+        [HttpPost]
+        public JsonResult RegistrarRecepcionTraslado(int idTraslado)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var (_, idDestino) = CD_Inventario.Instancia.ObtenerTiendasDeTraslado(idTraslado);
+            if (!EsAdminGlobal && !TienePermiso(idDestino))
+                return Json(new { resultado = false, mensaje = "Solo puede registrar recepción de traslados destinados a su sucursal." });
+            var r = CD_Inventario.Instancia.RegistrarRecepcionTraslado(idTraslado, UsuarioActual.IdUsuario);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        /// <summary>Paso 5 — Supervisor DESTINO aprueba recepción final → stock se mueve.</summary>
+        [HttpPost]
+        [AuthorizeRol("Inventario", "Aprobar Traslados")]
+        public JsonResult AprobarRecepcionFinalTraslado(int idTraslado)
+        {
+            if (UsuarioActual == null) return Json(new { resultado = false, mensaje = "Sesión expirada." });
+            var (_, idDestino) = CD_Inventario.Instancia.ObtenerTiendasDeTraslado(idTraslado);
+            if (!EsAdminGlobal && !TienePermiso(idDestino))
+                return Json(new { resultado = false, mensaje = "Solo puede aprobar la recepción de traslados destinados a su sucursal." });
+            var r = CD_Inventario.Instancia.AprobarRecepcionFinalTraslado(idTraslado, UsuarioActual.IdUsuario);
+            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
+        }
+
+        /// <summary>Traslados filtrados por estado (sin restricción de fecha, para colas de aprobación).</summary>
+        [HttpGet]
+        public JsonResult ObtenerTrasladosPorEstado(string estado = "")
+        {
+            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
+            var lista = CD_Inventario.Instancia.ObtenerTrasladosPorEstado(estado, idTienda);
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+
+        /// <summary>Historial de traslados con filtro de fecha.</summary>
         [HttpGet]
         public JsonResult ObtenerHistorialTraslados(string fechainicio, string fechafin, int idtienda = 0, string estado = "")
         {
             try
             {
-                // Sin alcance global solo ve traslados de su sucursal
                 if (!EsAdminGlobal && idtienda == 0) idtienda = TiendaActiva;
-
                 var lista = CD_Inventario.Instancia.ObtenerHistorialTraslados(
-                    Convert.ToDateTime(fechainicio),
-                    Convert.ToDateTime(fechafin),
-                    idtienda, estado);
+                    Convert.ToDateTime(fechainicio), Convert.ToDateTime(fechafin), idtienda, estado);
                 return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
                 return Json(new { data = new List<Traslado>(), error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
-        }
-
-        [HttpGet]
-        [AuthorizeRol("Inventario", "Aprobar Traslados")]
-        public JsonResult ObtenerTrasladosPendientes()
-        {
-            // Trae solo los Pendientes del día anterior en adelante para la sucursal del encargado
-            int idTienda = EsAdminGlobal ? 0 : TiendaActiva;
-            var lista = CD_Inventario.Instancia.ObtenerHistorialTraslados(
-                DateTime.Today.AddDays(-30), DateTime.Today, idTienda, "Pendiente");
-            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
-        }
-
-        [HttpPost]
-        [AuthorizeRol("Inventario", "Aprobar Traslados")]
-        public JsonResult AprobarTraslado(int idTraslado)
-        {
-            if (UsuarioActual == null)
-                return Json(new { resultado = false, mensaje = "Sesión expirada." });
-
-            // El supervisor de la sucursal ORIGEN es quien aprueba el traslado
-            int idTiendaOrigen = CD_Inventario.Instancia.ObtenerTiendaOrigenDeTraslado(idTraslado);
-            if (!TienePermiso(idTiendaOrigen))
-                return Json(new { resultado = false, mensaje = "Solo puede aprobar traslados originados en su propia sucursal." });
-
-            var r = CD_Inventario.Instancia.AprobarTraslado(idTraslado, UsuarioActual.IdUsuario, EsSuperAdmin);
-            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
-        }
-
-        [HttpPost]
-        [AuthorizeRol("Inventario", "Aprobar Traslados")]
-        public JsonResult RechazarTraslado(int idTraslado, string motivoRechazo)
-        {
-            if (UsuarioActual == null)
-                return Json(new { resultado = false, mensaje = "Sesión expirada." });
-
-            // El supervisor de la sucursal ORIGEN es quien rechaza el traslado
-            int idTiendaOrigen = CD_Inventario.Instancia.ObtenerTiendaOrigenDeTraslado(idTraslado);
-            if (!TienePermiso(idTiendaOrigen))
-                return Json(new { resultado = false, mensaje = "Solo puede rechazar traslados originados en su propia sucursal." });
-
-            var r = CD_Inventario.Instancia.RechazarTraslado(idTraslado, UsuarioActual.IdUsuario, motivoRechazo);
-            return Json(new { resultado = r.resultado, mensaje = r.mensaje });
         }
 
         // =============================================

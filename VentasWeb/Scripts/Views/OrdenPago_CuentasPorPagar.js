@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════════════════════════════
 //  OrdenPago_CuentasPorPagar.js
-//  Listado de cuotas a proveedores (Crédito)
+//  Listado de pagos a proveedores (Contado y Crédito)
 // ══════════════════════════════════════════════════════════════════════
 
 var tablaCXP;
@@ -52,9 +52,12 @@ $(document).ready(function () {
                     if (row.Estado === "Pagada") {
                         return '<span class="text-success"><i class="fas fa-check-circle"></i></span>';
                     }
-                    return '<button class="btn btn-primary btn-sm" title="Registrar Pago" '
+                    var esContado = (row.ModalidadPago === "Contado");
+                    var titulo = esContado ? "Registrar Pago" : ("Registrar Pago Cuota " + row.NumeroCuota + "/" + row.TotalCuotas);
+                    return '<button class="btn btn-primary btn-sm" title="' + titulo + '" '
                          + 'onclick="registrarPagoCuota(' + row.IdCuentaPorPagar
-                         + ', ' + row.NumeroCuota + ', ' + row.TotalCuotas + ')">'
+                         + ', ' + row.NumeroCuota + ', ' + row.TotalCuotas
+                         + ', \'' + (row.ModalidadPago || "Credito") + '\')">'
                          + '<i class="fas fa-hand-holding-usd"></i> Pagar</button>';
                 }
             },
@@ -62,8 +65,22 @@ $(document).ready(function () {
             { data: "NumeroFactura",         defaultContent: "—" },
             { data: "oProveedor", render: function (d) { return d ? d.RazonSocial : "—"; } },
             {
+                // Columna Modalidad
+                data: "ModalidadPago",
+                render: function (d) {
+                    if (d === "Contado") {
+                        return '<span class="badge badge-info">Contado</span>';
+                    }
+                    return '<span class="badge badge-secondary">Crédito</span>';
+                }
+            },
+            {
+                // Cuota / Pago único
                 data: null,
                 render: function (d) {
+                    if (d.ModalidadPago === "Contado") {
+                        return '<span class="text-muted small">Pago único</span>';
+                    }
                     return "Cuota " + d.NumeroCuota + " / " + d.TotalCuotas;
                 }
             },
@@ -81,7 +98,7 @@ $(document).ready(function () {
         ],
         language:   { url: $.MisUrls.url.Url_datatable_spanish },
         responsive: true,
-        order:      [[4, "asc"]]  // ordenar por vencimiento ascendente
+        order:      [[6, "asc"]]  // ordenar por vencimiento ascendente (col 6 ahora)
     });
 });
 
@@ -97,13 +114,21 @@ function buscar() {
     tablaCXP.ajax.url(construirUrl(prov, estado)).load();
 }
 
-function registrarPagoCuota(idCXP, numeroCuota, totalCuotas) {
+function registrarPagoCuota(idCXP, numeroCuota, totalCuotas, modalidad) {
+    var esContado = (modalidad === "Contado");
+    var titulo    = esContado
+        ? "¿Registrar pago al contado?"
+        : "¿Registrar pago de Cuota " + numeroCuota + "/" + totalCuotas + "?";
+    var html = esContado
+        ? "Se marcará la Orden de Pago como <strong>Pagada</strong>."
+        : "Se marcará esta cuota como <strong>Pagada</strong>."
+          + (numeroCuota === totalCuotas
+              ? "<br><small class='text-success'>Es la última cuota — la OP quedará cerrada.</small>"
+              : "");
+
     Swal.fire({
-        title:              "¿Registrar pago de Cuota " + numeroCuota + "/" + totalCuotas + "?",
-        html:               "Se marcará esta cuota como <strong>Pagada</strong>."
-                          + (numeroCuota === totalCuotas
-                              ? "<br><small class='text-success'>Es la última cuota — la OP quedará cerrada.</small>"
-                              : ""),
+        title:              titulo,
+        html:               html,
         icon:               "question",
         showCancelButton:   true,
         confirmButtonColor: "#007bff",
@@ -118,7 +143,7 @@ function registrarPagoCuota(idCXP, numeroCuota, totalCuotas) {
             data: { idcuentaporpagar: idCXP },
             success: function (res) {
                 if (res.resultado) {
-                    Swal.fire({ title: "Pagada", text: res.mensaje, icon: "success" })
+                    Swal.fire({ title: "Pagado", text: res.mensaje, icon: "success" })
                         .then(function () { buscar(); });
                 } else {
                     Swal.fire({ title: "Error", text: res.mensaje, icon: "error" });
