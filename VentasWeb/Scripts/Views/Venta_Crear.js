@@ -24,6 +24,20 @@ function cargarFormasCobro() {
             }).prop('selected', true);
         }
     });
+
+    // Auto-fill importe cuando se selecciona Transferencia
+    $('#cboFormaCobro').on('change', function () {
+        var esTransferencia = $(this).find('option:selected').text().trim().toLowerCase() === 'transferencia';
+        if (esTransferencia) {
+            var total = calcularTotal();
+            $('#txtImporteRecibido').val(total).prop('readonly', true);
+            $('#txtCambio').val('0');
+            $('#lblValidacion').text('');
+        } else {
+            $('#txtImporteRecibido').prop('readonly', false);
+            calcularCambio();
+        }
+    });
 }
 
 function iniciarTablaCliente() {
@@ -183,6 +197,14 @@ function actualizarTotales() {
 
 function calcularCambio() {
     var total = calcularTotal();
+    // Si Transferencia: mantener importe = total y cambio = 0
+    var esTransferencia = $('#cboFormaCobro').find('option:selected').text().trim().toLowerCase() === 'transferencia';
+    if (esTransferencia) {
+        $('#txtImporteRecibido').val(total).prop('readonly', true);
+        $('#txtCambio').val('0');
+        $('#lblValidacion').text('');
+        return;
+    }
     var recibido = parseFloat($('#txtImporteRecibido').val()) || 0;
     var cambio = recibido - total;
     $('#txtCambio').val(formatGs(Math.max(0, cambio)));
@@ -243,7 +265,7 @@ function resetForm() {
     renderizarDetalle();
     $('#hdnIdCliente').val(0);
     $('#txtDocumentoCliente,#txtNombreCliente').val('');
-    $('#txtImporteRecibido').val(0);
+    $('#txtImporteRecibido').val(0).prop('readonly', false);
     $('#txtCambio').val(0);
     $('#cboFormaCobro').val(0);
     $('#lblValidacion').text('');

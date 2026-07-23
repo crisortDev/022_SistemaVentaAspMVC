@@ -5,6 +5,8 @@
     // t) Condición dinámica desde el modelo
     string condicion = Model?.Condicion ?? "Contado";
     bool esContado = condicion != "Crédito";
+    // Forma de pago corregida: Crédito sobreescribe lo que venga del campo FormaCobro
+    string formaPago = condicion == "Crédito" ? "Crédito" : (Model?.FormaCobro ?? "Efectivo");
 }
 <!DOCTYPE html>
 <html>
@@ -65,6 +67,9 @@
             <!-- ENCABEZADO -->
             <div class="kude-header">
                 <div class="kude-emisor">
+                    <img src="@Url.Content("~/Imagenes/tiendalogo.png")" alt="Compu Space"
+                         style="max-height:52px;max-width:170px;display:block;margin-bottom:4px;"
+                         onerror="this.style.display='none'" />
                     <h2>@Model.NombreEmisor</h2>
                     <div><span class="info-label">RUC:</span> @Model.RUCEmisor</div>
                     <div><span class="info-label">Dirección:</span> @Model.DireccionEmisor</div>
@@ -116,7 +121,7 @@
                     <div class="section-title">Datos de Emisión</div>
                     <div class="info-row"><span class="info-label">Fecha y Hora:</span> &nbsp;<strong>@Model.FechaRegistro</strong></div>
                     <div class="info-row"><span class="info-label">Cajero:</span> &nbsp;@Model.NombreCajero</div>
-                    <div class="info-row"><span class="info-label">Forma de Pago:</span> &nbsp;@Model.FormaCobro</div>
+                    <div class="info-row"><span class="info-label">Forma de Pago:</span> &nbsp;@formaPago</div>
                 </div>
                 <div>
                     <div class="section-title">Datos del Receptor</div>
