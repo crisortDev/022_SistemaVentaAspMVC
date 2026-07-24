@@ -276,7 +276,7 @@ function renderizarBajoDesempeno() {
     var html =
         '<table class="table table-sm table-bordered">' +
         '<thead class="thead-light"><tr>' +
-        '<th>Producto</th><th class="text-center">Margen</th><th>Estado</th>' +
+        '<th>Producto</th><th>Tienda</th><th class="text-center">Margen</th><th>Estado</th>' +
         '</tr></thead><tbody>';
 
     bajos.forEach(function (r) {
@@ -297,6 +297,7 @@ function renderizarBajoDesempeno() {
         html +=
             '<tr class="' + rowClass + '">' +
             '<td><small>' + r.Producto + '</small></td>' +
+            '<td><small class="text-muted">' + (r.Tienda || '') + '</small></td>' +
             '<td class="text-center">' + fmtPct(mg) + '</td>' +
             '<td><span class="badge ' + badgeClass + '">' + estado + '</span></td>' +
             '</tr>';
