@@ -1,5 +1,7 @@
 // ═══════════════════════════════════════════════════════════
 //  REPORTE GERENCIAL — TRASLADOS DE PRODUCTOS
+//  Actualizado para flujo multi-producto 4 pasos (Script 230)
+//  Estados: Solicitado | Aprobado | Rechazado | Despachado | Completado
 // ═══════════════════════════════════════════════════════════
 
 var _datosTraslados = [];
@@ -73,7 +75,6 @@ function renderizarTodo() {
     renderizarKPIs();
     renderizarEstado();
     renderizarSucursales();
-    renderizarTopProductos();
     renderizarTabla();
     $('#panelKPI').removeClass('d-none');
     $('#panelAnalisis').removeClass('d-none');
@@ -83,16 +84,16 @@ function renderizarTodo() {
 //  KPIs
 // ══════════════════════════════════════════════════════════
 function renderizarKPIs() {
-    var traslados  = _datosTraslados.length;
-    var movilizados= _datosTraslados.reduce(function(s,t){ return s + (t.Cantidad||0); }, 0);
-    var sucursales = new Set();
-    _datosTraslados.forEach(function(t){
+    var totalTraslados  = _datosTraslados.length;
+    var totalUnidades   = _datosTraslados.reduce(function (s, t) { return s + (t.TotalUnidades || 0); }, 0);
+    var sucursales      = new Set();
+    _datosTraslados.forEach(function (t) {
         if (t.TiendaOrigen)  sucursales.add(t.TiendaOrigen);
         if (t.TiendaDestino) sucursales.add(t.TiendaDestino);
     });
 
-    $('#kpiTraslados').text(traslados);
-    $('#kpiProductos').text(movilizados);
+    $('#kpiTraslados').text(totalTraslados);
+    $('#kpiProductos').text(totalUnidades);   // ahora = total unidades movilizadas
     $('#kpiSucursales').text(sucursales.size);
 }
 
@@ -101,9 +102,12 @@ function renderizarKPIs() {
 // ══════════════════════════════════════════════════════════
 function renderizarEstado() {
     var total      = _datosTraslados.length;
-    var aprobados  = _datosTraslados.filter(function(t){ return t.EstadoAprobacion === 'Aprobada'; }).length;
-    var pendientes = _datosTraslados.filter(function(t){ return t.EstadoAprobacion === 'Pendiente'; }).length;
-    var rechazados = _datosTraslados.filter(function(t){ return t.EstadoAprobacion === 'Rechazada'; }).length;
+    var estados    = { Solicitado: 0, Aprobado: 0, Despachado: 0, Completado: 0, Rechazado: 0 };
+
+    _datosTraslados.forEach(function (t) {
+        var est = t.EstadoAprobacion || 'Solicitado';
+        if (estados.hasOwnProperty(est)) estados[est]++;
+    });
 
     function fila(label, n, cls) {
         var pct  = total > 0 ? (n / total * 100).toFixed(1) : '0.0';
@@ -118,9 +122,11 @@ function renderizarEstado() {
     var html = '<table class="table table-sm table-bordered" style="font-size:12px;">' +
         '<thead class="thead-dark"><tr><th>Estado</th><th class="text-center">Cantidad</th>' +
         '<th class="text-center">%</th><th>Gráfico</th></tr></thead><tbody>' +
-        fila('Aprobados',  aprobados,  'success') +
-        fila('Pendientes', pendientes, 'warning') +
-        fila('Rechazados', rechazados, 'danger') +
+        fila('Solicitados',  estados.Solicitado,  'warning') +
+        fila('Aprobados',    estados.Aprobado,    'primary') +
+        fila('Despachados',  estados.Despachado,  'info') +
+        fila('Completados',  estados.Completado,  'success') +
+        fila('Rechazados',   estados.Rechazado,   'danger') +
         '</tbody></table>';
 
     $('#tablaEstado').html(html);
@@ -131,18 +137,18 @@ function renderizarEstado() {
 // ══════════════════════════════════════════════════════════
 function renderizarSucursales() {
     var mapaSuc = {};
-    _datosTraslados.forEach(function(t) {
+    _datosTraslados.forEach(function (t) {
         var suc = t.TiendaOrigen || '(Sin origen)';
         mapaSuc[suc] = (mapaSuc[suc] || 0) + 1;
     });
 
-    var sorted = Object.keys(mapaSuc).map(function(k){ return { suc: k, cantidad: mapaSuc[k] }; });
-    sorted.sort(function(a,b){ return b.cantidad - a.cantidad; });
+    var sorted = Object.keys(mapaSuc).map(function (k) { return { suc: k, cantidad: mapaSuc[k] }; });
+    sorted.sort(function (a, b) { return b.cantidad - a.cantidad; });
 
     var total  = _datosTraslados.length;
     var maxVal = sorted.length > 0 ? sorted[0].cantidad : 1;
 
-    var filas = sorted.map(function(s) {
+    var filas = sorted.map(function (s) {
         var pct  = total > 0 ? (s.cantidad / total * 100).toFixed(1) : '0.0';
         var bars = Math.round(s.cantidad / maxVal * 15);
         var barHtml = bars > 0 ? '<span class="text-info">' + '█'.repeat(bars) + '</span>' : '';
@@ -161,68 +167,36 @@ function renderizarSucursales() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  TOP 5 PRODUCTOS MÁS TRASLADADOS
-// ══════════════════════════════════════════════════════════
-function renderizarTopProductos() {
-    var mapaProds = {};
-    _datosTraslados.forEach(function(t) {
-        var key = t.CodigoProducto || '—';
-        if (!mapaProds[key]) mapaProds[key] = { nombre: t.NombreProducto || key, cantidad: 0 };
-        mapaProds[key].cantidad += (t.Cantidad || 0);
-    });
-
-    var sorted = Object.keys(mapaProds).map(function(k){ return mapaProds[k]; });
-    sorted.sort(function(a,b){ return b.cantidad - a.cantidad; });
-    var top5   = sorted.slice(0, 5);
-    var total  = _datosTraslados.reduce(function(s,t){ return s + (t.Cantidad||0); }, 0);
-    var maxVal = top5.length > 0 ? top5[0].cantidad : 1;
-
-    var filas = top5.map(function(p, i) {
-        var pct  = total > 0 ? (p.cantidad / total * 100).toFixed(1) : '0.0';
-        var bars = Math.round(p.cantidad / maxVal * 20);
-        var barHtml = bars > 0 ? '<span class="text-primary">' + '█'.repeat(bars) + '</span>' : '';
-        return '<tr>' +
-            '<td class="text-center font-weight-bold">' + (i+1) + '</td>' +
-            '<td>' + p.nombre + '</td>' +
-            '<td class="text-center font-weight-bold">' + p.cantidad + '</td>' +
-            '<td class="text-center">' + pct + '%</td>' +
-            '<td>' + barHtml + '</td>' +
-            '</tr>';
-    }).join('');
-
-    var html = '<table class="table table-sm table-bordered table-hover" style="font-size:12px;">' +
-        '<thead class="thead-dark"><tr><th class="text-center">#</th><th>Producto</th>' +
-        '<th class="text-center">Unidades</th><th class="text-center">%</th><th>Gráfico</th></tr></thead>' +
-        '<tbody>' + filas + '</tbody></table>';
-
-    $('#tablaTopProductos').html(html);
-}
-
-// ══════════════════════════════════════════════════════════
 //  TABLA DETALLE
 // ══════════════════════════════════════════════════════════
 function renderizarTabla() {
+    var estadoClsMap = {
+        'Solicitado':  { badge: 'warning',  row: 'table-warning' },
+        'Aprobado':    { badge: 'primary',  row: '' },
+        'Despachado':  { badge: 'info',     row: '' },
+        'Completado':  { badge: 'success',  row: '' },
+        'Rechazado':   { badge: 'danger',   row: 'table-danger' }
+    };
+
     var filas = '';
     _datosTraslados.forEach(function (t) {
-        var estado   = t.EstadoAprobacion || 'Pendiente';
-        var badgeCls = estado === 'Aprobada' ? 'success' : estado === 'Rechazada' ? 'danger' : 'warning';
-        var rowClass = estado === 'Pendiente' ? 'table-warning' : estado === 'Rechazada' ? 'table-danger' : '';
+        var estado   = t.EstadoAprobacion || 'Solicitado';
+        var cls      = estadoClsMap[estado] || { badge: 'secondary', row: '' };
 
-        filas += '<tr class="' + rowClass + '">' +
-            '<td>' + (t.Numero         || '') + '</td>' +
-            '<td>' + (t.FechaTraslado  || '') + '</td>' +
-            '<td>' + (t.CodigoProducto || '') + '</td>' +
-            '<td>' + (t.NombreProducto || '') + '</td>' +
-            '<td class="text-center">' + (t.Cantidad || 0) + '</td>' +
-            '<td>' + (t.TiendaOrigen   || '') + '</td>' +
-            '<td>' + (t.TiendaDestino  || '') + '</td>' +
-            '<td class="text-center"><span class="badge badge-' + badgeCls + '">' + estado + '</span></td>' +
-            '<td class="small">' + (t.Usuario      || '') + '</td>' +
+        filas += '<tr class="' + cls.row + '">' +
+            '<td>' + (t.Numero        || '') + '</td>' +
+            '<td>' + (t.FechaTraslado || '') + '</td>' +
+            '<td class="text-center">' + (t.CantidadItems  || 0) + '</td>' +
+            '<td class="text-center">' + (t.TotalUnidades  || 0) + '</td>' +
+            '<td>' + (t.TiendaOrigen  || '') + '</td>' +
+            '<td>' + (t.TiendaDestino || '') + '</td>' +
+            '<td class="text-center"><span class="badge badge-' + cls.badge + '">' + estado + '</span></td>' +
+            '<td class="small">' + (t.Usuario       || '') + '</td>' +
             '<td class="small">' + (t.UsuarioAprueba || '') + '</td>' +
             '</tr>';
 
-        if (estado === 'Rechazada' && t.MotivoRechazo) {
-            filas += '<tr class="table-danger"><td colspan="10" class="py-1 pl-4 text-muted small">' +
+        if (estado === 'Rechazado' && t.MotivoRechazo) {
+            filas += '<tr class="table-danger"><td colspan="9" class="py-1 pl-4 text-muted small">' +
                 '<i class="fas fa-exclamation-circle text-danger mr-1"></i>' +
                 '<strong>Motivo:</strong> ' + $('<span>').text(t.MotivoRechazo).html() + '</td></tr>';
         }
@@ -233,8 +207,9 @@ function renderizarTabla() {
         '<div style="overflow-x:auto;">' +
         '<table class="table table-sm table-bordered table-hover">' +
         '<thead class="thead-dark"><tr>' +
-        '<th>Nro</th><th>Fecha</th><th>Código</th><th>Producto</th>' +
-        '<th class="text-center">Cant.</th><th>Origen</th><th>Destino</th>' +
+        '<th>Nro</th><th>Fecha</th>' +
+        '<th class="text-center">Ítems</th><th class="text-center">Unidades</th>' +
+        '<th>Origen</th><th>Destino</th>' +
         '<th class="text-center">Estado</th><th>Registró</th><th>Aprobó</th>' +
         '</tr></thead><tbody>' + filas + '</tbody></table></div>';
 

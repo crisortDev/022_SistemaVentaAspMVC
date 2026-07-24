@@ -1,6 +1,8 @@
 # ============================================================
 #  generar_reporte_traslados.py
 #  Reporte Gerencial de Traslados entre Tiendas — Portrait A4
+#  Flujo multi-producto 4 pasos (Script 230)
+#  Estados: Solicitado | Aprobado | Rechazado | Despachado | Completado
 #  Uso: python generar_reporte_traslados.py <json> <pdf>
 # ============================================================
 
@@ -27,20 +29,24 @@ MARG_BOT = 1.5 * cm
 PAGE_W   = PAGE[0] - 2 * MARG_H   # ≈ 18.0 cm útil
 
 # ── Colores ───────────────────────────────────────────────────────────────────
-AZUL    = colors.HexColor('#1a3566')
-CIAN    = colors.HexColor('#17a2b8')
-VERDE   = colors.HexColor('#059669')
-AMBAR   = colors.HexColor('#b45309')
-ROJO    = colors.HexColor('#dc2626')
-GRIS_OS = colors.HexColor('#374151')
-GRIS_L  = colors.HexColor('#f3f4f6')
-GRIS_M  = colors.HexColor('#d1d5db')
-GRIS_T  = colors.HexColor('#6b7280')
-VERDE_L = colors.HexColor('#d1fae5')
-AMBAR_L = colors.HexColor('#fef3c7')
-ROJO_L  = colors.HexColor('#fee2e2')
-CIAN_L  = colors.HexColor('#d1ecf1')
-BLANCO  = colors.white
+AZUL     = colors.HexColor('#1a3566')
+CIAN     = colors.HexColor('#17a2b8')
+VERDE    = colors.HexColor('#059669')
+AMBAR    = colors.HexColor('#b45309')
+ROJO     = colors.HexColor('#dc2626')
+AZUL_C   = colors.HexColor('#1d4ed8')
+INFO     = colors.HexColor('#0891b2')
+GRIS_OS  = colors.HexColor('#374151')
+GRIS_L   = colors.HexColor('#f3f4f6')
+GRIS_M   = colors.HexColor('#d1d5db')
+GRIS_T   = colors.HexColor('#6b7280')
+VERDE_L  = colors.HexColor('#d1fae5')
+AMBAR_L  = colors.HexColor('#fef3c7')
+ROJO_L   = colors.HexColor('#fee2e2')
+AZUL_L   = colors.HexColor('#dbeafe')
+CIAN_L   = colors.HexColor('#d1ecf1')
+INFO_L   = colors.HexColor('#cffafe')
+BLANCO   = colors.white
 
 # ── Estilos ───────────────────────────────────────────────────────────────────
 _base = getSampleStyleSheet()['Normal']
@@ -87,7 +93,7 @@ def pct(v):
 # ════════════════════════════════════════════════════════════════════════════
 def kpi_table(traslados):
     n_traslados = len(traslados)
-    movilizados = sum(int(t.get('Cantidad', 0) or 0) for t in traslados)
+    total_unid  = sum(int(t.get('TotalUnidades', 0) or 0) for t in traslados)
     sucursales  = set()
     for t in traslados:
         if t.get('TiendaOrigen'):  sucursales.add(t['TiendaOrigen'])
@@ -98,9 +104,9 @@ def kpi_table(traslados):
 
     rows = [
         [P('Indicador', st_h), P('Valor', st_hr)],
-        [P('Traslados registrados',    ST_LBL), P(str(n_traslados),     ST_VAL)],
-        [P('Productos movilizados',    ST_LBL), P(str(movilizados),     ST_VAL)],
-        [P('Sucursales involucradas',  ST_LBL), P(str(len(sucursales)), ST_VAL)],
+        [P('Traslados registrados',   ST_LBL), P(str(n_traslados),     ST_VAL)],
+        [P('Unidades movilizadas',    ST_LBL), P(str(total_unid),      ST_VAL)],
+        [P('Sucursales involucradas', ST_LBL), P(str(len(sucursales)), ST_VAL)],
     ]
 
     ancho = PAGE_W / cm
@@ -114,13 +120,15 @@ def kpi_table(traslados):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  2. ESTADO DE TRASLADOS
+#  2. ESTADO DE TRASLADOS (flujo 4 pasos)
 # ════════════════════════════════════════════════════════════════════════════
 def estado_table(traslados):
-    total      = len(traslados)
-    aprobados  = sum(1 for t in traslados if (t.get('EstadoAprobacion') or '') == 'Aprobada')
-    pendientes = sum(1 for t in traslados if (t.get('EstadoAprobacion') or '') == 'Pendiente')
-    rechazados = sum(1 for t in traslados if (t.get('EstadoAprobacion') or '') == 'Rechazada')
+    total = len(traslados)
+    conteo = {'Solicitado': 0, 'Aprobado': 0, 'Despachado': 0, 'Completado': 0, 'Rechazado': 0}
+    for t in traslados:
+        est = (t.get('EstadoAprobacion') or 'Solicitado')
+        if est in conteo:
+            conteo[est] += 1
 
     rows = [[P(h, ST_HDR) for h in ['Estado', 'Cantidad', '%']]]
 
@@ -131,9 +139,11 @@ def estado_table(traslados):
 
     bgs = []
     for r, bg in [
-        fila('Aprobados',  aprobados,  VERDE_L, VERDE),
-        fila('Pendientes', pendientes, AMBAR_L, AMBAR),
-        fila('Rechazados', rechazados, ROJO_L,  ROJO),
+        fila('Solicitados', conteo['Solicitado'], AMBAR_L, AMBAR),
+        fila('Aprobados',   conteo['Aprobado'],   AZUL_L,  AZUL_C),
+        fila('Despachados', conteo['Despachado'],  CIAN_L,  INFO),
+        fila('Completados', conteo['Completado'],  VERDE_L, VERDE),
+        fila('Rechazados',  conteo['Rechazado'],   ROJO_L,  ROJO),
     ]:
         rows.append(r)
         bgs.append(bg)
@@ -181,60 +191,37 @@ def sucursales_table(traslados):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  4. TOP 5 PRODUCTOS MÁS TRASLADADOS
+#  4. DETALLE POR TRASLADO
 # ════════════════════════════════════════════════════════════════════════════
-def top_productos_table(traslados):
-    mapa = {}
-    for t in traslados:
-        key = t.get('CodigoProducto') or '—'
-        if key not in mapa:
-            mapa[key] = {'nombre': t.get('NombreProducto') or key, 'cantidad': 0}
-        mapa[key]['cantidad'] += int(t.get('Cantidad', 0) or 0)
+# Columnas: Nro | Fecha | Ítems | Unidades | Origen | Destino | Estado | Registró
+COL_W = [1.8, 2.0, 1.5, 1.8, 2.8, 2.8, 2.0, 2.8]
+HDRS  = ['Nro', 'Fecha', 'Ítems', 'Unidades', 'Origen', 'Destino', 'Estado', 'Registró']
 
-    sorted_p = sorted(mapa.values(), key=lambda x: x['cantidad'], reverse=True)[:5]
-    total    = sum(int(t.get('Cantidad', 0) or 0) for t in traslados)
-
-    rows = [[P(h, ST_HDR) for h in ['#', 'Producto', 'Unidades', '%']]]
-    for i, p in enumerate(sorted_p):
-        pt   = (p['cantidad'] / total * 100) if total > 0 else 0
-        rows.append([
-            P(str(i+1), ST_CELL_C),
-            P(p['nombre'], ST_CELL),
-            P(str(p['cantidad']), ST_CELL_C),
-            P(pct(pt), ST_CELL_C),
-        ])
-
-    ancho = PAGE_W / cm
-    col_w = [0.8, ancho - 0.8 - 2.0 - 2.0, 2.0, 2.0]
-    t = Table(rows, colWidths=[w * cm for w in col_w])
-    t.setStyle(TableStyle(CELL_PAD + [
-        ('BACKGROUND',     (0,0), (-1,0),  AZUL),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [BLANCO, GRIS_L]),
-        ('GRID',           (0,0), (-1,-1), 0.3, GRIS_M),
-    ]))
-    return t
-
-
-# ════════════════════════════════════════════════════════════════════════════
-#  5+6. DETALLE + TOTALES (existentes, conservados)
-# ════════════════════════════════════════════════════════════════════════════
-COL_W = [1.8, 2.0, 1.5, 3.2, 1.0, 2.5, 2.5, 1.5, 2.0]
-HDRS  = ['Nro', 'Fecha', 'Código', 'Producto', 'Cant.', 'Origen', 'Destino', 'Estado', 'Registró']
+# Mapa de colores por estado
+_ESTADO_BG = {
+    'Solicitado': AMBAR_L,
+    'Aprobado':   AZUL_L,
+    'Despachado': CIAN_L,
+    'Completado': VERDE_L,
+    'Rechazado':  ROJO_L,
+}
 
 
 def _estado_cell(tr):
-    estado = tr.get('EstadoAprobacion', 'Pendiente') or 'Pendiente'
+    estado = tr.get('EstadoAprobacion', 'Solicitado') or 'Solicitado'
     lines  = [P(estado, ST_CELL_C)]
-    if estado == 'Aprobada':
+    if estado == 'Aprobado':
         if tr.get('FechaAprobacion'): lines.append(P(tr['FechaAprobacion'], ST_SMALL))
         if tr.get('UsuarioAprueba'):  lines.append(P(tr['UsuarioAprueba'],  ST_OK))
-    elif estado == 'Rechazada':
+    elif estado == 'Rechazado':
         if tr.get('MotivoRechazo'):  lines.append(P(tr['MotivoRechazo'],   ST_ERR))
     if len(lines) == 1: return lines[0]
     inner = Table([[l] for l in lines], colWidths=[None])
     inner.setStyle(TableStyle([
-        ('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0),
-        ('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),
+        ('TOPPADDING',    (0,0),(-1,-1), 0),
+        ('BOTTOMPADDING', (0,0),(-1,-1), 0),
+        ('LEFTPADDING',   (0,0),(-1,-1), 0),
+        ('RIGHTPADDING',  (0,0),(-1,-1), 0),
     ]))
     return inner
 
@@ -247,21 +234,19 @@ def detalle_table(traslados):
     ]
     for idx, t in enumerate(traslados):
         ri     = idx + 1
-        estado = t.get('EstadoAprobacion', 'Pendiente') or 'Pendiente'
+        estado = t.get('EstadoAprobacion', 'Solicitado') or 'Solicitado'
         data.append([
             P(t.get('Numero', '')         or '', ST_CELL_C),
             P(t.get('FechaTraslado', '')  or '', ST_CELL_C),
-            P(t.get('CodigoProducto', '') or '', ST_CELL_C),
-            P(t.get('NombreProducto', '') or '', ST_CELL),
-            P(str(t.get('Cantidad', 0)),         ST_CELL_C),
+            P(str(t.get('CantidadItems', 0) or 0),  ST_CELL_C),
+            P(str(t.get('TotalUnidades', 0) or 0),  ST_CELL_C),
             P(t.get('TiendaOrigen', '')   or '', ST_CELL),
             P(t.get('TiendaDestino', '')  or '', ST_CELL),
             _estado_cell(t),
             P(t.get('Usuario', '')        or '', ST_CELL),
         ])
-        if   estado == 'Pendiente': styles.append(('BACKGROUND', (0,ri), (-1,ri), AMBAR_L))
-        elif estado == 'Rechazada': styles.append(('BACKGROUND', (0,ri), (-1,ri), ROJO_L))
-        else: styles.append(('BACKGROUND', (0,ri), (-1,ri), BLANCO if ri % 2 == 1 else GRIS_L))
+        bg = _ESTADO_BG.get(estado, BLANCO if ri % 2 == 1 else GRIS_L)
+        styles.append(('BACKGROUND', (0,ri), (-1,ri), bg))
 
     t = Table(data, colWidths=[w * cm for w in COL_W], repeatRows=1)
     t.setStyle(TableStyle(styles))
@@ -269,47 +254,54 @@ def detalle_table(traslados):
 
 
 def totales_table(traslados):
-    n_total = len(traslados)
-    n_pend  = sum(1 for t in traslados if (t.get('EstadoAprobacion') or '') == 'Pendiente')
-    n_apro  = sum(1 for t in traslados if (t.get('EstadoAprobacion') or '') == 'Aprobada')
-    n_rech  = sum(1 for t in traslados if (t.get('EstadoAprobacion') or '') == 'Rechazada')
-    tot_cant= sum(int(t.get('Cantidad', 0) or 0) for t in traslados)
+    n_total    = len(traslados)
+    tot_unid   = sum(int(t.get('TotalUnidades', 0) or 0) for t in traslados)
+    conteo     = {'Solicitado': 0, 'Aprobado': 0, 'Despachado': 0, 'Completado': 0, 'Rechazado': 0}
+    for t in traslados:
+        est = t.get('EstadoAprobacion') or 'Solicitado'
+        if est in conteo: conteo[est] += 1
 
     st_w  = _sty(fontSize=7, fontName='Helvetica-Bold', textColor=BLANCO)
     st_wc = _sty(fontSize=7, fontName='Helvetica-Bold', textColor=BLANCO, alignment=TA_CENTER)
 
-    label = 'TOTAL: {} traslado(s)   Aprobado: {}   Pendiente: {}   Rechazado: {}'.format(
-             n_total, n_apro, n_pend, n_rech)
+    label = 'TOTAL: {} traslado(s)  Sol:{} Apro:{} Desp:{} Comp:{} Rech:{}'.format(
+        n_total,
+        conteo['Solicitado'], conteo['Aprobado'],
+        conteo['Despachado'], conteo['Completado'], conteo['Rechazado'])
 
-    row = [P(label, st_w)] + [P('', st_w)] * 3 + \
-          [P(str(tot_cant), st_wc)] + [P('', st_w)] * 4
+    # col 3 (Unidades) lleva el total de unidades
+    row = [P(label, st_w), P('', st_w), P('', st_w), P(str(tot_unid), st_wc)] + \
+          [P('', st_w)] * 4
 
     t = Table([row], colWidths=[w * cm for w in COL_W])
     t.setStyle(TableStyle(CELL_PAD + [
         ('BACKGROUND', (0,0), (-1,0), AZUL),
         ('GRID',       (0,0), (-1,0), 0.3, GRIS_M),
-        ('SPAN',       (0,0), (3,0)),
+        ('SPAN',       (0,0), (2,0)),
     ]))
     return t
 
 
 def leyenda():
-    col_w = [PAGE_W / 3] * 3
-    data = [[
-        P('Pendiente', _sty(fontSize=6.5, leading=8, textColor=colors.HexColor('#92400e'))),
-        P('Aprobado (fondo blanco/gris)', _sty(fontSize=6.5, leading=8, textColor=colors.HexColor('#065f46'))),
-        P('Rechazado', _sty(fontSize=6.5, leading=8, textColor=colors.HexColor('#991b1b'))),
-    ]]
-    t = Table(data, colWidths=col_w)
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0),(0,0), AMBAR_L),
-        ('BACKGROUND', (1,0),(1,0), GRIS_L),
-        ('BACKGROUND', (2,0),(2,0), ROJO_L),
+    col_w = [PAGE_W / 5] * 5
+    est_info = [
+        ('Solicitado', AMBAR_L, colors.HexColor('#92400e')),
+        ('Aprobado',   AZUL_L,  colors.HexColor('#1d4ed8')),
+        ('Despachado', CIAN_L,  colors.HexColor('#0891b2')),
+        ('Completado', VERDE_L, colors.HexColor('#065f46')),
+        ('Rechazado',  ROJO_L,  colors.HexColor('#991b1b')),
+    ]
+    cells = [P(label, _sty(fontSize=6.5, leading=8, textColor=tc)) for label, _, tc in est_info]
+    t = Table([cells], colWidths=col_w)
+    ts = TableStyle([
         ('GRID',       (0,0),(-1,-1), 0.3, GRIS_M),
         ('ALIGN',      (0,0),(-1,-1), 'CENTER'),
         ('TOPPADDING', (0,0),(-1,-1), 3), ('BOTTOMPADDING',(0,0),(-1,-1), 3),
         ('LEFTPADDING',(0,0),(-1,-1), 4), ('RIGHTPADDING', (0,0),(-1,-1), 4),
-    ]))
+    ])
+    for i, (_, bg, _tc) in enumerate(est_info):
+        ts.add('BACKGROUND', (i,0), (i,0), bg)
+    t.setStyle(ts)
     return t
 
 
@@ -364,13 +356,7 @@ def build_pdf(data, output_path):
     story.append(sucursales_table(traslados))
     story.append(Spacer(1, 8))
 
-    # ── 4. Top 5 Productos ────────────────────────────────────────────────
-    story.append(P('Productos más Trasladados (Top 5)', ST_SEC))
-    story.append(Spacer(1, 2))
-    story.append(top_productos_table(traslados))
-    story.append(Spacer(1, 8))
-
-    # ── 5. Detalle + leyenda + totales ────────────────────────────────────
+    # ── 4. Detalle + leyenda + totales ────────────────────────────────────
     story.append(P('Detalle Completo', ST_SEC))
     story.append(Spacer(1, 2))
     story.append(leyenda())

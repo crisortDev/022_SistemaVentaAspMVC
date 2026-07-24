@@ -1,287 +1,457 @@
 // Inventario_Traslado.js
-// Flujo 5 pasos — Operador DESTINO:
-//   Paso 1: Crear solicitud de traslado (este archivo)
-//   Paso 4: Registrar llegada física de mercadería despachada (este archivo)
-//   Pasos 2, 3, 5 → AprobarTraslados.js (supervisores)
+// Flujo 4 pasos — Operador:
+//   Paso 1 (DESTINO): Solicitar traslado con múltiples productos
+//   Paso 3 (ORIGEN):  Despachar traslado aprobado
+//   Paso 4 (DESTINO): Recepcionar traslado despachado
+//   Paso 2 → Inventario_AprobarTraslados.js (supervisor ORIGEN)
+
 'use strict';
 
-var dtProductos    = null;
-var tablaHistorial = null;
-var _tiendas       = [];
-var _miTienda      = AppSession.tiendaOperativa;
-var _miNombre      = '';
+var carrito = [];           // { idProducto, codigo, nombre, stock }
+var _productosOrigen = [];  // cache de productos del origen seleccionado
 
-$(function () {
-    activarMenu("Traslado entre Tiendas");
-
-    $.datepicker.setDefaults($.datepicker.regional['es'] || {});
-    $("#txtFechaInicio").datepicker({ dateFormat: 'dd/mm/yy' }).val(obtenerFechaHoy());
-    $("#txtFechaFin"   ).datepicker({ dateFormat: 'dd/mm/yy' }).val(obtenerFechaHoy());
-
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+$(document).ready(function () {
     cargarTiendas();
-    inicializarTablaHistorial();
-    cargarDespachados();
+    cargarDespachar();
+    cargarRecepcionar();
+    inicializarFechasHistorial();
 
-    // Cambio de sucursal origen → recargar productos
-    $("#cboTiendaOrigen").on("change", function () {
-        var id = $(this).val();
-        if (dtProductos) dtProductos.clear().draw();
-        $("#divTabla").hide();
-        $("#divSinTienda").show();
-        $("#lblTotalProductos").text("");
-        if (!id) return;
-        cargarProductos(id);
+    $('#cboTiendaOrigen').on('change', function () {
+        var id = parseInt($(this).val());
+        carrito = [];
+        _productosOrigen = [];
+        renderizarCarrito();
+        if (!id) {
+            $('#divTablaProductos').hide();
+            $('#divSinTienda').show();
+        } else {
+            cargarProductos(id);
+        }
     });
 
-    // Botón enviar solicitud
-    $("#btnEnviarSolicitud").on("click", function () {
-        var idProducto    = $("#hIdProducto").val();
-        var idOrigen      = $("#hIdTiendaOrigen").val();
-        var cantidad      = parseInt($("#txtCantidad").val()) || 0;
-        var observaciones = $("#txtObservaciones").val().trim();
-
-        if (!idOrigen)                { toastr.warning("Seleccioná la sucursal origen."); return; }
-        if (cantidad <= 0)            { toastr.warning("La cantidad debe ser mayor a cero."); return; }
-        if (observaciones.length < 3) { toastr.warning("La observación es obligatoria (mínimo 3 caracteres)."); return; }
-
-        Swal.fire({
-            title: '¿Enviar solicitud?',
-            html: 'Se solicitará <b>' + cantidad + '</b> unidad(es) de <b>' + $("#lblProductoSolicitud").text() + '</b>'
-                + '<br>a <b>' + $("#lblOrigenModal").text() + '</b>.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, enviar solicitud',
-            confirmButtonColor: '#ffc107',
-            cancelButtonText: 'Cancelar'
-        }).then(function (result) {
-            if (!result.isConfirmed) return;
-            $.post($.MisUrls.url._Inv_RegistrarSolicitudTraslado, {
-                idProducto    : idProducto,
-                idTiendaOrigen: idOrigen,
-                cantidad      : cantidad,
-                observaciones : observaciones
-            }, function (resp) {
-                if (resp.resultado) {
-                    $("#modalSolicitud").modal("hide");
-                    toastr.success(resp.mensaje || "Solicitud registrada.");
-                    cargarProductos(idOrigen);
-                    tablaHistorial.ajax.reload(null, false);
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: resp.mensaje });
-                }
-            }).fail(function () {
-                Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo enviar la solicitud.' });
-            });
-        });
-    });
-
-    $("#modalSolicitud").on("hidden.bs.modal", function () {
-        $("#txtCantidad").val(1);
-        $("#txtObservaciones").val("");
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        var target = $(e.target).attr('href');
+        if (target === '#panel-despachar') cargarDespachar();
+        if (target === '#panel-recepcionar') cargarRecepcionar();
     });
 });
 
-// ── Cargar tiendas ────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// PASO 1 — SOLICITAR
+// ══════════════════════════════════════════════════════════════
+
 function cargarTiendas() {
-    $.get($.MisUrls.url._Inv_ObtenerTiendas, function (data) {
-        _tiendas = (data.data || []).filter(function (t) { return t.Activo; });
+    var miTienda = parseInt(AppSession.tiendaOperativa) || 0;
 
-        var miObj = _tiendas.find(function (t) { return t.IdTienda == _miTienda; });
-        _miNombre = miObj ? miObj.Nombre : 'Mi sucursal';
-        $("#lblDestinoModal").text(_miNombre);
+    // Mostrar mi sucursal en campo readonly
+    $.get($.MisUrls.url._ObtenerTiendas, function (r) {
+        var lista = (r && r.data) ? r.data : [];
+        var $cbo = $('#cboTiendaOrigen');
+        $cbo.find('option:not(:first)').remove();
 
-        // Combo origen: todas las tiendas excepto la mía
-        var opts = '<option value="">-- Seleccione sucursal --</option>';
-        _tiendas.forEach(function (t) {
-            if (!AppSession.esSuperAdmin && t.IdTienda == _miTienda) return;
-            opts += '<option value="' + t.IdTienda + '">' + t.Nombre + '</option>';
-        });
-        $("#cboTiendaOrigen").html(opts);
-    });
-}
-
-// ── Abrir modal de solicitud ──────────────────────────────────────────────────
-window.abrirModalSolicitud = function (idProducto, nombre, stock) {
-    var idOrigen     = $("#cboTiendaOrigen").val();
-    var nombreOrigen = $("#cboTiendaOrigen option:selected").text();
-
-    $("#hIdProducto").val(idProducto);
-    $("#hIdTiendaOrigen").val(idOrigen);
-    $("#lblProductoSolicitud").text(nombre);
-    $("#lblOrigenModal").text(nombreOrigen);
-    $("#lblDestinoModal").text(_miNombre || 'Mi sucursal');
-    $("#lblStockDisponible").text('Stock disponible en origen: ' + stock + ' uds.');
-    $("#txtCantidad").val(1).attr("max", stock);
-    $("#txtObservaciones").val("");
-    $("#modalSolicitud").modal("show");
-};
-
-// ── Cargar productos de la sucursal origen ────────────────────────────────────
-function cargarProductos(idTienda) {
-    $.get($.MisUrls.url._ObtenerProductosPorTiendaTraslado, { idTienda: idTienda }, function (resp) {
-        var productos = resp.data || [];
-
-        $("#divSinTienda").hide();
-        $("#divTabla").show();
-
-        if ($.fn.DataTable.isDataTable("#tblProductos")) {
-            $("#tblProductos").DataTable().destroy();
-        }
-
-        var filas = productos.map(function (p) {
-            var btn = p.Stock > 0
-                ? '<button class="btn btn-sm btn-warning" onclick="abrirModalSolicitud('
-                  + p.IdProducto + ',\'' + (p.Nombre || '').replace(/'/g, "\\'") + '\',' + (p.Stock || 0) + ')">'
-                  + '<i class="fas fa-paper-plane mr-1"></i>Solicitar</button>'
-                : '<span class="text-muted small">Sin stock</span>';
-            return [
-                p.Codigo    || '',
-                p.Nombre    || '',
-                p.Categoria || '',
-                '<span class="badge badge-' + (p.Stock > 0 ? 'success' : 'secondary') + '">' + (p.Stock || 0) + '</span>',
-                btn
-            ];
-        });
-
-        dtProductos = $("#tblProductos").DataTable({
-            data      : filas,
-            columns   : [
-                { title: 'Código',   width: '100px' },
-                { title: 'Producto' },
-                { title: 'Categoría' },
-                { title: 'Stock', className: 'text-center', width: '90px' },
-                { title: 'Acción',  orderable: false, className: 'text-center', width: '110px' }
-            ],
-            language  : { url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json" },
-            pageLength : 15,
-            order      : [[1, 'asc']],
-            responsive : true
-        });
-        $("#lblTotalProductos").text(productos.length + " producto(s)");
-    }).fail(function () {
-        toastr.error("No se pudieron cargar los productos.");
-    });
-}
-
-// ── Paso 4: Mercadería despachada ─────────────────────────────────────────────
-window.cargarDespachados = function () {
-    $.get($.MisUrls.url._Inv_ObtenerTrasladosPorEstado, { estado: 'Despachado' }, function (resp) {
-        var lista = (resp.data || []).filter(function (t) {
-            return AppSession.esSuperAdmin || t.IdTiendaDestino == _miTienda;
-        });
-
-        var tbody = $("#tbodyDespachados").empty();
-
-        if (lista.length === 0) {
-            $("#tblDespachados").hide();
-            $("#divSinDespachados").show();
-            return;
-        }
-        $("#divSinDespachados").hide();
-        $("#tblDespachados").show();
-
-        lista.forEach(function (t) {
-            tbody.append('<tr>' +
-                '<td><span class="badge badge-light border">' + (t.Numero || '') + '</span></td>' +
-                '<td>' + (t.FechaTraslado || '') + '</td>' +
-                '<td>' + (t.CodigoProducto || '') + ' — ' + (t.NombreProducto || '') + '</td>' +
-                '<td class="text-center font-weight-bold">' + t.Cantidad + '</td>' +
-                '<td>' + (t.TiendaOrigen || '') + '</td>' +
-                '<td><small>' + (t.UsuarioAprueba || '—') + '</small></td>' +
-                '<td class="text-center">' +
-                    '<button class="btn btn-sm btn-outline-primary" onclick="registrarLlegada(' + t.IdTraslado + ',\'' + (t.Numero || '') + '\')">' +
-                        '<i class="fas fa-box-open mr-1"></i>Registrar Llegada' +
-                    '</button>' +
-                '</td>' +
-                '</tr>');
-        });
-    });
-};
-
-// ── Registrar llegada (Paso 4) ────────────────────────────────────────────────
-window.registrarLlegada = function (id, numero) {
-    Swal.fire({
-        title: '¿Confirmar llegada?',
-        html: 'Confirmá que los productos del traslado <b>' + numero + '</b> llegaron a tu sucursal.<br>'
-            + '<small class="text-muted">El supervisor aprobará la recepción para que el stock se actualice.</small>',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-box-open mr-1"></i> Registrar llegada',
-        confirmButtonColor: '#007bff',
-        cancelButtonText: 'Cancelar'
-    }).then(function (r) {
-        if (!r.isConfirmed) return;
-        $.post($.MisUrls.url._Inv_RegistrarRecepcionTraslado, { idTraslado: id }, function (res) {
-            if (res.resultado) {
-                toastr.success(res.mensaje);
-                cargarDespachados();
-                tablaHistorial.ajax.reload(null, false);
+        var miNombre = '';
+        $.each(lista, function (_, t) {
+            if (t.IdTienda === miTienda) {
+                miNombre = t.Nombre;
             } else {
-                Swal.fire({ icon: 'error', title: 'Error', text: res.mensaje });
+                $cbo.append('<option value="' + t.IdTienda + '">' + t.Nombre + '</option>');
             }
         });
-    });
-};
-
-// ── Historial ─────────────────────────────────────────────────────────────────
-function inicializarTablaHistorial() {
-    tablaHistorial = $("#tbTraslados").DataTable({
-        ajax: {
-            url    : $.MisUrls.url._Inv_ObtenerHistorialTraslados,
-            type   : "GET",
-            data   : function () {
-                return {
-                    fechainicio : $("#txtFechaInicio").val() || obtenerFechaHoy(),
-                    fechafin    : $("#txtFechaFin").val()    || obtenerFechaHoy(),
-                    idtienda    : 0
-                };
-            },
-            dataSrc: "data"
-        },
-        columns: [
-            { data: "Numero", render: function (d) {
-                return '<span class="badge badge-light border">' + (d || '') + '</span>'; }},
-            { data: "FechaTraslado" },
-            { data: null, render: function (r) {
-                return (r.CodigoProducto || '') + ' — ' + (r.NombreProducto || ''); }},
-            { data: "TiendaOrigen" },
-            { data: "TiendaDestino" },
-            { data: "Cantidad", className: "text-center" },
-            { data: "Usuario" },
-            { data: "EstadoAprobacion", className: "text-center", render: badgeEstado }
-        ],
-        language  : { url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json" },
-        responsive: true,
-        order     : [[0, "desc"]],
-        pageLength: 10
+        $('#txtMiSucursal').val(miNombre || 'Mi sucursal');
     });
 }
 
-window.buscarHistorial = function () {
-    if (!$("#txtFechaInicio").val() || !$("#txtFechaFin").val()) {
-        toastr.warning("Ingresá las fechas para buscar."); return;
-    }
-    tablaHistorial.ajax.reload();
-};
+function cargarProductos(idTienda) {
+    $('#tbodyProductos').html('<tr><td colspan="4" class="text-center py-2"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>');
+    $('#divTablaProductos').show();
+    $('#divSinTienda').hide();
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+    $.get($.MisUrls.url._ObtenerStock, { idtienda: idTienda }, function (r) {
+        _productosOrigen = (r && r.data) ? r.data : [];
+        // Filtrar solo productos con stock > 0
+        _productosOrigen = _productosOrigen.filter(function (p) { return p.Stock > 0; });
+        $('#lblTotalProductos').text(_productosOrigen.length + ' producto(s) con stock disponible');
+        renderizarTablaProductos(_productosOrigen);
+    }).fail(function () {
+        $('#tbodyProductos').html('<tr><td colspan="4" class="text-center text-danger">Error al cargar productos.</td></tr>');
+    });
+}
+
+function renderizarTablaProductos(lista) {
+    var $tbody = $('#tbodyProductos');
+    if (!lista || lista.length === 0) {
+        $tbody.html('<tr><td colspan="4" class="text-center text-muted py-2">Sin productos con stock en esta sucursal.</td></tr>');
+        return;
+    }
+    var html = '';
+    $.each(lista, function (_, p) {
+        var enCarrito = carrito.some(function (c) { return c.idProducto === p.IdProducto; });
+        var btnClass = enCarrito ? 'btn-success disabled' : 'btn-outline-warning';
+        var btnText  = enCarrito
+            ? '<i class="fas fa-check"></i> Agregado'
+            : '<i class="fas fa-plus"></i> Agregar';
+        html += '<tr>' +
+                '<td>' + p.Codigo + '</td>' +
+                '<td>' + p.NombreProducto + '</td>' +
+                '<td class="text-center">' + p.Stock + '</td>' +
+                '<td class="text-center">' +
+                '<button class="btn btn-sm ' + btnClass + '" ' +
+                (enCarrito ? 'disabled ' : '') +
+                'onclick="agregarAlCarrito(' + p.IdProducto + ',\'' + esc(p.Codigo) + '\',\'' + esc(p.NombreProducto) + '\',' + p.Stock + ')">' +
+                btnText + '</button></td></tr>';
+    });
+    $tbody.html(html);
+}
+
+function filtrarProductos(query) {
+    var q = (query || '').toLowerCase().trim();
+    if (!q) { renderizarTablaProductos(_productosOrigen); return; }
+    var filtrados = _productosOrigen.filter(function (p) {
+        return (p.Codigo + ' ' + p.NombreProducto).toLowerCase().indexOf(q) >= 0;
+    });
+    renderizarTablaProductos(filtrados);
+}
+
+function agregarAlCarrito(idProducto, codigo, nombre, stock) {
+    if (carrito.some(function (c) { return c.idProducto === idProducto; })) return;
+    carrito.push({ idProducto: idProducto, codigo: codigo, nombre: nombre, stock: stock });
+    renderizarTablaProductos(_productosOrigen);
+    renderizarCarrito();
+}
+
+function quitarDelCarrito(idProducto) {
+    carrito = carrito.filter(function (c) { return c.idProducto !== idProducto; });
+    renderizarTablaProductos(_productosOrigen);
+    renderizarCarrito();
+}
+
+function renderizarCarrito() {
+    if (carrito.length === 0) {
+        $('#divCarrito').hide();
+        return;
+    }
+    var html = '';
+    $.each(carrito, function (_, c) {
+        html += '<tr>' +
+                '<td>' + c.codigo + '</td>' +
+                '<td>' + c.nombre + '</td>' +
+                '<td class="text-center">' +
+                '<input type="number" id="qty_' + c.idProducto + '" ' +
+                'class="form-control form-control-sm text-center" ' +
+                'min="1" max="' + c.stock + '" value="1" style="width:80px;display:inline-block;" />' +
+                '</td>' +
+                '<td class="text-center">' + c.stock + '</td>' +
+                '<td class="text-center">' +
+                '<button class="btn btn-sm btn-outline-danger" onclick="quitarDelCarrito(' + c.idProducto + ')">' +
+                '<i class="fas fa-trash-alt"></i></button></td></tr>';
+    });
+    $('#tbodyCarrito').html(html);
+    $('#divCarrito').show();
+}
+
+function enviarSolicitud() {
+    if (carrito.length === 0) {
+        Swal.fire('Atención', 'Agregá al menos un producto al carrito.', 'warning');
+        return;
+    }
+    var obs = $('#txtObservaciones').val().trim();
+    if (!obs) {
+        Swal.fire('Atención', 'El campo Observaciones es obligatorio.', 'warning');
+        $('#txtObservaciones').focus();
+        return;
+    }
+
+    var errCantidad = false;
+    $.each(carrito, function (_, c) {
+        var qty = parseInt($('#qty_' + c.idProducto).val());
+        if (isNaN(qty) || qty < 1 || qty > c.stock) { errCantidad = true; return false; }
+    });
+    if (errCantidad) {
+        Swal.fire('Atención', 'Revisá las cantidades: deben ser entre 1 y el stock disponible.', 'warning');
+        return;
+    }
+
+    var xml = '<D>';
+    $.each(carrito, function (_, c) {
+        var qty = parseInt($('#qty_' + c.idProducto).val());
+        xml += '<I><P>' + c.idProducto + '</P><C>' + qty + '</C></I>';
+    });
+    xml += '</D>';
+
+    var idOrigen = parseInt($('#cboTiendaOrigen').val());
+
+    Swal.fire({
+        title: '¿Confirmar solicitud?',
+        text: 'Se enviará la solicitud al supervisor de la sucursal origen para aprobación.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, enviar',
+        cancelButtonText: 'Cancelar'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        $.post($.MisUrls.url._Inv_CrearSolicitudTraslado, {
+            idTiendaOrigen: idOrigen,
+            detalleXml: xml,
+            observaciones: obs
+        }, function (data) {
+            if (data && data.resultado) {
+                Swal.fire('¡Enviado!', 'Solicitud de traslado creada. Aguardá la aprobación del supervisor.', 'success');
+                carrito = [];
+                _productosOrigen = [];
+                $('#cboTiendaOrigen').val('');
+                $('#txtObservaciones').val('');
+                $('#divTablaProductos').hide();
+                $('#divSinTienda').show();
+                $('#divCarrito').hide();
+            } else {
+                Swal.fire('Error', (data && data.mensaje) || 'No se pudo crear la solicitud.', 'error');
+            }
+        }).fail(function () {
+            Swal.fire('Error', 'Error de comunicación con el servidor.', 'error');
+        });
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// PASO 3 — DESPACHAR (mi tienda es ORIGEN)
+// ══════════════════════════════════════════════════════════════
+
+function cargarDespachar() {
+    $.get($.MisUrls.url._Inv_ObtenerTraslados, { estado: 'Aprobado', rol: 'origen' }, function (r) {
+        var lista = (r && r.data) ? r.data : [];
+        var $tbody = $('#tbodyDespachar');
+        actualizarBadge('badgeDespachar', lista.length);
+
+        if (lista.length === 0) {
+            $('#divDespacharVacio').show();
+            $tbody.html('');
+            return;
+        }
+        $('#divDespacharVacio').hide();
+
+        var html = '';
+        $.each(lista, function (_, t) {
+            html += '<tr>' +
+                    '<td><strong>' + t.Numero + '</strong></td>' +
+                    '<td>' + t.FechaTraslado + '</td>' +
+                    '<td>' + t.TiendaDestino + '</td>' +
+                    '<td>' + t.Usuario + '</td>' +
+                    '<td>' + (t.UsuarioAprueba || '-') + '</td>' +
+                    '<td class="text-center">' + t.CantidadItems + ' ítem(s) / ' + t.TotalUnidades + ' u.</td>' +
+                    '<td class="text-center">' +
+                    '<button class="btn btn-sm btn-outline-dark mr-1" onclick="verDetalle(' + t.IdTraslado + ',\'' + esc(t.Numero) + '\')">' +
+                    '<i class="fas fa-eye"></i></button>' +
+                    '<button class="btn btn-sm btn-primary" onclick="despachar(' + t.IdTraslado + ',\'' + esc(t.Numero) + '\')">' +
+                    '<i class="fas fa-truck mr-1"></i>Despachar</button>' +
+                    '</td></tr>';
+        });
+        $tbody.html(html);
+    });
+}
+
+function despachar(idTraslado, numero) {
+    Swal.fire({
+        title: 'Despachar T-' + numero,
+        text: 'Se descontará el stock de tu sucursal para los productos del traslado. Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, despachar',
+        confirmButtonColor: '#007bff',
+        cancelButtonText: 'Cancelar'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.post($.MisUrls.url._Inv_DespacharTraslado, { idTraslado: idTraslado }, function (data) {
+            if (data && data.resultado) {
+                Swal.fire('¡Despachado!', 'Traslado N° ' + numero + ' marcado como despachado.', 'success');
+                cargarDespachar();
+            } else {
+                Swal.fire('Error', (data && data.mensaje) || 'No se pudo despachar.', 'error');
+            }
+        }).fail(function () {
+            Swal.fire('Error', 'Error de comunicación con el servidor.', 'error');
+        });
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// PASO 4 — RECEPCIONAR (mi tienda es DESTINO)
+// ══════════════════════════════════════════════════════════════
+
+function cargarRecepcionar() {
+    $.get($.MisUrls.url._Inv_ObtenerTraslados, { estado: 'Despachado', rol: 'destino' }, function (r) {
+        var lista = (r && r.data) ? r.data : [];
+        var $tbody = $('#tbodyRecepcionar');
+        actualizarBadge('badgeRecepcionar', lista.length);
+
+        if (lista.length === 0) {
+            $('#divRecepcionarVacio').show();
+            $tbody.html('');
+            return;
+        }
+        $('#divRecepcionarVacio').hide();
+
+        var html = '';
+        $.each(lista, function (_, t) {
+            html += '<tr>' +
+                    '<td><strong>' + t.Numero + '</strong></td>' +
+                    '<td>' + t.FechaTraslado + '</td>' +
+                    '<td>' + t.TiendaOrigen + '</td>' +
+                    '<td>' + (t.UsuarioDespacha || '-') + '</td>' +
+                    '<td>' + (t.FechaDespacho || '-') + '</td>' +
+                    '<td class="text-center">' + t.CantidadItems + ' ítem(s) / ' + t.TotalUnidades + ' u.</td>' +
+                    '<td class="text-center">' +
+                    '<button class="btn btn-sm btn-outline-dark mr-1" onclick="verDetalle(' + t.IdTraslado + ',\'' + esc(t.Numero) + '\')">' +
+                    '<i class="fas fa-eye"></i></button>' +
+                    '<button class="btn btn-sm btn-success" onclick="recepcionar(' + t.IdTraslado + ',\'' + esc(t.Numero) + '\')">' +
+                    '<i class="fas fa-box-open mr-1"></i>Recepcionar</button>' +
+                    '</td></tr>';
+        });
+        $tbody.html(html);
+    });
+}
+
+function recepcionar(idTraslado, numero) {
+    Swal.fire({
+        title: 'Recepcionar T-' + numero,
+        text: 'Se acreditará el stock en tu sucursal. Esta acción no se puede deshacer.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, recepcionar',
+        confirmButtonColor: '#28a745',
+        cancelButtonText: 'Cancelar'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.post($.MisUrls.url._Inv_RecepcionarTraslado, { idTraslado: idTraslado }, function (data) {
+            if (data && data.resultado) {
+                Swal.fire('¡Completado!', 'Traslado N° ' + numero + ' recibido. Stock actualizado en tu sucursal.', 'success');
+                cargarRecepcionar();
+            } else {
+                Swal.fire('Error', (data && data.mensaje) || 'No se pudo recepcionar.', 'error');
+            }
+        }).fail(function () {
+            Swal.fire('Error', 'Error de comunicación con el servidor.', 'error');
+        });
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// DETALLE (modal compartido)
+// ══════════════════════════════════════════════════════════════
+
+function verDetalle(idTraslado, numero) {
+    $('#lblNumeroDetalle').text(numero);
+    $('#tbodyDetalle').html('<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>');
+    $('#modalDetalle').modal('show');
+
+    $.get($.MisUrls.url._Inv_ObtenerDetalleTraslado, { idTraslado: idTraslado }, function (r) {
+        var items = (r && r.data) ? r.data : [];
+        if (items.length === 0) {
+            $('#tbodyDetalle').html('<tr><td colspan="4" class="text-center text-muted">Sin ítems.</td></tr>');
+            return;
+        }
+        var html = '';
+        $.each(items, function (_, item) {
+            html += '<tr>' +
+                    '<td>' + item.CodigoProducto + '</td>' +
+                    '<td>' + item.NombreProducto + '</td>' +
+                    '<td class="text-center">' + item.Cantidad + '</td>' +
+                    '<td class="text-center">' + item.StockOrigen + '</td>' +
+                    '</tr>';
+        });
+        $('#tbodyDetalle').html(html);
+    }).fail(function () {
+        $('#tbodyDetalle').html('<tr><td colspan="4" class="text-center text-danger">Error al cargar detalle.</td></tr>');
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════════════════════════════
+
+function inicializarFechasHistorial() {
+    var hoy = new Date();
+    var primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+    function fmt(d) {
+        var dd = ('0' + d.getDate()).slice(-2);
+        var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+        return dd + '/' + mm + '/' + d.getFullYear();
+    }
+    $('#txtFechaInicio').val(fmt(primerDia));
+    $('#txtFechaFin').val(fmt(hoy));
+
+    if ($.fn.datepicker) {
+        $('#txtFechaInicio, #txtFechaFin').datepicker({ format: 'dd/mm/yyyy', autoclose: true, language: 'es' });
+    }
+}
+
+function buscarHistorial() {
+    var fi = $('#txtFechaInicio').val().trim();
+    var ff = $('#txtFechaFin').val().trim();
+    if (!fi || !ff) { Swal.fire('Atención', 'Seleccioná ambas fechas.', 'warning'); return; }
+    cargarHistorial(fi, ff, $('#ddlEstadoHistorial').val());
+}
+
+function cargarHistorial(fi, ff, estado) {
+    var $tbody = $('#tbodyHistorial');
+    $tbody.html('<tr><td colspan="9" class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>');
+
+    $.get($.MisUrls.url._Inv_ObtenerHistorialTraslados, {
+        fechainicio: fi,
+        fechafin: ff,
+        estado: estado || ''
+    }, function (r) {
+        var lista = (r && r.data) ? r.data : [];
+        if (lista.length === 0) {
+            $tbody.html('<tr><td colspan="9" class="text-center text-muted py-2">Sin registros para el período.</td></tr>');
+            return;
+        }
+        var html = '';
+        $.each(lista, function (_, t) {
+            html += '<tr>' +
+                    '<td>' + t.Numero + '</td>' +
+                    '<td>' + t.FechaTraslado + '</td>' +
+                    '<td>' + t.TiendaOrigen + '</td>' +
+                    '<td>' + t.TiendaDestino + '</td>' +
+                    '<td>' + t.Usuario + '</td>' +
+                    '<td class="text-center">' + t.CantidadItems + '</td>' +
+                    '<td class="text-center">' + t.TotalUnidades + '</td>' +
+                    '<td class="text-center">' + badgeEstado(t.EstadoAprobacion) + '</td>' +
+                    '<td class="text-center">' +
+                    '<button class="btn btn-xs btn-outline-dark" onclick="verDetalle(' + t.IdTraslado + ',\'' + esc(t.Numero) + '\')">' +
+                    '<i class="fas fa-eye"></i></button></td></tr>';
+        });
+        $tbody.html(html);
+    }).fail(function () {
+        $tbody.html('<tr><td colspan="9" class="text-center text-danger">Error al cargar historial.</td></tr>');
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+
+function actualizarBadge(id, count) {
+    var $badge = $('#' + id);
+    if (count > 0) { $badge.text(count).show(); }
+    else { $badge.hide(); }
+}
+
 function badgeEstado(estado) {
     var map = {
-        'Solicitado'        : ['warning', 'Solicitado'],
-        'AprobadoSolicitud' : ['info',    'Aprobado por destino'],
-        'Despachado'        : ['primary', 'Despachado'],
-        'EnRecepcion'       : ['warning', 'En recepción'],
-        'Completado'        : ['success', 'Completado'],
-        'RechazadoDestino'  : ['danger',  'Rechazado (destino)'],
-        'RechazadoOrigen'   : ['danger',  'Rechazado (origen)']
+        'Solicitado': 'badge-warning',
+        'Aprobado':   'badge-primary',
+        'Despachado': 'badge-info',
+        'Completado': 'badge-success',
+        'Rechazado':  'badge-danger'
     };
-    var v = map[estado] || ['secondary', estado || ''];
-    return '<span class="badge badge-' + v[0] + '">' + v[1] + '</span>';
+    return '<span class="badge ' + (map[estado] || 'badge-secondary') + '">' + (estado || '') + '</span>';
 }
 
-function obtenerFechaHoy() {
-    var d = new Date();
-    return ('0' + d.getDate()).slice(-2) + '/'
-         + ('0' + (d.getMonth() + 1)).slice(-2) + '/'
-         + d.getFullYear();
+function esc(s) {
+    return String(s).replace(/'/g, "\\'");
 }

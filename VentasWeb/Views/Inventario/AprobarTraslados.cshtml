@@ -12,46 +12,112 @@
 
 <div class="card border-warning">
     <div class="card-header bg-warning">
-        <i class="fas fa-exchange-alt mr-1"></i> Aprobación de Traslados entre Sucursales
+        <i class="fas fa-check-circle mr-1"></i>
+        Paso 2 — Aprobación de Solicitudes de Traslado
+        <small class="d-block text-dark">Como supervisor de la sucursal origen, aprobá o rechazá las solicitudes entrantes.</small>
     </div>
     <div class="card-body">
-        <div class="row align-items-end mb-2">
+
+        <div class="row align-items-end mb-3">
             <div class="col-sm-3">
-                <label class="col-form-label-sm font-weight-bold">Estado:</label>
+                <label class="col-form-label-sm font-weight-bold">Filtrar por estado:</label>
                 <select id="ddlEstado" class="form-control form-control-sm">
-                    <option value="Solicitado" selected>Solicitados (mi aprobación pendiente)</option>
-                    <option value="AprobadoSolicitud">Aprobados — esperando despacho origen</option>
-                    <option value="Despachado">Despachados — en tránsito</option>
-                    <option value="EnRecepcion">En recepción — esperando aprobación final</option>
-                    <option value="Completado">Completados</option>
-                    <option value="RechazadoDestino">Rechazados por destino</option>
-                    <option value="RechazadoOrigen">Rechazados por origen</option>
-                    <option value="">Todos los activos</option>
+                    <option value="Solicitado" selected>Solicitado — pendiente mi aprobación</option>
+                    <option value="Aprobado">Aprobado — pendiente despacho</option>
+                    <option value="Despachado">Despachado — en tránsito</option>
+                    <option value="Completado">Completado</option>
+                    <option value="Rechazado">Rechazado</option>
+                    <option value="">Todos</option>
                 </select>
             </div>
             <div class="col-sm-2">
-                <button id="btnBuscar" class="btn btn-sm btn-primary btn-block">
+                <button class="btn btn-sm btn-warning btn-block" onclick="cargarTraslados()">
                     <i class="fas fa-search"></i> Buscar
                 </button>
             </div>
         </div>
+
+        <div id="divVacio" class="alert alert-info py-2" style="display:none;">
+            <i class="fas fa-info-circle mr-1"></i> No hay traslados en el estado seleccionado para tu sucursal.
+        </div>
+
         <div class="table-responsive">
-            <table id="tbTraslados" class="table table-sm table-bordered table-hover" style="width:100%">
+            <table class="table table-sm table-bordered table-hover" style="width:100%">
                 <thead class="thead-light">
                     <tr>
                         <th>N°</th>
                         <th>Fecha</th>
-                        <th>Producto</th>
-                        <th class="text-center">Cant.</th>
                         <th>Origen</th>
                         <th>Destino</th>
                         <th>Solicitó</th>
+                        <th class="text-center">Ítems / Unid.</th>
+                        <th>Observaciones</th>
                         <th class="text-center">Estado</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tbodyTraslados"></tbody>
             </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══ MODAL DETALLE ══════════════════════════════════════════ -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title">
+                    <i class="fas fa-list-ul mr-1"></i>
+                    Detalle — Traslado <span id="lblNumeroDetalle" class="badge badge-light ml-1"></span>
+                </h6>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-2">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th class="text-center">Cantidad solicitada</th>
+                            <th class="text-center">Stock actual (origen)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyDetalle"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL RECHAZO ══════════════════════════════════════════ -->
+<div class="modal fade" id="modalRechazo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white py-2">
+                <h6 class="modal-title">
+                    <i class="fas fa-times-circle mr-1"></i>
+                    Rechazar Traslado <span id="lblNumeroRechazo" class="badge badge-light ml-1"></span>
+                </h6>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-2">
+                    <label class="font-weight-bold">Motivo del rechazo <span class="text-danger">*</span>:</label>
+                    <textarea id="txtMotivoRechazo" class="form-control form-control-sm" rows="3"
+                              placeholder="Explicá por qué rechazás este traslado..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="confirmarRechazo()">
+                    <i class="fas fa-times-circle mr-1"></i> Confirmar Rechazo
+                </button>
+            </div>
         </div>
     </div>
 </div>

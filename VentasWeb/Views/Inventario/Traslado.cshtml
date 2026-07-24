@@ -1,193 +1,276 @@
 @{
-    ViewBag.Title = "Traslado entre Tiendas";
+    ViewBag.Title = "Traslado entre Sucursales";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    bool esSuperAdmin = Session["EsAdminGlobal"] != null && (bool)Session["EsAdminGlobal"];
 }
-
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css" />
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Inventario</a></li>
-        <li class="breadcrumb-item active">Traslado entre Tiendas</li>
+        <li class="breadcrumb-item active">Traslado entre Sucursales</li>
     </ol>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- PASO 1: Solicitar mercadería a otra sucursal            -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div class="card border-warning shadow-sm mb-3">
-    <div class="card-header bg-warning text-dark">
-        <i class="fas fa-paper-plane mr-2"></i>
-        <strong>Paso 1 — Solicitar mercadería a otra sucursal</strong>
-        <small class="ml-2 text-dark-50">(tu sucursal recibirá los productos)</small>
-    </div>
-    <div class="card-body py-2">
-        <div class="row align-items-end">
-            <div class="col-sm-4">
-                <label class="col-form-label-sm font-weight-bold">Solicitar a sucursal:</label>
-                <select id="cboTiendaOrigen" class="form-control form-control-sm">
-                    <option value="">-- Seleccione sucursal origen --</option>
-                </select>
-            </div>
-            <div class="col-sm-4 mt-2 mt-sm-0">
-                <span class="text-muted small" id="lblTotalProductos"></span>
-            </div>
-        </div>
+<!-- ══ TABS ═══════════════════════════════════════════════════ -->
+<ul class="nav nav-tabs mb-3" id="tabTraslado" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-toggle="tab" href="#panel-solicitar">
+            <i class="fas fa-paper-plane mr-1 text-warning"></i> Solicitar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="tabDespachar" data-toggle="tab" href="#panel-despachar">
+            <i class="fas fa-truck mr-1 text-primary"></i> Despachar
+            <span class="badge badge-primary ml-1" id="badgeDespachar" style="display:none;"></span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="tabRecepcionar" data-toggle="tab" href="#panel-recepcionar">
+            <i class="fas fa-box-open mr-1 text-success"></i> Recepcionar
+            <span class="badge badge-success ml-1" id="badgeRecepcionar" style="display:none;"></span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-toggle="tab" href="#panel-historial">
+            <i class="fas fa-history mr-1 text-secondary"></i> Historial
+        </a>
+    </li>
+</ul>
 
-        <div id="divSinTienda" class="text-center text-muted py-4">
-            <i class="fas fa-store fa-2x mb-2 d-block"></i>
-            Seleccioná la sucursal a la que querés solicitar productos.
-        </div>
-        <div id="divTabla" style="display:none" class="mt-2">
-            <table id="tblProductos" class="table table-sm table-bordered table-hover w-100">
-                <thead class="thead-light">
-                    <tr>
-                        <th>Código</th>
-                        <th>Producto</th>
-                        <th>Categoría</th>
-                        <th class="text-center">Stock disponible</th>
-                        <th class="text-center">Acción</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-</div>
+<div class="tab-content">
 
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- PASO 4: Mercadería despachada en camino a mi sucursal   -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div class="card border-primary shadow-sm mb-3">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <span><i class="fas fa-truck mr-2"></i><strong>Paso 4 — Mercadería en camino a mi sucursal</strong></span>
-        <button class="btn btn-sm btn-light" onclick="cargarDespachados()">
-            <i class="fas fa-sync-alt mr-1"></i> Actualizar
-        </button>
-    </div>
-    <div class="card-body p-2">
-        <div id="divSinDespachados" class="text-center text-muted py-3" style="display:none;">
-            <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
-            No hay mercadería en camino actualmente.
-        </div>
-        <table id="tblDespachados" class="table table-sm table-bordered table-hover w-100" style="display:none">
-            <thead class="thead-light">
-                <tr>
-                    <th>N°</th>
-                    <th>Fecha Solicitud</th>
-                    <th>Producto</th>
-                    <th class="text-center">Cant.</th>
-                    <th>Sucursal Origen</th>
-                    <th>Despachado por</th>
-                    <th class="text-center">Acción</th>
-                </tr>
-            </thead>
-            <tbody id="tbodyDespachados"></tbody>
-        </table>
-    </div>
-</div>
+    <!-- ══ PASO 1: SOLICITAR ══════════════════════════════════ -->
+    <div class="tab-pane fade show active" id="panel-solicitar">
+        <div class="card border-warning">
+            <div class="card-header bg-warning">
+                <i class="fas fa-paper-plane mr-1"></i>
+                Paso 1 — Solicitar productos a otra sucursal
+            </div>
+            <div class="card-body">
+                <div class="form-row align-items-end mb-3">
+                    <div class="col-sm-4">
+                        <label class="col-form-label-sm font-weight-bold">Sucursal Origen <small class="text-muted">(de dónde vienen)</small>:</label>
+                        <select id="cboTiendaOrigen" class="form-control form-control-sm">
+                            <option value="">-- Seleccioná la sucursal --</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="col-form-label-sm font-weight-bold">Sucursal Destino <small class="text-muted">(mi sucursal)</small>:</label>
+                        <input type="text" id="txtMiSucursal" class="form-control form-control-sm bg-light" readonly />
+                    </div>
+                </div>
 
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- Historial                                              -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div class="card border-info shadow-sm">
-    <div class="card-header bg-info text-white d-flex align-items-center">
-        <i class="far fa-list-alt mr-2"></i>
-        <span>Historial de Traslados de mi sucursal</span>
+                <!-- Placeholder sin tienda seleccionada -->
+                <div id="divSinTienda" class="alert alert-info py-2 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i> Seleccioná una sucursal origen para ver sus productos disponibles.
+                </div>
+
+                <!-- Tabla productos de la tienda origen -->
+                <div id="divTablaProductos" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small" id="lblTotalProductos"></span>
+                        <input type="text" id="txtBuscarProducto" class="form-control form-control-sm w-25"
+                               placeholder="Buscar producto..." oninput="filtrarProductos(this.value)" />
+                    </div>
+                    <div class="table-responsive" style="max-height:300px;overflow-y:auto;">
+                        <table class="table table-sm table-bordered table-hover">
+                            <thead class="thead-dark sticky-top">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th class="text-center">Stock disponible</th>
+                                    <th class="text-center" style="width:110px">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyProductos"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Carrito de productos seleccionados -->
+                <div id="divCarrito" style="display:none;" class="mt-3">
+                    <h6 class="font-weight-bold border-top pt-2">
+                        <i class="fas fa-shopping-cart mr-1 text-warning"></i> Productos seleccionados para solicitar:
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th class="text-center" style="width:150px">Cantidad a solicitar</th>
+                                    <th class="text-center" style="width:90px">Stock origen</th>
+                                    <th class="text-center" style="width:50px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyCarrito"></tbody>
+                        </table>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-form-label-sm font-weight-bold">Observaciones <span class="text-danger">*</span>:</label>
+                        <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2"
+                                  placeholder="Indicá el motivo del traslado..."></textarea>
+                    </div>
+                    <button class="btn btn-warning" onclick="enviarSolicitud()">
+                        <i class="fas fa-paper-plane mr-1"></i> Enviar Solicitud al Supervisor de Origen
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="card-body p-2">
-        <div class="row mb-2 align-items-end">
-            <div class="col-sm-3">
-                <label class="col-form-label-sm">Fecha Desde</label>
-                <input type="text" id="txtFechaInicio" class="form-control form-control-sm" />
-            </div>
-            <div class="col-sm-3">
-                <label class="col-form-label-sm">Fecha Hasta</label>
-                <input type="text" id="txtFechaFin" class="form-control form-control-sm" />
-            </div>
-            <div class="col-sm-3">
-                <button onclick="buscarHistorial()" class="btn btn-info btn-sm btn-block mt-sm-0 mt-2">
-                    <i class="fas fa-search mr-1"></i> Buscar
+
+    <!-- ══ PASO 3: DESPACHAR ══════════════════════════════════ -->
+    <div class="tab-pane fade" id="panel-despachar">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-truck mr-1"></i> Paso 3 — Pedidos aprobados a despachar desde mi sucursal</span>
+                <button class="btn btn-outline-light btn-sm" onclick="cargarDespachar()">
+                    <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
-        </div>
-        <table id="tbTraslados" class="table table-sm table-bordered table-hover w-100">
-            <thead class="thead-dark">
-                <tr>
-                    <th>N°</th>
-                    <th>Fecha</th>
-                    <th>Producto</th>
-                    <th>Origen</th>
-                    <th>Destino</th>
-                    <th class="text-center">Cant.</th>
-                    <th>Solicitó</th>
-                    <th class="text-center">Estado</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- Modal: Solicitar traslado                              -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div class="modal fade" id="modalSolicitud" tabindex="-1" role="dialog" aria-modal="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark py-2">
-                <h6 class="modal-title">
-                    <i class="fas fa-paper-plane mr-1"></i>
-                    Solicitar — <span id="lblProductoSolicitud" class="font-weight-bold"></span>
-                </h6>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            <div class="card-body p-2">
+                <div id="divDespacharVacio" class="alert alert-info py-2 mb-0" style="display:none;">
+                    <i class="fas fa-check-circle mr-1"></i> No hay pedidos aprobados pendientes de despacho.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>N°</th>
+                                <th>Fecha solicitud</th>
+                                <th>Destino</th>
+                                <th>Solicitó</th>
+                                <th>Supervisor aprobó</th>
+                                <th class="text-center">Ítems / Unid.</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDespachar"></tbody>
+                    </table>
+                </div>
             </div>
-            <div class="modal-body">
-                <input type="hidden" id="hIdProducto" />
-                <input type="hidden" id="hIdTiendaOrigen" />
+        </div>
+    </div>
 
-                <div class="row mb-2">
-                    <div class="col-6">
-                        <div class="text-muted small">Solicitar a:</div>
-                        <div class="font-weight-bold" id="lblOrigenModal">—</div>
+    <!-- ══ PASO 4: RECEPCIONAR ════════════════════════════════ -->
+    <div class="tab-pane fade" id="panel-recepcionar">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-box-open mr-1"></i> Paso 4 — Mercadería en camino a mi sucursal</span>
+                <button class="btn btn-outline-light btn-sm" onclick="cargarRecepcionar()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="card-body p-2">
+                <div id="divRecepcionarVacio" class="alert alert-info py-2 mb-0" style="display:none;">
+                    <i class="fas fa-check-circle mr-1"></i> No hay mercadería en tránsito hacia tu sucursal.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>N°</th>
+                                <th>Fecha solicitud</th>
+                                <th>Origen</th>
+                                <th>Despachó</th>
+                                <th>Fecha despacho</th>
+                                <th class="text-center">Ítems / Unid.</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyRecepcionar"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ HISTORIAL ══════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="panel-historial">
+        <div class="card border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <i class="fas fa-history mr-1"></i> Historial de Traslados
+            </div>
+            <div class="card-body">
+                <div class="form-row align-items-end mb-3">
+                    <div class="col-sm-3">
+                        <label class="col-form-label-sm font-weight-bold">Desde:</label>
+                        <input type="text" id="txtFechaInicio" class="form-control form-control-sm" />
                     </div>
-                    <div class="col-6">
-                        <div class="text-muted small">Tu sucursal (recibirá):</div>
-                        <div class="font-weight-bold text-primary" id="lblDestinoModal">—</div>
+                    <div class="col-sm-3">
+                        <label class="col-form-label-sm font-weight-bold">Hasta:</label>
+                        <input type="text" id="txtFechaFin" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-sm-2">
+                        <label class="col-form-label-sm font-weight-bold">Estado:</label>
+                        <select id="ddlEstadoHistorial" class="form-control form-control-sm">
+                            <option value="">Todos</option>
+                            <option value="Solicitado">Solicitado</option>
+                            <option value="Aprobado">Aprobado</option>
+                            <option value="Despachado">Despachado</option>
+                            <option value="Completado">Completado</option>
+                            <option value="Rechazado">Rechazado</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <button class="btn btn-sm btn-secondary btn-block" onclick="buscarHistorial()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label class="col-form-label-sm font-weight-bold">
-                        Cantidad <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" id="txtCantidad" class="form-control form-control-sm"
-                           min="1" value="1" />
-                    <small class="text-muted" id="lblStockDisponible"></small>
+                <div class="table-responsive">
+                    <table id="tbHistorial" class="table table-sm table-bordered table-hover" style="width:100%">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>N°</th>
+                                <th>Fecha</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Solicitó</th>
+                                <th class="text-center">Ítems</th>
+                                <th class="text-center">Unid.</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyHistorial"></tbody>
+                    </table>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="form-group mb-0">
-                    <label class="col-form-label-sm font-weight-bold">
-                        Observaciones <span class="text-danger">*</span>
-                    </label>
-                    <textarea id="txtObservaciones" class="form-control form-control-sm" rows="2"
-                              maxlength="500"
-                              placeholder="Ej: Reposición urgente para temporada alta"></textarea>
-                </div>
+</div><!-- /tab-content -->
+
+<!-- ══ MODAL DETALLE ÍTEMS ════════════════════════════════════ -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title">
+                    <i class="fas fa-list-ul mr-1"></i> Detalle — Traslado <span id="lblNumeroDetalle" class="badge badge-light ml-1"></span>
+                </h6>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-2">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th class="text-center">Cantidad solicitada</th>
+                            <th class="text-center">Stock actual (origen)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyDetalle"></tbody>
+                </table>
             </div>
             <div class="modal-footer py-2">
-                <button class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button class="btn btn-sm btn-warning" id="btnEnviarSolicitud">
-                    <i class="fas fa-paper-plane mr-1"></i> Enviar Solicitud
-                </button>
+                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 
 @section scripts {
-    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap4.min.js"></script>
     <script src="@Url.Content("~/Scripts/Views/Inventario_Traslado.js?v=" + DateTime.Now.Ticks)"></script>
 }

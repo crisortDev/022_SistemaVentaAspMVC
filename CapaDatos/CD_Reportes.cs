@@ -387,9 +387,6 @@ namespace CapaDatos
                                 IdTraslado       = LeerInt(dr, "IdTraslado"),
                                 Numero           = LeerStr(dr, "Numero"),
                                 FechaTraslado    = LeerStr(dr, "FechaTraslado"),
-                                CodigoProducto   = LeerStr(dr, "CodigoProducto"),
-                                NombreProducto   = LeerStr(dr, "NombreProducto"),
-                                Cantidad         = LeerInt(dr, "Cantidad"),
                                 TiendaOrigen     = LeerStr(dr, "TiendaOrigen"),
                                 TiendaDestino    = LeerStr(dr, "TiendaDestino"),
                                 Observaciones    = LeerStr(dr, "Observaciones"),
@@ -397,7 +394,9 @@ namespace CapaDatos
                                 Usuario          = LeerStr(dr, "Usuario"),
                                 UsuarioAprueba   = LeerStr(dr, "UsuarioAprueba"),
                                 FechaAprobacion  = LeerStr(dr, "FechaAprobacion"),
-                                MotivoRechazo    = LeerStr(dr, "MotivoRechazo")
+                                MotivoRechazo    = LeerStr(dr, "MotivoRechazo"),
+                                CantidadItems    = LeerInt(dr, "CantidadItems"),
+                                TotalUnidades    = LeerInt(dr, "TotalUnidades")
                             });
                         }
                     }

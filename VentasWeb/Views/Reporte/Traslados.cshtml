@@ -48,9 +48,11 @@
                 <label class="col-form-label col-form-label-sm">Estado</label>
                 <select id="cboEstado" class="form-control form-control-sm">
                     <option value="">-- Todos --</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Aprobada">Aprobada</option>
-                    <option value="Rechazada">Rechazada</option>
+                    <option value="Solicitado">Solicitado</option>
+                    <option value="Aprobado">Aprobado</option>
+                    <option value="Despachado">Despachado</option>
+                    <option value="Completado">Completado</option>
+                    <option value="Rechazado">Rechazado</option>
                 </select>
             </div>
             <div class="col-sm-2">
@@ -85,7 +87,7 @@
                 <div class="col-md-4 mb-2">
                     <div class="card border-primary h-100 shadow-sm">
                         <div class="card-body py-2">
-                            <div class="text-muted" style="font-size:.7rem;">Productos Movilizados</div>
+                            <div class="text-muted" style="font-size:.7rem;">Unidades Movilizadas</div>
                             <div id="kpiProductos" class="h4 font-weight-bold text-primary mb-0">—</div>
                         </div>
                     </div>
@@ -115,14 +117,6 @@
                         <i class="fas fa-store mr-1"></i> Sucursales que más Envían
                     </h6>
                     <div id="tablaSucursales"></div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12 mb-3">
-                    <h6 class="font-weight-bold text-info border-bottom pb-1">
-                        <i class="fas fa-boxes mr-1"></i> Productos más Trasladados (Top 5)
-                    </h6>
-                    <div id="tablaTopProductos"></div>
                 </div>
             </div>
         </div>
